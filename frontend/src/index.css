@@ -1,0 +1,165 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family:
+        'Syne', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family:
+        'Space Mono', source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+@layer base {
+    :root {
+        /* Light Mode - Clean white with subtle gray tones */
+        --background: 0 0% 98%;
+        --foreground: 0 0% 9%;
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 9%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 9%;
+        --primary: 0 84% 60%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 0 0% 94%;
+        --secondary-foreground: 0 0% 20%;
+        --muted: 0 0% 94%;
+        --muted-foreground: 0 0% 40%;
+        --accent: 0 84% 60%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 0 0% 88%;
+        --input: 0 0% 88%;
+        --ring: 0 84% 60%;
+        --chart-1: 0 84% 60%;
+        --chart-2: 220 70% 50%;
+        --chart-3: 160 60% 45%;
+        --chart-4: 30 80% 55%;
+        --chart-5: 280 65% 60%;
+        --radius: 0.5rem;
+    }
+
+    .dark {
+        /* Dark Mode - Deep black with red accents */
+        --background: 240 6% 4%;
+        --foreground: 0 0% 95%;
+        --card: 240 6% 6%;
+        --card-foreground: 0 0% 95%;
+        --popover: 240 6% 6%;
+        --popover-foreground: 0 0% 95%;
+        --primary: 0 84% 60%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 240 4% 12%;
+        --secondary-foreground: 0 0% 90%;
+        --muted: 240 4% 12%;
+        --muted-foreground: 0 0% 60%;
+        --accent: 0 84% 60%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 62% 50%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 240 4% 16%;
+        --input: 240 4% 16%;
+        --ring: 0 84% 60%;
+        --chart-1: 0 84% 60%;
+        --chart-2: 220 70% 50%;
+        --chart-3: 160 60% 45%;
+        --chart-4: 30 80% 55%;
+        --chart-5: 280 65% 60%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+
+    [data-debug-wrapper="true"] > * {
+        margin-left: inherit;
+        margin-right: inherit;
+        margin-top: inherit;
+        margin-bottom: inherit;
+        padding-left: inherit;
+        padding-right: inherit;
+        padding-top: inherit;
+        padding-bottom: inherit;
+        column-gap: inherit;
+        row-gap: inherit;
+        gap: inherit;
+        border-left-width: inherit;
+        border-right-width: inherit;
+        border-top-width: inherit;
+        border-bottom-width: inherit;
+        border-left-style: inherit;
+        border-right-style: inherit;
+        border-top-style: inherit;
+        border-bottom-style: inherit;
+        border-left-color: inherit;
+        border-right-color: inherit;
+        border-top-color: inherit;
+        border-bottom-color: inherit;
+    }
+}
+
+/* Animate-in utility for Tailwind */
+@layer utilities {
+    .animate-in {
+        animation-duration: 0.5s;
+        animation-fill-mode: both;
+    }
+    
+    .fade-in {
+        animation-name: fadeIn;
+    }
+    
+    .zoom-in-90 {
+        animation-name: zoomIn90;
+    }
+    
+    .slide-in-from-bottom-6 {
+        animation-name: slideInFromBottom;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes zoomIn90 {
+        from { 
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        to { 
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    @keyframes slideInFromBottom {
+        from {
+            opacity: 0;
+            transform: translateY(1.5rem);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
