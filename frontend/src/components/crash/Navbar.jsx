@@ -1,51 +1,81 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ShieldAlert, Sun, Moon, Globe } from 'lucide-react';
+import { Sun, Moon, Globe } from 'lucide-react';
 
 const Navbar = ({ scrolled, onSimulate }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
+  const [logoLoaded, setLogoLoaded] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = `${process.env.PUBLIC_URL}/crash-logo.png`;
+    img.onload = () => setLogoLoaded(true);
+  }, []);
 
   return (
     <nav 
       data-testid="navbar"
       className={`fixed w-full z-50 transition-all duration-300 ${
         scrolled 
-          ? 'bg-background/80 backdrop-blur-md py-4 shadow-xl border-b border-border' 
-          : 'bg-transparent py-6'
+          ? 'bg-background/80 backdrop-blur-md py-3 shadow-xl border-b border-border' 
+          : 'bg-transparent py-5'
       }`}
     >
       <div className="container mx-auto px-6 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center font-black text-white italic text-xl">
-            C
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className={`relative transition-all duration-300 ${
+            scrolled ? 'w-10 h-10' : 'w-12 h-12'
+          }`}>
+            {logoLoaded ? (
+              <img 
+                src={`${process.env.PUBLIC_URL}/crash-logo.png`}
+                alt="C.R.A.S.H. Logo" 
+                className="w-full h-full object-contain logo-glow transition-all duration-300 hover:scale-110"
+              />
+            ) : (
+              <div className="w-full h-full bg-red-600 rounded flex items-center justify-center font-black text-white italic text-xl animate-pulse">
+                C
+              </div>
+            )}
           </div>
-          <span className="text-2xl font-black tracking-tighter text-foreground">C.R.A.S.H.</span>
+          <div className="flex flex-col">
+            <span className={`font-black tracking-tighter text-foreground transition-all duration-300 ${
+              scrolled ? 'text-xl' : 'text-2xl'
+            }`}>
+              C.R.A.S.H.
+            </span>
+          </div>
         </div>
         
+        {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-6">
           <div className="flex gap-8 text-[10px] font-bold uppercase tracking-[0.2em]">
             <a 
               href="#problema" 
               data-testid="nav-problem"
-              className="text-muted-foreground hover:text-red-500 transition-colors"
+              className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
             >
               {t.nav.problem}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a 
               href="#arquitectura" 
               data-testid="nav-architecture"
-              className="text-muted-foreground hover:text-red-500 transition-colors"
+              className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
             >
               {t.nav.architecture}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
             </a>
             <a 
               href="#hardware" 
               data-testid="nav-hardware"
-              className="text-muted-foreground hover:text-red-500 transition-colors"
+              className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
             >
               {t.nav.hardware}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
             </a>
           </div>
           
@@ -53,11 +83,11 @@ const Navbar = ({ scrolled, onSimulate }) => {
           <button 
             onClick={toggleTheme}
             data-testid="theme-toggle"
-            className="p-2 rounded-full hover:bg-muted transition-colors"
+            className="p-2 rounded-full hover:bg-muted transition-all duration-300 hover:scale-110 hover:rotate-12"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? (
-              <Sun size={18} className="text-yellow-500" />
+              <Sun size={18} className="text-yellow-500 animate-rotate-pulse" />
             ) : (
               <Moon size={18} className="text-slate-700" />
             )}
@@ -67,9 +97,9 @@ const Navbar = ({ scrolled, onSimulate }) => {
           <button 
             onClick={toggleLanguage}
             data-testid="language-toggle"
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-muted transition-colors text-[10px] font-bold uppercase tracking-widest"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-muted transition-all duration-300 hover:scale-105 text-[10px] font-bold uppercase tracking-widest"
           >
-            <Globe size={14} />
+            <Globe size={14} className="animate-pulse" />
             {language === 'es' ? 'EN' : 'ES'}
           </button>
           
@@ -77,9 +107,10 @@ const Navbar = ({ scrolled, onSimulate }) => {
           <button 
             onClick={onSimulate}
             data-testid="simulate-impact-btn"
-            className="px-4 py-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 text-[10px] font-bold uppercase tracking-[0.2em]"
+            className="px-5 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all duration-300 hover:scale-105 shadow-lg shadow-red-600/30 hover:shadow-red-600/50 text-[10px] font-bold uppercase tracking-[0.2em] relative overflow-hidden group"
           >
-            {t.nav.simulate}
+            <span className="relative z-10">{t.nav.simulate}</span>
+            <span className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
           </button>
         </div>
         
@@ -88,21 +119,21 @@ const Navbar = ({ scrolled, onSimulate }) => {
           <button 
             onClick={toggleTheme}
             data-testid="theme-toggle-mobile"
-            className="p-2 rounded-full hover:bg-muted transition-colors"
+            className="p-2 rounded-full hover:bg-muted transition-all duration-300"
           >
             {theme === 'dark' ? <Sun size={16} className="text-yellow-500" /> : <Moon size={16} className="text-slate-700" />}
           </button>
           <button 
             onClick={toggleLanguage}
             data-testid="language-toggle-mobile"
-            className="p-2 rounded-full hover:bg-muted transition-colors text-xs font-bold"
+            className="p-2 rounded-full hover:bg-muted transition-all duration-300 text-xs font-bold"
           >
             {language === 'es' ? 'EN' : 'ES'}
           </button>
           <button 
             onClick={onSimulate}
             data-testid="simulate-impact-btn-mobile"
-            className="px-3 py-1.5 bg-red-600 text-white rounded-full text-[9px] font-bold"
+            className="px-3 py-1.5 bg-red-600 text-white rounded-full text-[9px] font-bold hover:bg-red-700 transition-all duration-300"
           >
             {t.nav.simulate}
           </button>
