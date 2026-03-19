@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/Crash/static/css/main.59c62efe.css",
+    "main.js": "/Crash/static/js/main.2da1d7c8.js",
+    "index.html": "/Crash/index.html",
+    "main.59c62efe.css.map": "/Crash/static/css/main.59c62efe.css.map",
+    "main.2da1d7c8.js.map": "/Crash/static/js/main.2da1d7c8.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.59c62efe.css",
+    "static/js/main.2da1d7c8.js"
+  ]
+}
