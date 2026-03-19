@@ -11,7 +11,7 @@ export const translations = {
     
     // Hero Section
     hero: {
-      badge: "PROYECTO INNOVATEC 2026",
+      badge: "PROYECTO INNOVATEC 2024",
       title: "C.R.A.S.H.",
       subtitle: "Colisión: Respuesta y Alerta para Seguridad Humana.",
       tagline: "Smart Impact Detector",
@@ -117,12 +117,12 @@ export const translations = {
     
     // Footer
     footer: {
-      description: "Reporte de Ingeniería desarrollado para InnovaTec 2026.",
+      description: "Reporte de Ingeniería desarrollado para InnovaTec 2024.",
       subtitle: "Sistemas Embebidos y Arquitectura de Computadoras.",
       devLab: "Dev Lab",
       devLabDesc: "Sistemas Computacionales",
       event: "Evento",
-      eventName: "InnovaTec 2026"
+      eventName: "InnovaTec 2024"
     },
     
     // Theme toggle
@@ -143,7 +143,7 @@ export const translations = {
     
     // Hero Section
     hero: {
-      badge: "INNOVATEC 2026 PROJECT",
+      badge: "INNOVATEC 2024 PROJECT",
       title: "C.R.A.S.H.",
       subtitle: "Collision: Response and Alert for Human Safety.",
       tagline: "Smart Impact Detector",
@@ -249,12 +249,12 @@ export const translations = {
     
     // Footer
     footer: {
-      description: "Engineering Report developed for InnovaTec 2026.",
+      description: "Engineering Report developed for InnovaTec 2024.",
       subtitle: "Embedded Systems and Computer Architecture.",
       devLab: "Dev Lab",
       devLabDesc: "Computer Systems",
       event: "Event",
-      eventName: "InnovaTec 2026"
+      eventName: "InnovaTec 2024"
     },
     
     // Theme toggle
