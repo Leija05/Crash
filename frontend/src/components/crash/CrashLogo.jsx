@@ -1,23 +1,95 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+
+const DRAW_ANIMATION = 'crash-logo-draw';
+const FILL_ANIMATION = 'crash-logo-fill';
+
+/**
+ * Configura la animación de trazado del logo usando la longitud real de cada path.
+ */
+const drawCrashLogoPaths = (svgElement, color) => {
+  if (!svgElement) {
+    return;
+  }
+
+  const paths = svgElement.querySelectorAll('path');
+
+  paths.forEach((path, index) => {
+    const pathLength = path.getTotalLength();
+    const delay = index * 0.045;
+
+    path.style.setProperty('--crash-logo-fill', color);
+    path.style.fill = 'transparent';
+    path.style.stroke = color;
+    path.style.strokeWidth = index < 8 ? '18' : '10';
+    path.style.strokeLinecap = 'round';
+    path.style.strokeLinejoin = 'round';
+    path.style.strokeDasharray = String(pathLength);
+    path.style.strokeDashoffset = String(pathLength);
+    path.style.animation = [
+      `${DRAW_ANIMATION} 1.4s ease forwards ${delay}s`,
+      `${FILL_ANIMATION} 0.7s ease forwards ${delay + 0.85}s`
+    ].join(', ');
+  });
+};
 
 /**
  * C.R.A.S.H. Logo Component (SVG Original)
  * Collision Response & Analysis System for Helmets
  */
-const CrashLogo = ({ 
-  width = 200, 
-  height = 200, 
-  color = "#ef4444",
-  className = "" 
+const CrashLogo = ({
+  width = 200,
+  height = 200,
+  color = '#ef4444',
+  className = '',
+  shouldAnimate = true
 }) => {
+  const svgRef = useRef(null);
+
+  useEffect(() => {
+    const svgElement = svgRef.current;
+
+    if (!svgElement) {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reduceMotion = mediaQuery.matches;
+
+    const paths = svgElement.querySelectorAll('path');
+
+    if (!shouldAnimate || reduceMotion) {
+      paths.forEach((path) => {
+        path.style.fill = color;
+        path.style.stroke = 'none';
+        path.style.strokeWidth = '0';
+        path.style.strokeDasharray = 'none';
+        path.style.strokeDashoffset = '0';
+        path.style.animation = 'none';
+      });
+
+      return undefined;
+    }
+
+    drawCrashLogoPaths(svgElement, color);
+
+    return () => {
+      paths.forEach((path) => {
+        path.style.animation = 'none';
+      });
+    };
+  }, [color, shouldAnimate]);
+
   return (
     <svg
+      ref={svgRef}
       width={width}
       height={height}
       viewBox="0 0 537 517"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      style={{ display: 'block' }}
+      style={{ display: 'block', color }}
+      aria-hidden="true"
+      focusable="false"
     >
       <g transform="translate(0, 517) scale(0.1, -0.1)" fill={color} stroke="none">
         <path d="M2495 5113 c-100 -68 -323 -177 -481 -236 -222 -84 -619 -176 -854
