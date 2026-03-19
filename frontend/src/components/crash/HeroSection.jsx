@@ -1,15 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ShieldAlert } from 'lucide-react';
 import CrashLogo from './CrashLogo';
+import { useInView } from '@/hooks/useInView';
 
 const HeroSection = ({ gForce, isAlertActive }) => {
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const [heroRef, isHeroVisible] = useInView({ threshold: 0.35, once: false });
+  const [logoAnimationKey, setLogoAnimationKey] = useState(0);
+
+  useEffect(() => {
+    if (isHeroVisible) {
+      setLogoAnimationKey((currentKey) => currentKey + 1);
+    }
+  }, [isHeroVisible]);
 
   return (
-    <header data-testid="hero-section" className="relative pt-32 pb-20 overflow-hidden">
+    <header ref={heroRef} data-testid="hero-section" className="relative pt-32 pb-20 overflow-hidden">
       {/* Animated Background Effects */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none overflow-hidden">
         <div className={`absolute top-20 left-1/4 w-96 h-96 rounded-full blur-[128px] animate-float ${
@@ -35,16 +44,20 @@ const HeroSection = ({ gForce, isAlertActive }) => {
             <div className={`absolute inset-0 blur-2xl ${
               isAlertActive ? 'bg-red-600/40 animate-pulse' : 'bg-red-600/20'
             }`} />
-            <CrashLogo 
-              width={isAlertActive ? 208 : 192}
-              height={isAlertActive ? 208 : 192}
-              color="#ef4444"
-              className={`relative filter transition-all duration-700 ${
-                isAlertActive 
-                  ? 'drop-shadow-[0_0_30px_rgba(239,68,68,1)] animate-heartbeat' 
-                  : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:drop-shadow-[0_0_30px_rgba(239,68,68,0.9)]'
-              }`}
-            />
+            {isHeroVisible && (
+              <CrashLogo
+                key={logoAnimationKey}
+                width={isAlertActive ? 208 : 192}
+                height={isAlertActive ? 208 : 192}
+                color="#ef4444"
+                shouldAnimate
+                className={`relative filter transition-all duration-700 ${
+                  isAlertActive
+                    ? 'drop-shadow-[0_0_30px_rgba(239,68,68,1)] animate-heartbeat'
+                    : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:drop-shadow-[0_0_30px_rgba(239,68,68,0.9)]'
+                }`}
+              />
+            )}
           </div>
         </div>
         
