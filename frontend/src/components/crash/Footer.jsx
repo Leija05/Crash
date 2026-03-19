@@ -1,19 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useInView } from '@/hooks/useInView';
+import CrashLogo from './CrashLogo';
 
 const Footer = () => {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const [logoLoaded, setLogoLoaded] = useState(false);
   const [ref, isVisible] = useInView({ threshold: 0.1 });
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = `${process.env.PUBLIC_URL}/crash-logo.png`;
-    img.onload = () => setLogoLoaded(true);
-  }, []);
 
   return (
     <footer 
@@ -45,17 +39,12 @@ const Footer = () => {
           <div className="relative">
             {/* Glow background */}
             <div className="absolute inset-0 bg-red-600/20 blur-2xl rounded-full animate-pulse" />
-            {logoLoaded ? (
-              <img 
-                src={`${process.env.PUBLIC_URL}/crash-logo.png`}
-                alt="C.R.A.S.H. Logo" 
-                className="relative w-20 h-20 object-contain filter drop-shadow-[0_0_15px_rgba(239,68,68,0.7)] animate-float hover:drop-shadow-[0_0_25px_rgba(239,68,68,1)] transition-all duration-300"
-              />
-            ) : (
-              <div className="relative w-16 h-16 bg-red-600 rounded flex items-center justify-center font-black text-white italic text-2xl shadow-xl shadow-red-600/30">
-                C
-              </div>
-            )}
+            <CrashLogo 
+              width={80}
+              height={80}
+              color="#ef4444"
+              className="relative filter drop-shadow-[0_0_15px_rgba(239,68,68,0.7)] animate-float hover:drop-shadow-[0_0_25px_rgba(239,68,68,1)] transition-all duration-300"
+            />
           </div>
           <div className="flex flex-col items-start">
             <span className="text-4xl font-black text-foreground uppercase tracking-tighter">

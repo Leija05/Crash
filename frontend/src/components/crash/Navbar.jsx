@@ -1,18 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Sun, Moon, Globe } from 'lucide-react';
+import CrashLogo from './CrashLogo';
 
 const Navbar = ({ scrolled, onSimulate }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
-  const [logoLoaded, setLogoLoaded] = useState(false);
-
-  useEffect(() => {
-    const img = new Image();
-    img.src = `${process.env.PUBLIC_URL}/crash-logo.png`;
-    img.onload = () => setLogoLoaded(true);
-  }, []);
 
   return (
     <nav 
@@ -29,17 +23,12 @@ const Navbar = ({ scrolled, onSimulate }) => {
           <div className={`relative transition-all duration-300 ${
             scrolled ? 'w-12 h-12' : 'w-14 h-14'
           }`}>
-            {logoLoaded ? (
-              <img 
-                src={`${process.env.PUBLIC_URL}/crash-logo.png`}
-                alt="C.R.A.S.H. Logo" 
-                className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(239,68,68,0.6)] transition-all duration-300 hover:scale-110 hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.9)]"
-              />
-            ) : (
-              <div className="w-full h-full bg-red-600 rounded flex items-center justify-center font-black text-white italic text-xl animate-pulse">
-                C
-              </div>
-            )}
+            <CrashLogo 
+              width={scrolled ? 48 : 56}
+              height={scrolled ? 48 : 56}
+              color="#ef4444"
+              className="w-full h-full filter drop-shadow-[0_0_8px_rgba(239,68,68,0.6)] transition-all duration-300 hover:scale-110 hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.9)]"
+            />
           </div>
           <div className="flex flex-col">
             <span className={`font-black tracking-tighter text-foreground transition-all duration-300 ${
