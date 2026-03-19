@@ -27,13 +27,13 @@ const Navbar = ({ scrolled, onSimulate }) => {
         {/* Logo */}
         <div className="flex items-center gap-3">
           <div className={`relative transition-all duration-300 ${
-            scrolled ? 'w-10 h-10' : 'w-12 h-12'
+            scrolled ? 'w-12 h-12' : 'w-14 h-14'
           }`}>
             {logoLoaded ? (
               <img 
                 src={`${process.env.PUBLIC_URL}/crash-logo.png`}
                 alt="C.R.A.S.H. Logo" 
-                className="w-full h-full object-contain logo-glow transition-all duration-300 hover:scale-110"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(239,68,68,0.6)] transition-all duration-300 hover:scale-110 hover:drop-shadow-[0_0_12px_rgba(239,68,68,0.9)]"
               />
             ) : (
               <div className="w-full h-full bg-red-600 rounded flex items-center justify-center font-black text-white italic text-xl animate-pulse">
@@ -46,6 +46,9 @@ const Navbar = ({ scrolled, onSimulate }) => {
               scrolled ? 'text-xl' : 'text-2xl'
             }`}>
               C.R.A.S.H.
+            </span>
+            <span className="text-[8px] font-bold text-red-500 uppercase tracking-widest">
+              Response System
             </span>
           </div>
         </div>

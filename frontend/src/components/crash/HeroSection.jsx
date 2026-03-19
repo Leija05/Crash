@@ -36,16 +36,22 @@ const HeroSection = ({ gForce, isAlertActive }) => {
       <div className="container mx-auto px-6 relative z-10 text-center">
         {/* Logo */}
         {logoLoaded && (
-          <div className="flex justify-center mb-8 animate-scale-pop">
-            <img 
-              src={`${process.env.PUBLIC_URL}/crash-logo.png`}
-              alt="C.R.A.S.H. Logo" 
-              className={`object-contain transition-all duration-700 ${
-                isAlertActive 
-                  ? 'w-32 h-32 md:w-40 md:h-40 animate-pulse-glow' 
-                  : 'w-28 h-28 md:w-36 md:h-36 logo-glow'
-              }`}
-            />
+          <div className="flex justify-center mb-10 animate-scale-pop">
+            <div className="relative">
+              {/* Glow effect background */}
+              <div className={`absolute inset-0 blur-2xl ${
+                isAlertActive ? 'bg-red-600/40 animate-pulse' : 'bg-red-600/20'
+              }`} />
+              <img 
+                src={`${process.env.PUBLIC_URL}/crash-logo.png`}
+                alt="C.R.A.S.H. Logo" 
+                className={`relative object-contain filter transition-all duration-700 ${
+                  isAlertActive 
+                    ? 'w-40 h-40 md:w-52 md:h-52 drop-shadow-[0_0_30px_rgba(239,68,68,1)] animate-heartbeat' 
+                    : 'w-36 h-36 md:w-48 md:h-48 drop-shadow-[0_0_20px_rgba(239,68,68,0.6)] hover:drop-shadow-[0_0_30px_rgba(239,68,68,0.9)]'
+                }`}
+              />
+            </div>
           </div>
         )}
         

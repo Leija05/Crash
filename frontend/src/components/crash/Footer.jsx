@@ -42,22 +42,26 @@ const Footer = () => {
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-4 mb-12">
-          {logoLoaded ? (
-            <img 
-              src={`${process.env.PUBLIC_URL}/crash-logo.png`}
-              alt="C.R.A.S.H. Logo" 
-              className="w-16 h-16 object-contain logo-glow animate-float"
-            />
-          ) : (
-            <div className="w-12 h-12 bg-red-600 rounded flex items-center justify-center font-black text-white italic text-2xl shadow-xl shadow-red-600/30">
-              C
-            </div>
-          )}
+          <div className="relative">
+            {/* Glow background */}
+            <div className="absolute inset-0 bg-red-600/20 blur-2xl rounded-full animate-pulse" />
+            {logoLoaded ? (
+              <img 
+                src={`${process.env.PUBLIC_URL}/crash-logo.png`}
+                alt="C.R.A.S.H. Logo" 
+                className="relative w-20 h-20 object-contain filter drop-shadow-[0_0_15px_rgba(239,68,68,0.7)] animate-float hover:drop-shadow-[0_0_25px_rgba(239,68,68,1)] transition-all duration-300"
+              />
+            ) : (
+              <div className="relative w-16 h-16 bg-red-600 rounded flex items-center justify-center font-black text-white italic text-2xl shadow-xl shadow-red-600/30">
+                C
+              </div>
+            )}
+          </div>
           <div className="flex flex-col items-start">
-            <span className="text-3xl font-black text-foreground uppercase tracking-tighter">
+            <span className="text-4xl font-black text-foreground uppercase tracking-tighter">
               C.R.A.S.H.
             </span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            <span className="text-[11px] font-bold text-red-500 uppercase tracking-widest mt-1">
               Response & Monitoring Systems
             </span>
           </div>
