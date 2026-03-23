@@ -4,7 +4,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useInView } from '@/hooks/useInView';
 import CrashLogo from './CrashLogo';
 import axios from 'axios';
-import { jsPDF } from 'jspdf';
 import { FileText, Download, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -31,156 +30,21 @@ const Footer = () => {
 
       const { content, generated_with_ai } = response.data;
 
-      // Create PDF
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
+      const footerText = generated_with_ai
+        ? (language === 'es' ? '\n\n✨ Reporte mejorado con IA Gemini' : '\n\n✨ Report enhanced with Gemini AI')
+        : (language === 'es' ? '\n\nReporte generado automáticamente' : '\n\nAutomatically generated report');
 
-      // PDF Settings
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const maxWidth = pageWidth - (margin * 2);
-      let yPosition = margin;
-
-      // Helper function to add new page if needed
-      const checkPageBreak = (requiredSpace = 10) => {
-        if (yPosition + requiredSpace > pageHeight - margin) {
-          doc.addPage();
-          yPosition = margin;
-          return true;
-        }
-        return false;
-      };
-
-      // Parse markdown content and render to PDF
-      const lines = content.split('\n');
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        // Skip empty lines at top
-        if (!line.trim() && yPosition === margin) continue;
-
-        checkPageBreak();
-
-        // Headers
-        if (line.startsWith('# ')) {
-          checkPageBreak(20);
-          doc.setFontSize(20);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(239, 68, 68); // Red color
-          const text = line.replace('# ', '');
-          doc.text(text, margin, yPosition);
-          yPosition += 12;
-        }
-        else if (line.startsWith('## ')) {
-          checkPageBreak(15);
-          yPosition += 5;
-          doc.setFontSize(16);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(0, 0, 0);
-          const text = line.replace('## ', '');
-          doc.text(text, margin, yPosition);
-          yPosition += 10;
-        }
-        else if (line.startsWith('### ')) {
-          checkPageBreak(12);
-          yPosition += 3;
-          doc.setFontSize(13);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(0, 0, 0);
-          const text = line.replace('### ', '');
-          doc.text(text, margin, yPosition);
-          yPosition += 8;
-        }
-        else if (line.startsWith('#### ')) {
-          checkPageBreak(10);
-          doc.setFontSize(11);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(60, 60, 60);
-          const text = line.replace('#### ', '');
-          doc.text(text, margin, yPosition);
-          yPosition += 7;
-        }
-        // Horizontal rules
-        else if (line.trim() === '---') {
-          checkPageBreak(5);
-          doc.setDrawColor(200, 200, 200);
-          doc.line(margin, yPosition, pageWidth - margin, yPosition);
-          yPosition += 5;
-        }
-        // Bullet points
-        else if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-          checkPageBreak(8);
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(40, 40, 40);
-          const text = line.trim().substring(2);
-          const bullet = '• ';
-          const splitText = doc.splitTextToSize(bullet + text, maxWidth - 5);
-          doc.text(splitText, margin + 5, yPosition);
-          yPosition += splitText.length * 5;
-        }
-        // Numbered lists
-        else if (line.trim().match(/^\d+\./)) {
-          checkPageBreak(8);
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(40, 40, 40);
-          const splitText = doc.splitTextToSize(line.trim(), maxWidth - 5);
-          doc.text(splitText, margin + 5, yPosition);
-          yPosition += splitText.length * 5;
-        }
-        // Bold text (** **)
-        else if (line.includes('**')) {
-          checkPageBreak(8);
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(40, 40, 40);
-          const text = line.replace(/\*\*/g, '');
-          const splitText = doc.splitTextToSize(text, maxWidth);
-          doc.text(splitText, margin, yPosition);
-          yPosition += splitText.length * 5;
-        }
-        // Code blocks
-        else if (line.trim().startsWith('```')) {
-          // Skip code block delimiters
-          continue;
-        }
-        // Regular paragraphs
-        else if (line.trim()) {
-          checkPageBreak(8);
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(60, 60, 60);
-          const splitText = doc.splitTextToSize(line.trim(), maxWidth);
-          doc.text(splitText, margin, yPosition);
-          yPosition += splitText.length * 5;
-        }
-        // Empty lines
-        else {
-          yPosition += 4;
-        }
-      }
-
-      // Add footer note about AI generation
-      doc.setPage(doc.internal.pages.length - 1);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(150, 150, 150);
-      const footerText = generated_with_ai 
-        ? (language === 'es' ? '✨ Reporte mejorado con IA Gemini' : '✨ Report enhanced with Gemini AI')
-        : (language === 'es' ? 'Reporte generado automáticamente' : 'Automatically generated report');
-      doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: 'center' });
-
-      // Save PDF
-      const filename = language === 'es' 
-        ? 'CRASH_Reporte_Completo.pdf' 
-        : 'CRASH_Complete_Report.pdf';
-      doc.save(filename);
+      const blob = new Blob([`${content}${footerText}`], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = language === 'es'
+        ? 'CRASH_Reporte_Completo.md'
+        : 'CRASH_Complete_Report.md';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       setReportStatus('success');
       setTimeout(() => setReportStatus(null), 3000);

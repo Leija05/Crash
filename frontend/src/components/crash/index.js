@@ -7,3 +7,4 @@ export { default as ArchitectureSection } from './ArchitectureSection';
 export { default as AISection } from './AISection';
 export { default as MobileMockup } from './MobileMockup';
 export { default as Footer } from './Footer';
+export { default as ShowcaseSections } from './ShowcaseSections';
