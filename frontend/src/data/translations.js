@@ -122,7 +122,12 @@ export const translations = {
       devLab: "Dev Lab",
       devLabDesc: "Sistemas Computacionales",
       event: "Evento",
-      eventName: "InnovaTec 2026"
+      eventName: "InnovaTec 2026",
+      generateReport: "Generar Reporte Completo",
+      generating: "Generando reporte...",
+      reportReady: "Reporte generado con éxito",
+      reportError: "Error al generar reporte",
+      downloadPDF: "Descargando PDF..."
     },
     
     // Theme toggle
@@ -254,7 +259,12 @@ export const translations = {
       devLab: "Dev Lab",
       devLabDesc: "Computer Systems",
       event: "Event",
-      eventName: "InnovaTec 2026"
+      eventName: "InnovaTec 2026",
+      generateReport: "Generate Complete Report",
+      generating: "Generating report...",
+      reportReady: "Report generated successfully",
+      reportError: "Error generating report",
+      downloadPDF: "Downloading PDF..."
     },
     
     // Theme toggle
