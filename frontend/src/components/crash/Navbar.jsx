@@ -8,29 +8,22 @@ const Navbar = ({ scrolled, onSimulate }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
 
-  const navItems = [
-    { href: '#problema', label: t.nav.problem, testId: 'nav-problem' },
-    { href: '#solucion', label: t.nav.solution, testId: 'nav-solution' },
-    { href: '#demo', label: t.nav.demo, testId: 'nav-demo' },
-    { href: '#impacto', label: t.nav.impact, testId: 'nav-impact' },
-    { href: '#faq', label: t.nav.faq, testId: 'nav-faq' },
-  ];
-
   return (
-    <nav
+    <nav 
       data-testid="navbar"
       className={`fixed w-full z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-background/80 backdrop-blur-md py-3 shadow-xl border-b border-border'
+        scrolled 
+          ? 'bg-background/80 backdrop-blur-md py-3 shadow-xl border-b border-border' 
           : 'bg-transparent py-5'
       }`}
     >
-      <div className="container mx-auto px-6 flex justify-between items-center gap-4">
-        <div className="flex items-center gap-3 shrink-0">
+      <div className="container mx-auto px-6 flex justify-between items-center">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
           <div className={`relative transition-all duration-300 ${
             scrolled ? 'w-12 h-12' : 'w-14 h-14'
           }`}>
-            <CrashLogo
+            <CrashLogo 
               width={scrolled ? 48 : 56}
               height={scrolled ? 48 : 56}
               color="#ef4444"
@@ -48,23 +41,38 @@ const Navbar = ({ scrolled, onSimulate }) => {
             </span>
           </div>
         </div>
-
-        <div className="hidden lg:flex items-center gap-6">
-          <div className="flex gap-5 text-[10px] font-bold uppercase tracking-[0.2em]">
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                data-testid={item.testId}
-                className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
-              >
-                {item.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
-              </a>
-            ))}
+        
+        {/* Desktop Menu */}
+        <div className="hidden md:flex items-center gap-6">
+          <div className="flex gap-8 text-[10px] font-bold uppercase tracking-[0.2em]">
+            <a 
+              href="#problema" 
+              data-testid="nav-problem"
+              className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
+            >
+              {t.nav.problem}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a 
+              href="#arquitectura" 
+              data-testid="nav-architecture"
+              className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
+            >
+              {t.nav.architecture}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
+            </a>
+            <a 
+              href="#hardware" 
+              data-testid="nav-hardware"
+              className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
+            >
+              {t.nav.hardware}
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
+            </a>
           </div>
-
-          <button
+          
+          {/* Theme Toggle */}
+          <button 
             onClick={toggleTheme}
             data-testid="theme-toggle"
             className="p-2 rounded-full hover:bg-muted transition-all duration-300 hover:scale-110 hover:rotate-12"
@@ -76,8 +84,9 @@ const Navbar = ({ scrolled, onSimulate }) => {
               <Moon size={18} className="text-slate-700" />
             )}
           </button>
-
-          <button
+          
+          {/* Language Toggle */}
+          <button 
             onClick={toggleLanguage}
             data-testid="language-toggle"
             className="flex items-center gap-1 px-3 py-1.5 rounded-full hover:bg-muted transition-all duration-300 hover:scale-105 text-[10px] font-bold uppercase tracking-widest"
@@ -85,8 +94,9 @@ const Navbar = ({ scrolled, onSimulate }) => {
             <Globe size={14} className="animate-pulse" />
             {language === 'es' ? 'EN' : 'ES'}
           </button>
-
-          <button
+          
+          {/* Simulate Button */}
+          <button 
             onClick={onSimulate}
             data-testid="simulate-impact-btn"
             className="px-5 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all duration-300 hover:scale-105 shadow-lg shadow-red-600/30 hover:shadow-red-600/50 text-[10px] font-bold uppercase tracking-[0.2em] relative overflow-hidden group"
@@ -95,23 +105,24 @@ const Navbar = ({ scrolled, onSimulate }) => {
             <span className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
           </button>
         </div>
-
-        <div className="flex lg:hidden items-center gap-2">
-          <button
+        
+        {/* Mobile Menu */}
+        <div className="flex md:hidden items-center gap-2">
+          <button 
             onClick={toggleTheme}
             data-testid="theme-toggle-mobile"
             className="p-2 rounded-full hover:bg-muted transition-all duration-300"
           >
             {theme === 'dark' ? <Sun size={16} className="text-yellow-500" /> : <Moon size={16} className="text-slate-700" />}
           </button>
-          <button
+          <button 
             onClick={toggleLanguage}
             data-testid="language-toggle-mobile"
             className="p-2 rounded-full hover:bg-muted transition-all duration-300 text-xs font-bold"
           >
             {language === 'es' ? 'EN' : 'ES'}
           </button>
-          <button
+          <button 
             onClick={onSimulate}
             data-testid="simulate-impact-btn-mobile"
             className="px-3 py-1.5 bg-red-600 text-white rounded-full text-[9px] font-bold hover:bg-red-700 transition-all duration-300"

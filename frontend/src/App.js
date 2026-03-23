@@ -14,7 +14,6 @@ import {
   HardwareSection,
   ArchitectureSection,
   AISection,
-  ShowcaseSections,
   Footer
 } from '@/components/crash';
 
@@ -134,9 +133,6 @@ const CrashApp = () => {
           onAnalyze={analyzeCrashSeverity}
           onCancelAlert={cancelAlert}
         />
-
-        {/* Showcase and exposition sections */}
-        <ShowcaseSections />
       </main>
 
       {/* Footer */}
