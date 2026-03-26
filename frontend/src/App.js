@@ -12,6 +12,7 @@ import {
   HeroSection,
   ProblemSection,
   HardwareSection,
+  DifferenceSection,
   ArchitectureSection,
   AISection,
   Footer
@@ -121,6 +122,9 @@ const CrashApp = () => {
 
         {/* Hardware Section */}
         <HardwareSection />
+
+        {/* Difference Section */}
+        <DifferenceSection />
 
         {/* Architecture Section */}
         <ArchitectureSection />

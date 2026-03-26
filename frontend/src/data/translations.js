@@ -35,6 +35,13 @@ export const translations = {
       educationDesc: "IOT y Sistemas Embebidos"
     },
     
+    //Difference Section
+    difference: {
+      title: "¿Qué nos",
+      highlight: "Diferencia?",
+      description: "C.R.A.S.H. no es solo un dispositivo de detección, es un sistema integral que combina hardware de alta fidelidad, algoritmos de detección avanzados y análisis predictivo con IA generativa para transformar la respuesta a accidentes de motocicleta."
+    },
+
     // Hardware Section
     hardware: {
       badge: "Bill of Materials",
