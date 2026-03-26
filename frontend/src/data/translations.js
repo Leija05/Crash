@@ -35,11 +35,72 @@ export const translations = {
       educationDesc: "IOT y Sistemas Embebidos"
     },
     
-    //Difference Section
+    // Difference Section
     difference: {
-      title: "¿Qué nos",
-      highlight: "Diferencia?",
-      description: "C.R.A.S.H. no es solo un dispositivo de detección, es un sistema integral que combina hardware de alta fidelidad, algoritmos de detección avanzados y análisis predictivo con IA generativa para transformar la respuesta a accidentes de motocicleta."
+      title: "¿Qué hace diferente a C.R.A.S.H.?",
+      description: "El sistema prioriza detección confiable y continuidad operativa en un accidente real, con hardware dedicado y análisis contextual.",
+      points: [
+        {
+          title: "Precisión y especialización del hardware",
+          summary: "Sensado diseñado para impactos de alta intensidad, no para uso general como un smartphone.",
+          bullets: [
+            "Sensor MPU-6050 dedicado con muestreo de hasta 1 kHz para detección en milisegundos.",
+            "Acelerómetro calibrado en ±16g para evitar saturación durante colisiones fuertes."
+          ]
+        },
+        {
+          title: "Integridad del dispositivo en el accidente",
+          summary: "El módulo de detección se protege para seguir transmitiendo incluso cuando el teléfono falla.",
+          bullets: [
+            "Case PETG resistente a tracción, vibraciones y temperaturas entre −40°C y 85°C.",
+            "Montaje seguro para mantener la alerta activa aunque el smartphone se dañe o se desprenda."
+          ]
+        },
+        {
+          title: "Eficiencia energética y autonomía",
+          summary: "La carga de sensado y cómputo recae en electrónica embebida de bajo consumo.",
+          bullets: [
+            "Unidad de potencia Li-Po con más de 48 horas de autonomía en standby.",
+            "Arduino Nano procesa la magnitud vectorial (G), mientras el teléfono solo comunica la alerta."
+          ]
+        },
+        {
+          title: "Diagnóstico avanzado con IA",
+          summary: "La telemetría se convierte en información accionable para la respuesta de emergencia.",
+          bullets: [
+            "Clasificación de severidad desde Baja (<5G) hasta Crítica (>15G).",
+            "Estimación de lesiones probables y primeros auxilios según la fuerza del impacto."
+          ]
+        }
+      ],
+      comparisonTitle: "Comparativa de arquitectura",
+      comparisonHeaders: {
+        feature: "Característica",
+        app: "App todo en uno",
+        crash: "Sistema C.R.A.S.H."
+      },
+      comparisonRows: [
+        {
+          feature: "Resistencia",
+          app: "Alta fragilidad (vidrio/pantalla)",
+          crash: "Alta (case PETG)"
+        },
+        {
+          feature: "Muestreo",
+          app: "Variable (sujeto al sistema operativo)",
+          crash: "Constante (1 kHz)"
+        },
+        {
+          feature: "Detección",
+          app: "Basada en software",
+          crash: "Basada en hardware embebido"
+        },
+        {
+          feature: "Análisis",
+          app: "Umbral simple",
+          crash: "IA predictiva"
+        }
+      ]
     },
 
     // Hardware Section
@@ -177,6 +238,74 @@ export const translations = {
       laborDesc: "24/7 delivery protection",
       education: "Educational:",
       educationDesc: "IoT and Embedded Systems"
+    },
+
+    // Difference Section
+    difference: {
+      title: "What makes C.R.A.S.H. different?",
+      description: "The system focuses on reliable detection and operational continuity during real crashes through dedicated hardware and contextual analysis.",
+      points: [
+        {
+          title: "Hardware precision and specialization",
+          summary: "Impact sensing is engineered for high-force events, not generic smartphone usage.",
+          bullets: [
+            "Dedicated MPU-6050 sensor with up to 1 kHz sampling for millisecond-level detection.",
+            "Accelerometer tuned to ±16g to avoid saturation during severe impacts."
+          ]
+        },
+        {
+          title: "Device integrity during a crash",
+          summary: "The detector is physically protected so alerts can still be sent when phones fail.",
+          bullets: [
+            "PETG enclosure resistant to traction, vibration, and temperatures from −40°C to 85°C.",
+            "Secure mounting keeps alert transmission active even if the smartphone is damaged or detached."
+          ]
+        },
+        {
+          title: "Energy efficiency and autonomy",
+          summary: "Continuous sensing and processing are handled by low-power embedded electronics.",
+          bullets: [
+            "Dedicated Li-Po power unit with more than 48 hours of standby autonomy.",
+            "Arduino Nano computes vector magnitude (G), while the phone acts as the communication bridge."
+          ]
+        },
+        {
+          title: "Advanced AI-assisted diagnosis",
+          summary: "Telemetry is transformed into actionable emergency-response insights.",
+          bullets: [
+            "Impact severity classification from Low (<5G) to Critical (>15G).",
+            "Predicted injuries and first-aid guidance based on measured force."
+          ]
+        }
+      ],
+      comparisonTitle: "Architecture comparison",
+      comparisonHeaders: {
+        feature: "Feature",
+        app: "All-in-one app",
+        crash: "C.R.A.S.H. system"
+      },
+      comparisonRows: [
+        {
+          feature: "Durability",
+          app: "High fragility (glass/screen)",
+          crash: "High (PETG case)"
+        },
+        {
+          feature: "Sampling",
+          app: "Variable (OS dependent)",
+          crash: "Constant (1 kHz)"
+        },
+        {
+          feature: "Detection",
+          app: "Software-based",
+          crash: "Embedded hardware-based"
+        },
+        {
+          feature: "Analysis",
+          app: "Simple threshold",
+          crash: "Predictive AI"
+        }
+      ]
     },
     
     // Hardware Section
