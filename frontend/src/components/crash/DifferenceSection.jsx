@@ -12,10 +12,10 @@ const DifferenceSection = () => {
         <section id="diferencia" data-testid="difference-section" className="grid md:grid-cols-2 gap-16 items-center">
             <div className="order-2 md:order-1">
                 <h2 className="text-4xl font-black text-foreground mb-8 leading-none tracking-tight">
-                    {t('difference.title')}
+                    {t.difference.title}
                 </h2>
                 <p className="text-lg text-muted-foreground">
-                    {t('difference.description')}
+                    {t.difference.description}
                 </p>
             </div>
         </section>
