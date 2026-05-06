@@ -46,6 +46,7 @@ const CrashApp = () => {
   const [userAge, setUserAge] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [globalCount, setGlobalCount] = useState(null);
+  const [videoError, setVideoError] = useState(false);
 
   const fetchGlobalCount = useCallback(async () => {
     try {
@@ -233,11 +234,17 @@ const CrashApp = () => {
                 controls
                 preload="metadata"
                 controlsList="nodownload noplaybackrate"
+                onError={() => setVideoError(true)}
               >
                 <source src={DEMO_VIDEO_SRC} type="video/mp4" />
                 Tu navegador no soporta reproducción de video HTML5.
               </video>
             </div>
+            {videoError && (
+              <p className="mt-3 text-sm text-amber-300">
+                No se pudo cargar el video. Verifica el archivo <span className="font-semibold">frontend/public/videos/crash-demo.mp4</span> y que esté codificado en MP4 compatible (H.264/AAC).
+              </p>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
