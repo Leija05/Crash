@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import "@/App.css";
 import axios from 'axios';
 
@@ -47,6 +47,8 @@ const CrashApp = () => {
   const [formErrors, setFormErrors] = useState({});
   const [globalCount, setGlobalCount] = useState(null);
   const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef(null);
+  const videoSectionRef = useRef(null);
 
   const fetchGlobalCount = useCallback(async () => {
     try {
@@ -82,6 +84,28 @@ const CrashApp = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [isAlertActive]);
+
+  useEffect(() => {
+    const section = videoSectionRef.current;
+    const video = videoRef.current;
+    if (!section || !video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.currentTime = 0;
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+          video.currentTime = 0;
+        }
+      },
+      { threshold: 0.65 }
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
   const triggerTest = useCallback(() => {
     const force = 8.4 + (Math.random() * 5);
@@ -225,15 +249,18 @@ const CrashApp = () => {
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white mb-2">Propuesta de valor</h3><ul className="list-disc list-inside text-zinc-200 text-sm space-y-1"><li>Funciona de forma autónoma</li><li>Reduce el tiempo de respuesta</li><li>Convierte equipo de protección en inteligente</li><li>Entrega datos útiles a servicios médicos</li><li>Puede salvar vidas cuando el usuario no puede pedir ayuda</li></ul></article>
           </div>
 
-          <div className="rounded-2xl border border-zinc-700 bg-zinc-950/40 p-6 md:p-10 text-center">
+          <div ref={videoSectionRef} className="rounded-2xl border border-zinc-700 bg-zinc-950/40 p-6 md:p-10 text-center">
             <h3 className="text-2xl font-bold text-white mb-3">Video demostrativo</h3>
             <p className="text-zinc-300 max-w-2xl mx-auto">Para actualizar el video reemplaza el archivo fijo <span className="font-semibold text-zinc-100">public/videos/crash-demo.mp4</span>. El reproductor usa esta ruta bloqueada y no permite cambiar video desde la interfaz.</p>
             <div className="mt-6 overflow-hidden rounded-xl border border-zinc-700 bg-black">
               <video
+                ref={videoRef}
                 className="w-full aspect-video"
-                controls
+                autoPlay
+                muted
+                playsInline
                 preload="metadata"
-                controlsList="nodownload noplaybackrate"
+                loop
                 onError={() => setVideoError(true)}
               >
                 <source src={DEMO_VIDEO_SRC} type="video/mp4" />
