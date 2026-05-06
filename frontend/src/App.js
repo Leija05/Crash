@@ -29,6 +29,7 @@ const STORAGE_KEYS = {
 };
 const COUNT_API_NAMESPACE = 'crash-smart-detector';
 const COUNT_API_KEY = 'unique-registered-users';
+const DEMO_VIDEO_SRC = `${process.env.PUBLIC_URL}/videos/crash-demo.mp4`;
 
 
 const CrashApp = () => {
@@ -223,10 +224,20 @@ const CrashApp = () => {
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white mb-2">Propuesta de valor</h3><ul className="list-disc list-inside text-zinc-200 text-sm space-y-1"><li>Funciona de forma autónoma</li><li>Reduce el tiempo de respuesta</li><li>Convierte equipo de protección en inteligente</li><li>Entrega datos útiles a servicios médicos</li><li>Puede salvar vidas cuando el usuario no puede pedir ayuda</li></ul></article>
           </div>
 
-          <div className="rounded-2xl border-2 border-dashed border-zinc-600 bg-zinc-950/40 p-6 md:p-10 text-center">
-            <h3 className="text-2xl font-bold text-white mb-3">Video demostrativo (próximamente)</h3>
-            <p className="text-zinc-300 max-w-2xl mx-auto">Este espacio está preparado para insertar un video de presentación o demo del producto (YouTube/Vimeo/archivo propio). Mantiene proporción y visibilidad dentro del flujo de la página.</p>
-            <div className="mt-6 aspect-video w-full rounded-xl bg-zinc-800/70 border border-zinc-700 flex items-center justify-center text-zinc-400">Área reservada para video</div>
+          <div className="rounded-2xl border border-zinc-700 bg-zinc-950/40 p-6 md:p-10 text-center">
+            <h3 className="text-2xl font-bold text-white mb-3">Video demostrativo</h3>
+            <p className="text-zinc-300 max-w-2xl mx-auto">Para actualizar el video reemplaza el archivo fijo <span className="font-semibold text-zinc-100">public/videos/crash-demo.mp4</span>. El reproductor usa esta ruta bloqueada y no permite cambiar video desde la interfaz.</p>
+            <div className="mt-6 overflow-hidden rounded-xl border border-zinc-700 bg-black">
+              <video
+                className="w-full aspect-video"
+                controls
+                preload="metadata"
+                controlsList="nodownload noplaybackrate"
+              >
+                <source src={DEMO_VIDEO_SRC} type="video/mp4" />
+                Tu navegador no soporta reproducción de video HTML5.
+              </video>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
