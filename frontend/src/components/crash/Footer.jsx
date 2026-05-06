@@ -1,62 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useInView } from '@/hooks/useInView';
 import CrashLogo from './CrashLogo';
-import axios from 'axios';
-import { FileText, Download, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const Footer = () => {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const { theme } = useTheme();
   const [ref, isVisible] = useInView({ threshold: 0.1 });
-  
-  // Report generation state
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [reportStatus, setReportStatus] = useState(null); // 'success', 'error', null
-
-  const generateReport = async () => {
-    setIsGenerating(true);
-    setReportStatus(null);
-
-    try {
-      // Call backend to generate report
-      const response = await axios.post(`${API}/generate-report`, {
-        language: language
-      });
-
-      const { content, generated_with_ai } = response.data;
-
-      const footerText = generated_with_ai
-        ? (language === 'es' ? '\n\n✨ Reporte mejorado con IA Gemini' : '\n\n✨ Report enhanced with Gemini AI')
-        : (language === 'es' ? '\n\nReporte generado automáticamente' : '\n\nAutomatically generated report');
-
-      const blob = new Blob([`${content}${footerText}`], { type: 'text/markdown;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = language === 'es'
-        ? 'CRASH_Reporte_Completo.md'
-        : 'CRASH_Complete_Report.md';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      setReportStatus('success');
-      setTimeout(() => setReportStatus(null), 3000);
-
-    } catch (error) {
-      console.error('Error generating report:', error);
-      setReportStatus('error');
-      setTimeout(() => setReportStatus(null), 3000);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   return (
     <footer 
@@ -128,59 +79,6 @@ const Footer = () => {
           ))}
         </div>
 
-        {/* Generate Report Button */}
-        <div className="mb-16">
-          <button
-            data-testid="generate-report-btn"
-            onClick={generateReport}
-            disabled={isGenerating}
-            className={`group relative px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
-              theme === 'dark'
-                ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-lg shadow-red-600/20 hover:shadow-red-600/40'
-                : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-500/30 hover:shadow-red-500/50'
-            }`}
-          >
-            {/* Button glow effect */}
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-red-400 to-red-600 blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
-            
-            {/* Button content */}
-            <div className="relative flex items-center gap-3">
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>{t.footer.generating}</span>
-                </>
-              ) : reportStatus === 'success' ? (
-                <>
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>{t.footer.reportReady}</span>
-                </>
-              ) : reportStatus === 'error' ? (
-                <>
-                  <AlertCircle className="w-5 h-5" />
-                  <span>{t.footer.reportError}</span>
-                </>
-              ) : (
-                <>
-                  <FileText className="w-5 h-5 transition-transform group-hover:scale-110" />
-                  <span>{t.footer.generateReport}</span>
-                  <Download className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
-                </>
-              )}
-            </div>
-          </button>
-
-          {/* Status message */}
-          {reportStatus && (
-            <p className={`mt-3 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${
-              reportStatus === 'success' ? 'text-green-500' : 'text-red-500'
-            }`}>
-              {reportStatus === 'success' ? '✓ ' : '✗ '}
-              {reportStatus === 'success' ? t.footer.reportReady : t.footer.reportError}
-            </p>
-          )}
-        </div>
-        
         {/* Footer Links */}
         <div className={`mt-16 flex flex-col md:flex-row justify-center gap-12 border-t pt-16 ${
           theme === 'dark' ? 'border-white/5' : 'border-black/5'
