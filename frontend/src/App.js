@@ -195,20 +195,20 @@ const CrashApp = () => {
 
       <Navbar scrolled={scrolled} onSimulate={triggerTest} />
 
-      <div className="container mx-auto px-6 pt-24 md:pt-28">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-600/70 bg-zinc-900/80 px-4 py-2 text-sm text-zinc-200">
+      <div className="container mx-auto px-4 sm:px-6 pt-24 md:pt-28">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
+          <div className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-2 rounded-full border border-zinc-600/70 bg-zinc-900/80 px-3 sm:px-4 py-2 text-xs sm:text-sm text-zinc-200">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" aria-hidden="true" />
             Sesión de <span className="font-bold text-white">{userName || 'Visitante'}</span>
           </div>
-          <div className="inline-flex items-center rounded-full border border-zinc-700/80 bg-zinc-900/80 px-4 py-2 text-sm text-zinc-300">
+          <div className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start rounded-full border border-zinc-700/80 bg-zinc-900/80 px-3 sm:px-4 py-2 text-xs sm:text-sm text-zinc-300">
             Usuarios registrados: <span className="font-semibold text-white ml-1">{globalCount ?? '...'}</span>
           </div>
         </div>
       </div>
 
       <HeroSection gForce={gForce} isAlertActive={isAlertActive} />
-      <main className="container mx-auto px-6 space-y-32 pb-32">
+      <main className="container mx-auto px-4 sm:px-6 space-y-20 sm:space-y-24 lg:space-y-32 pb-24 sm:pb-32">
         <ProblemSection />
         <HardwareSection />
         <DifferenceSection />
@@ -216,16 +216,16 @@ const CrashApp = () => {
         <AISection isAlertActive={isAlertActive} isAnalyzing={isAnalyzing} aiAnalysis={aiAnalysis} onAnalyze={analyzeCrashSeverity} onCancelAlert={cancelAlert} />
       </main>
 
-      <section className="container mx-auto px-6 pb-8">
-        <div className="rounded-3xl border border-zinc-700/80 bg-zinc-900/70 p-6 md:p-10 space-y-8">
+      <section className="container mx-auto px-4 sm:px-6 pb-8">
+        <div className="rounded-2xl sm:rounded-3xl border border-zinc-700/80 bg-zinc-900/70 p-4 sm:p-6 md:p-10 space-y-6 sm:space-y-8">
           <header className="space-y-3">
             <p className="text-xs uppercase tracking-[0.2em] text-red-400">Proyecto</p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white">C.R.A.S.H.</h2>
-            <p className="text-zinc-200 leading-relaxed">C.R.A.S.H. es un dispositivo que se instala en cascos o vehículos y detecta accidentes automáticamente. Utiliza inteligencia artificial para analizar la gravedad del impacto y envía alertas inmediatas con ubicación a contactos de emergencia.</p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white">C.R.A.S.H.</h2>
+            <p className="text-sm sm:text-base text-zinc-200 leading-relaxed">C.R.A.S.H. es un dispositivo que se instala en cascos o vehículos y detecta accidentes automáticamente. Utiliza inteligencia artificial para analizar la gravedad del impacto y envía alertas inmediatas con ubicación a contactos de emergencia.</p>
             <p className="text-zinc-300">Su objetivo principal es garantizar que una persona accidentada reciba ayuda incluso si no puede comunicarse.</p>
           </header>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
             <article className="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-5 space-y-3">
               <h3 className="text-xl font-bold text-white">Problema que resuelve</h3>
               <p className="text-zinc-300">Existe una alta cantidad de accidentes de tránsito, especialmente en motociclistas. Un gran porcentaje de las víctimas no recibe atención a tiempo.</p>
@@ -243,15 +243,15 @@ const CrashApp = () => {
             </article>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white mb-2">Funcionamiento técnico</h3><p className="text-zinc-300 text-sm mb-2">Hardware: Sensor de movimiento (acelerómetro), microcontrolador, conectividad Bluetooth, instalación en casco o vehículo.</p><p className="text-zinc-300 text-sm">Software: Backend en FastAPI, modelo de IA para clasificar impactos y aplicación de monitoreo en tiempo real.</p></article>
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white mb-2">Flujo de operación</h3><ol className="list-decimal list-inside text-zinc-200 text-sm space-y-1"><li>Se detecta un impacto</li><li>Se envían datos al sistema</li><li>La IA analiza la severidad</li><li>Si es grave, se activa la alerta automática</li></ol></article>
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white mb-2">Propuesta de valor</h3><ul className="list-disc list-inside text-zinc-200 text-sm space-y-1"><li>Funciona de forma autónoma</li><li>Reduce el tiempo de respuesta</li><li>Convierte equipo de protección en inteligente</li><li>Entrega datos útiles a servicios médicos</li><li>Puede salvar vidas cuando el usuario no puede pedir ayuda</li></ul></article>
           </div>
 
-          <div ref={videoSectionRef} className="rounded-2xl border border-zinc-700 bg-zinc-950/40 p-6 md:p-10 text-center">
-            <h3 className="text-2xl font-bold text-white mb-3">Video demostrativo</h3>
-            <p className="text-zinc-300 max-w-2xl mx-auto">Para actualizar el video reemplaza el archivo fijo <span className="font-semibold text-zinc-100">public/videos/crash-demo.mp4</span>. El reproductor usa esta ruta bloqueada y no permite cambiar video desde la interfaz.</p>
+          <div ref={videoSectionRef} className="rounded-2xl border border-zinc-700 bg-zinc-950/40 p-4 sm:p-6 md:p-10 text-center">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Video demostrativo</h3>
+            <p className="text-sm sm:text-base text-zinc-300 max-w-2xl mx-auto">Para actualizar el video reemplaza el archivo fijo <span className="font-semibold text-zinc-100">public/videos/crash-demo.mp4</span>. El reproductor usa esta ruta bloqueada y no permite cambiar video desde la interfaz.</p>
             <div className="mt-6 overflow-hidden rounded-xl border border-zinc-700 bg-black">
               <video
                 ref={videoRef}
@@ -274,18 +274,18 @@ const CrashApp = () => {
             )}
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
             <article className="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-5 space-y-2"><h3 className="text-xl font-bold text-white">Mercado objetivo</h3><p className="text-zinc-300">Usuarios principales: motociclistas, repartidores (Uber Eats, DiDi, Rappi) y personas que usan motocicleta diariamente.</p><p className="text-zinc-300">Cliente potencial: repartidor independiente con largas jornadas, alto riesgo y dependencia de su salud para generar ingresos.</p></article>
             <article className="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-5 space-y-2"><h3 className="text-xl font-bold text-white">Modelo de negocio</h3><p className="text-zinc-200">B2C: dispositivo $1,499 MXN + suscripción $49 MXN/mes.</p><p className="text-zinc-200">B2B: dispositivo $1,999 MXN + suscripción $150 MXN/usuario/mes.</p><p className="text-zinc-300">Incluye monitoreo, análisis de datos y prevención de riesgos.</p></article>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white">Costos</h3><p className="text-zinc-300 text-sm mt-2">Producción por unidad: aproximadamente $800 MXN.</p><p className="text-zinc-300 text-sm">Gastos operativos mensuales: aproximadamente $1,300 MXN.</p></article>
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white">Modelo de ingresos</h3><ul className="list-disc list-inside text-zinc-200 text-sm mt-2"><li>Venta del dispositivo</li><li>Suscripciones mensuales</li><li>Servicios adicionales para empresas</li><li>Integraciones personalizadas</li></ul><p className="text-zinc-300 text-sm mt-2">Modelo híbrido: producto físico + servicio digital.</p></article>
             <article className="rounded-2xl border border-zinc-700 p-5 bg-zinc-950/60"><h3 className="font-bold text-white">Oportunidad de negocio</h3><ul className="list-disc list-inside text-zinc-200 text-sm mt-2"><li>Crecimiento del uso de motocicletas</li><li>Alta demanda del sector reparto</li><li>Necesidad de reducir accidentes y costos</li><li>Mercado amplio y en expansión</li></ul></article>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
             <article className="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-5"><h3 className="text-xl font-bold text-white mb-2">Normatividad y propiedad intelectual</h3><p className="text-zinc-300">Cumple con normas de seguridad en cascos, dispositivos electrónicos, seguridad laboral y protección de datos personales.</p><p className="text-zinc-300 mt-2">Incluye registro de dispositivo (modelo de utilidad), derechos de autor del software, registro de marca y protección de algoritmos como secreto industrial.</p></article>
             <article className="rounded-2xl border border-zinc-700 bg-zinc-950/60 p-5"><h3 className="text-xl font-bold text-white mb-2">Desarrollo y conclusión</h3><p className="text-zinc-300">Metodología Scrum: análisis, diseño, desarrollo e implementación con pruebas funcionales.</p><p className="text-zinc-200 mt-2">C.R.A.S.H. automatiza la detección de accidentes y la solicitud de ayuda, reduce tiempos de respuesta y aumenta probabilidades de supervivencia con un modelo escalable B2C/B2B.</p></article>
           </div>
