@@ -1,17 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import "@/App.css";
 import axios from 'axios';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  BarChart,
-  Bar
-} from 'recharts';
 
 // Contexts
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -37,21 +26,10 @@ const STORAGE_KEYS = {
   age: 'edad',
   registered: 'registrado',
   registeredAt: 'fecha_registro',
-  records: 'registros_estadisticas_crash'
 };
 const COUNT_API_NAMESPACE = 'crash-smart-detector';
 const COUNT_API_KEY = 'unique-registered-users';
 
-const formatDate = (value) => new Date(value).toISOString().slice(0, 10);
-const parseRecords = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.records);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
 
 const CrashApp = () => {
   const { language } = useLanguage();
@@ -67,8 +45,6 @@ const CrashApp = () => {
   const [userAge, setUserAge] = useState('');
   const [formErrors, setFormErrors] = useState({});
   const [globalCount, setGlobalCount] = useState(null);
-  const [records, setRecords] = useState([]);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   const fetchGlobalCount = useCallback(async () => {
     try {
@@ -88,21 +64,9 @@ const CrashApp = () => {
     setIsRegistered(registeredFlag);
     setUserName(savedName);
     setUserAge(savedAge);
-    setRecords(parseRecords());
     fetchGlobalCount();
   }, [fetchGlobalCount]);
 
-  useEffect(() => {
-    const onShortcut = (event) => {
-      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's') {
-        event.preventDefault();
-        setIsStatsOpen((prev) => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', onShortcut);
-    return () => window.removeEventListener('keydown', onShortcut);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -163,19 +127,11 @@ const CrashApp = () => {
     if (Object.keys(errors).length) return;
 
     const id = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-    const timestamp = Date.now();
-    const today = formatDate(timestamp);
-    const entry = { id, fecha: today, timestamp, nombre: userName.trim(), edad: numericAge };
-
     localStorage.setItem(STORAGE_KEYS.id, id);
     localStorage.setItem(STORAGE_KEYS.name, userName.trim());
     localStorage.setItem(STORAGE_KEYS.age, String(numericAge));
     localStorage.setItem(STORAGE_KEYS.registered, 'true');
-    localStorage.setItem(STORAGE_KEYS.registeredAt, new Date(timestamp).toISOString());
-
-    const updated = [...parseRecords(), entry];
-    localStorage.setItem(STORAGE_KEYS.records, JSON.stringify(updated));
-    setRecords(updated);
+    localStorage.setItem(STORAGE_KEYS.registeredAt, new Date().toISOString());
 
     try {
       const countResponse = await axios.get(`https://api.countapi.xyz/hit/${COUNT_API_NAMESPACE}/${COUNT_API_KEY}`);
@@ -187,30 +143,6 @@ const CrashApp = () => {
     setIsRegistered(true);
   };
 
-
-  const usersByDay = useMemo(() => {
-    const map = records.reduce((acc, item) => {
-      acc[item.fecha] = (acc[item.fecha] || 0) + 1;
-      return acc;
-    }, {});
-    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).map(([fecha, total]) => ({ fecha, total }));
-  }, [records]);
-
-  const ageRanges = useMemo(() => {
-    const result = [
-      { rango: '0-18', total: 0 },
-      { rango: '19-30', total: 0 },
-      { rango: '31-50', total: 0 },
-      { rango: '50+', total: 0 }
-    ];
-    records.forEach(({ edad }) => {
-      if (edad <= 18) result[0].total += 1;
-      else if (edad <= 30) result[1].total += 1;
-      else if (edad <= 50) result[2].total += 1;
-      else result[3].total += 1;
-    });
-    return result;
-  }, [records]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-red-500/30">
@@ -237,10 +169,15 @@ const CrashApp = () => {
 
       <Navbar scrolled={scrolled} onSimulate={triggerTest} />
 
-      <div className="container mx-auto px-6 pt-6">
-        <div className="rounded-2xl border border-red-500/50 bg-red-950/20 p-4 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
-          <p className="text-base sm:text-lg text-zinc-100">Sesión activa: <span className="font-extrabold text-2xl text-white tracking-wide">{userName || 'Visitante'}</span></p>
-          <p className="text-zinc-200">Usuarios registrados: <span className="font-bold text-white">{globalCount ?? '...'}</span></p>
+      <div className="container mx-auto px-6 pt-24 md:pt-28">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-600/70 bg-zinc-900/80 px-4 py-2 text-sm text-zinc-200">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" aria-hidden="true" />
+            Sesión de <span className="font-bold text-white">{userName || 'Visitante'}</span>
+          </div>
+          <div className="inline-flex items-center rounded-full border border-zinc-700/80 bg-zinc-900/80 px-4 py-2 text-sm text-zinc-300">
+            Usuarios registrados: <span className="font-semibold text-white ml-1">{globalCount ?? '...'}</span>
+          </div>
         </div>
       </div>
 
@@ -311,63 +248,6 @@ const CrashApp = () => {
       </section>
 
       <Footer />
-
-      {isStatsOpen && (
-        <div className="fixed inset-0 z-[130] bg-black/80 backdrop-blur-sm p-4 md:p-8 animate-in fade-in duration-300 overflow-y-auto">
-          <div className="mx-auto max-w-5xl bg-zinc-900 border border-zinc-700 rounded-2xl p-6 space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-bold text-white">Panel de estadísticas</h3>
-              <button onClick={() => setIsStatsOpen(false)} className="px-3 py-1 rounded bg-zinc-700 text-white hover:bg-zinc-600">Cerrar</button>
-            </div>
-            <p className="text-zinc-300">Total de usuarios registrados: <span className="font-bold text-white">{globalCount ?? 0}</span></p>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="h-72 bg-zinc-800/70 rounded-lg p-3">
-                <h4 className="text-sm text-zinc-200 mb-2">Usuarios por día</h4>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={usersByDay}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#52525b" />
-                    <XAxis dataKey="fecha" stroke="#d4d4d8" />
-                    <YAxis stroke="#d4d4d8" allowDecimals={false} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="total" stroke="#ef4444" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="h-72 bg-zinc-800/70 rounded-lg p-3">
-                <h4 className="text-sm text-zinc-200 mb-2">Distribución por edad</h4>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={ageRanges}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#52525b" />
-                    <XAxis dataKey="rango" stroke="#d4d4d8" />
-                    <YAxis stroke="#d4d4d8" allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="total" fill="#22c55e" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <h4 className="text-sm text-zinc-200 mb-2">Últimos registros</h4>
-              <table className="w-full text-left text-sm text-zinc-200">
-                <thead className="text-zinc-400 border-b border-zinc-700">
-                  <tr><th className="py-2">Fecha</th><th>Nombre</th><th>Edad</th></tr>
-                </thead>
-                <tbody>
-                  {[...records].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10).map((row) => (
-                    <tr key={row.id} className="border-b border-zinc-800">
-                      <td className="py-2">{row.fecha}</td>
-                      <td>{row.nombre || 'Anónimo'}</td>
-                      <td>{row.edad}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isAlertActive && <div data-testid="emergency-overlay" className="fixed inset-0 z-[100] pointer-events-none border-[32px] border-red-600/20 animate-pulse mix-blend-overlay" />}
     </div>
