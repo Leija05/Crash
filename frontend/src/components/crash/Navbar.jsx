@@ -4,7 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Sun, Moon, Globe } from 'lucide-react';
 import CrashLogo from './CrashLogo';
 
-const Navbar = ({ scrolled, onSimulate }) => {
+const Navbar = ({ scrolled, onSimulate, showStats, onOpenStats }) => {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useLanguage();
 
@@ -69,6 +69,16 @@ const Navbar = ({ scrolled, onSimulate }) => {
               {t.nav.hardware}
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
             </a>
+            {showStats && (
+              <button
+                type="button"
+                onClick={onOpenStats}
+                className="text-muted-foreground hover:text-red-500 transition-all duration-300 hover:scale-110 relative group"
+              >
+                Estadísticas
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-red-500 transition-all duration-300 group-hover:w-full"></span>
+              </button>
+            )}
           </div>
           
           {/* Theme Toggle */}
