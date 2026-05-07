@@ -371,11 +371,12 @@ async def get_stats(group_by: str = "month"):
     false_alarms = await db.impact_events.count_documents({"was_false_alarm": True})
     total_users = await db.users.count_documents({})
     
+    not_false_alarm_filter = {"$ne": True}
     severity_counts = {
-        "low": await db.impact_events.count_documents({"severity": "low", "was_false_alarm": False}),
-        "medium": await db.impact_events.count_documents({"severity": "medium", "was_false_alarm": False}),
-        "high": await db.impact_events.count_documents({"severity": "high", "was_false_alarm": False}),
-        "critical": await db.impact_events.count_documents({"severity": "critical", "was_false_alarm": False})
+        "low": await db.impact_events.count_documents({"severity": "low", "was_false_alarm": not_false_alarm_filter}),
+        "medium": await db.impact_events.count_documents({"severity": "medium", "was_false_alarm": not_false_alarm_filter}),
+        "high": await db.impact_events.count_documents({"severity": "high", "was_false_alarm": not_false_alarm_filter}),
+        "critical": await db.impact_events.count_documents({"severity": "critical", "was_false_alarm": not_false_alarm_filter})
     }
 
     format_map = {"day": "%Y-%m-%d", "month": "%Y-%m", "year": "%Y"}
@@ -385,6 +386,12 @@ async def get_stats(group_by: str = "month"):
     impacts = await db.impact_events.find({}, {"timestamp": 1, "created_at": 1}).to_list(10000)
     for impact in impacts:
         dt = impact.get("timestamp") or impact.get("created_at")
+        if isinstance(dt, str):
+            try:
+                dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+            except ValueError:
+                dt = None
+
         if isinstance(dt, datetime):
             impact_series[dt.strftime(bucket_fmt)] += 1
 
