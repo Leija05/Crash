@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
 from datetime import datetime
+from collections import defaultdict
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
@@ -361,9 +362,13 @@ async def get_diagnosis(request: AIDiagnosisRequest):
 
 # Statistics
 @api_router.get("/stats")
-async def get_stats():
+async def get_stats(group_by: str = "month"):
+    if group_by not in {"day", "month", "year"}:
+        raise HTTPException(status_code=400, detail="group_by must be day, month or year")
+
     total_impacts = await db.impact_events.count_documents({})
     false_alarms = await db.impact_events.count_documents({"was_false_alarm": True})
+    total_users = await db.users.count_documents({})
     
     severity_counts = {
         "low": await db.impact_events.count_documents({"severity": "low", "was_false_alarm": False}),
@@ -371,12 +376,51 @@ async def get_stats():
         "high": await db.impact_events.count_documents({"severity": "high", "was_false_alarm": False}),
         "critical": await db.impact_events.count_documents({"severity": "critical", "was_false_alarm": False})
     }
+
+    format_map = {"day": "%Y-%m-%d", "month": "%Y-%m", "year": "%Y"}
+    bucket_fmt = format_map[group_by]
+    impact_series = defaultdict(int)
+
+    impacts = await db.impact_events.find({}, {"timestamp": 1, "created_at": 1}).to_list(10000)
+    for impact in impacts:
+        dt = impact.get("timestamp") or impact.get("created_at")
+        if isinstance(dt, datetime):
+            impact_series[dt.strftime(bucket_fmt)] += 1
+
+    top_users = await db.impact_events.aggregate([
+        {"$group": {"_id": "$user_id", "impacts": {"$sum": 1}}},
+        {"$sort": {"impacts": -1}},
+        {"$limit": 5}
+    ]).to_list(5)
     
     return {
+        "database": db.name,
+        "group_by": group_by,
+        "total_users": total_users,
         "total_impacts": total_impacts,
         "false_alarms": false_alarms,
         "real_impacts": total_impacts - false_alarms,
-        "severity_breakdown": severity_counts
+        "severity_breakdown": severity_counts,
+        "impacts_over_time": dict(sorted(impact_series.items())),
+        "top_users_by_impacts": [
+            {"user_id": item.get("_id") or "unknown", "impacts": item.get("impacts", 0)}
+            for item in top_users
+        ]
+    }
+
+
+@api_router.get("/db-status")
+async def db_status():
+    try:
+        await db.command("ping")
+        connected = True
+    except Exception:
+        connected = False
+
+    return {
+        "connected": connected,
+        "db_name": db.name,
+        "is_expected_db": db.name == "crash_database"
     }
 
 # Include the router

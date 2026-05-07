@@ -15,6 +15,7 @@ import {
   DifferenceSection,
   ArchitectureSection,
   AISection,
+  StatsSection,
   Footer
 } from '@/components/crash';
 
@@ -47,6 +48,9 @@ const CrashApp = () => {
   const [formErrors, setFormErrors] = useState({});
   const [globalCount, setGlobalCount] = useState(null);
   const [videoError, setVideoError] = useState(false);
+  const [dbStatus, setDbStatus] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [groupBy, setGroupBy] = useState('month');
   const videoRef = useRef(null);
   const videoSectionRef = useRef(null);
 
@@ -70,6 +74,34 @@ const CrashApp = () => {
     setUserAge(savedAge);
     fetchGlobalCount();
   }, [fetchGlobalCount]);
+
+  useEffect(() => {
+    const fetchDbStatus = async () => {
+      try {
+        const response = await axios.get(`${API}/db-status`);
+        setDbStatus(response.data);
+      } catch (error) {
+        console.error('No se pudo obtener estado de BD:', error);
+        setDbStatus({ connected: false, is_expected_db: false });
+      }
+    };
+    fetchDbStatus();
+  }, []);
+
+  useEffect(() => {
+    const shouldLoadStats = dbStatus?.connected && dbStatus?.is_expected_db;
+    if (!shouldLoadStats) return;
+
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(`${API}/stats`, { params: { group_by: groupBy } });
+        setStats(response.data);
+      } catch (error) {
+        console.error('No se pudo cargar estadísticas:', error);
+      }
+    };
+    fetchStats();
+  }, [groupBy, dbStatus]);
 
 
   useEffect(() => {
@@ -193,7 +225,7 @@ const CrashApp = () => {
         </div>
       )}
 
-      <Navbar scrolled={scrolled} onSimulate={triggerTest} />
+      <Navbar scrolled={scrolled} onSimulate={triggerTest} showStats={Boolean(dbStatus?.connected && dbStatus?.is_expected_db)} />
 
       <div className="container mx-auto px-4 sm:px-6 pt-24 md:pt-28">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
@@ -214,6 +246,9 @@ const CrashApp = () => {
         <DifferenceSection />
         <ArchitectureSection />
         <AISection isAlertActive={isAlertActive} isAnalyzing={isAnalyzing} aiAnalysis={aiAnalysis} onAnalyze={analyzeCrashSeverity} onCancelAlert={cancelAlert} />
+        {dbStatus?.connected && dbStatus?.is_expected_db && (
+          <StatsSection stats={stats} groupBy={groupBy} setGroupBy={setGroupBy} />
+        )}
       </main>
 
       <section className="container mx-auto px-4 sm:px-6 pb-8">
