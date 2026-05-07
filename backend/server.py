@@ -10,7 +10,6 @@ from typing import List, Optional
 import uuid
 from datetime import datetime
 from collections import defaultdict
-from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -147,6 +146,8 @@ def classify_severity(g_force: float) -> str:
 async def get_ai_diagnosis(data: AIDiagnosisRequest) -> AIDiagnosisResponse:
     """Get AI diagnosis from Gemini"""
     try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"crash-diagnosis-{uuid.uuid4()}",
