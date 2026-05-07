@@ -51,6 +51,7 @@ const CrashApp = () => {
   const [dbStatus, setDbStatus] = useState(null);
   const [stats, setStats] = useState(null);
   const [groupBy, setGroupBy] = useState('month');
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   const videoRef = useRef(null);
   const videoSectionRef = useRef(null);
 
@@ -225,7 +226,12 @@ const CrashApp = () => {
         </div>
       )}
 
-      <Navbar scrolled={scrolled} onSimulate={triggerTest} showStats={Boolean(dbStatus?.connected && dbStatus?.is_expected_db)} />
+      <Navbar
+        scrolled={scrolled}
+        onSimulate={triggerTest}
+        showStats={Boolean(dbStatus?.connected && dbStatus?.is_expected_db)}
+        onOpenStats={() => setIsStatsModalOpen(true)}
+      />
 
       <div className="container mx-auto px-4 sm:px-6 pt-24 md:pt-28">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
@@ -246,10 +252,17 @@ const CrashApp = () => {
         <DifferenceSection />
         <ArchitectureSection />
         <AISection isAlertActive={isAlertActive} isAnalyzing={isAnalyzing} aiAnalysis={aiAnalysis} onAnalyze={analyzeCrashSeverity} onCancelAlert={cancelAlert} />
-        {dbStatus?.connected && dbStatus?.is_expected_db && (
-          <StatsSection stats={stats} groupBy={groupBy} setGroupBy={setGroupBy} />
-        )}
       </main>
+
+      {dbStatus?.connected && dbStatus?.is_expected_db && (
+        <StatsSection
+          stats={stats}
+          groupBy={groupBy}
+          setGroupBy={setGroupBy}
+          isOpen={isStatsModalOpen}
+          onClose={() => setIsStatsModalOpen(false)}
+        />
+      )}
 
       <section className="container mx-auto px-4 sm:px-6 pb-8">
         <div className="rounded-2xl sm:rounded-3xl border border-zinc-700/80 bg-zinc-900/70 p-4 sm:p-6 md:p-10 space-y-6 sm:space-y-8">
