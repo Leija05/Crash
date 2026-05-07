@@ -13,7 +13,7 @@ export const translations = {
     hero: {
       badge: "PROYECTO INNOVATEC 2026",
       title: "C.R.A.S.H.",
-      subtitle: "Colisión: Respuesta y Alerta para Seguridad Humana.",
+      subtitle: "Sistema de alerta de respuesta crítica para cascos",
       tagline: "Smart Impact Detector",
       telemetry: "Telemetría de Impacto (IMU)"
     },
@@ -218,7 +218,7 @@ export const translations = {
     hero: {
       badge: "INNOVATEC 2026 PROJECT",
       title: "C.R.A.S.H.",
-      subtitle: "Collision: Response and Alert for Human Safety.",
+      subtitle: "Critical Response Alert System for Helmets",
       tagline: "Smart Impact Detector",
       telemetry: "Impact Telemetry (IMU)"
     },
