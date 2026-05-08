@@ -130,6 +130,10 @@ class AIDiagnosisResponse(BaseModel):
     warnings: List[str]
     recommendation: str
 
+class InnovatecVisitCreate(BaseModel):
+    name: str
+    age: int
+
 INNOVATEC_VISITORS_SEED = [
     {"name": "Sofía Martínez", "age": 15}, {"name": "Mateo Rodríguez", "age": 16},
     {"name": "Valentina Gómez", "age": 17}, {"name": "Santiago López", "age": 18},
@@ -174,15 +178,25 @@ async def seed_innovatec_data():
     if current > 0:
         return
 
-    day_one = datetime(2026, 5, 6, 12, 0, 0)
-    day_two = datetime(2026, 5, 7, 12, 0, 0)
+    schedule = [
+        (2026, 5, 6, 10, 0), (2026, 5, 6, 10, 25), (2026, 5, 6, 10, 50), (2026, 5, 6, 11, 15),
+        (2026, 5, 6, 11, 40), (2026, 5, 6, 12, 5), (2026, 5, 6, 12, 30), (2026, 5, 6, 12, 55),
+        (2026, 5, 6, 13, 20), (2026, 5, 6, 13, 45), (2026, 5, 6, 14, 10), (2026, 5, 6, 14, 35),
+        (2026, 5, 6, 15, 0), (2026, 5, 6, 15, 25), (2026, 5, 6, 15, 50), (2026, 5, 6, 16, 15),
+        (2026, 5, 6, 16, 40), (2026, 5, 6, 16, 50), (2026, 5, 7, 10, 10), (2026, 5, 7, 10, 35),
+        (2026, 5, 7, 11, 0), (2026, 5, 7, 11, 25), (2026, 5, 7, 11, 50), (2026, 5, 7, 12, 15),
+        (2026, 5, 7, 12, 40), (2026, 5, 7, 13, 5), (2026, 5, 7, 13, 30), (2026, 5, 7, 13, 55),
+        (2026, 5, 7, 14, 20), (2026, 5, 7, 14, 45), (2026, 5, 7, 15, 10), (2026, 5, 7, 15, 35),
+        (2026, 5, 7, 16, 0), (2026, 5, 7, 16, 25), (2026, 5, 7, 16, 50)
+    ]
     records = []
     for i, person in enumerate(INNOVATEC_VISITORS_SEED):
+        y, m, d, h, minute = schedule[i % len(schedule)]
         records.append({
             "id": str(uuid.uuid4()),
             "name": person["name"],
             "age": person["age"],
-            "registered_at": day_one if i % 2 == 0 else day_two
+            "registered_at": datetime(y, m, d, h, minute, 0)
         })
 
     if records:
@@ -465,6 +479,15 @@ async def get_stats(group_by: str = "month"):
         {"$sort": {"_id": 1}}
     ])
     innovatec_by_day = {item["_id"]: item["total"] async for item in innovatec_by_day_cursor}
+    innovatec_by_hour_cursor = db["datos innovatec"].aggregate([
+        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d %H:%M", "date": "$registered_at"}}, "total": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ])
+    innovatec_by_hour = {item["_id"]: item["total"] async for item in innovatec_by_hour_cursor}
+    innovatec_recent_entries = await db["datos innovatec"].find(
+        {},
+        {"_id": 0, "name": 1, "age": 1, "registered_at": 1}
+    ).sort("registered_at", -1).limit(100).to_list(100)
     
     return {
         "database": db.name,
@@ -480,8 +503,29 @@ async def get_stats(group_by: str = "month"):
             for item in top_users
         ],
         "innovatec_visits_total": total_innovatec_visits,
-        "innovatec_visits_by_day": innovatec_by_day
+        "innovatec_visits_by_day": innovatec_by_day,
+        "innovatec_visits_by_hour": innovatec_by_hour,
+        "innovatec_recent_entries": innovatec_recent_entries
     }
+
+@api_router.get("/visits/count")
+async def get_visits_count():
+    await seed_innovatec_data()
+    total = await db["datos innovatec"].count_documents({})
+    return {"total": total}
+
+@api_router.post("/visits")
+async def create_visit(visit: InnovatecVisitCreate):
+    await seed_innovatec_data()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": visit.name.strip(),
+        "age": int(visit.age),
+        "registered_at": datetime.utcnow()
+    }
+    await db["datos innovatec"].insert_one(doc)
+    total = await db["datos innovatec"].count_documents({})
+    return {"ok": True, "total": total, "registered_at": doc["registered_at"]}
 
 
 @api_router.get("/db-status")

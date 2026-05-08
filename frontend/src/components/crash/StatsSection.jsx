@@ -1,119 +1,81 @@
-import React from 'react';
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
-
-const COLORS = ['#22c55e', '#f59e0b', '#f97316', '#ef4444'];
+import React, { useState } from 'react';
+import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const StatsSection = ({ stats, groupBy, setGroupBy, isOpen, onClose }) => {
+  const [tab, setTab] = useState('database');
   if (!isOpen || !stats) return null;
 
   const impactsData = Object.entries(stats.impacts_over_time || {}).map(([period, total]) => ({ period, total }));
   const severityData = Object.entries(stats.severity_breakdown || {}).map(([name, value]) => ({ name, value }));
+  const innovatecDailyData = Object.entries(stats.innovatec_visits_by_day || {}).map(([period, total]) => ({ period, total }));
+  const innovatecHourlyData = Object.entries(stats.innovatec_visits_by_hour || {}).map(([period, total]) => ({ period, total }));
 
   return (
     <div className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <section
-        id="estadisticas"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-6xl max-h-[92vh] overflow-auto rounded-2xl border border-border bg-background text-foreground p-6 space-y-6 shadow-2xl"
-      >
+      <section id="estadisticas" onClick={(e) => e.stopPropagation()} className="w-full max-w-6xl max-h-[92vh] overflow-auto rounded-2xl border border-border bg-background text-foreground p-6 space-y-6 shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-red-400">Analytics</p>
-            <h2 className="text-2xl font-bold">Estadísticas de Base de Datos</h2>
+            <h2 className="text-2xl font-bold">Estadísticas</h2>
           </div>
           <div className="flex items-center gap-2">
-            <select
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value)}
-              className="bg-muted border border-border rounded-md px-3 py-2 text-sm"
-            >
-              <option value="day">Por día</option>
-              <option value="month">Por mes</option>
-              <option value="year">Por año</option>
+            <button type="button" onClick={() => setTab('database')} className={`px-3 py-2 text-sm rounded-md ${tab === 'database' ? 'bg-red-600 text-white' : 'bg-muted'}`}>Base de datos</button>
+            <button type="button" onClick={() => setTab('innovatec')} className={`px-3 py-2 text-sm rounded-md ${tab === 'innovatec' ? 'bg-red-600 text-white' : 'bg-muted'}`}>Innovatec</button>
+            <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className="bg-muted border border-border rounded-md px-3 py-2 text-sm">
+              <option value="day">Por día</option><option value="month">Por mes</option><option value="year">Por año</option>
             </select>
             <button type="button" onClick={onClose} className="px-3 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-500">Cerrar</button>
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card title="Total usuarios" value={stats.total_users} />
-          <Card title="Total impactos" value={stats.total_impacts} />
-          <Card title="Impactos reales" value={stats.real_impacts} />
-          <Card title="Falsas alarmas" value={stats.false_alarms} />
-          <Card title="Visitas Innovatec" value={stats.innovatec_visits_total || 0} />
-        </div>
+        {tab === 'database' && (
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card title="Total usuarios" value={stats.total_users} />
+              <Card title="Total impactos" value={stats.total_impacts} />
+              <Card title="Impactos reales" value={stats.real_impacts} />
+              <Card title="Falsas alarmas" value={stats.false_alarms} />
+            </div>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <ChartCard title={`Impactos por ${groupBy}`}><SimpleLine data={impactsData} /></ChartCard>
+              <ChartCard title="Severidad de impactos">
+                <ResponsiveContainer width="100%" height={280}><BarChart data={severityData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#ef4444" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer>
+              </ChartCard>
+            </div>
+          </>
+        )}
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <ChartCard title={`Impactos por ${groupBy}`}>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={impactsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="total" stroke="#ef4444" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard title="Severidad de impactos">
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={severityData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </div>
-
-        <ChartCard title="Distribución de severidad">
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={severityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={110} label>
-                {severityData.map((entry, index) => (
-                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {tab === 'innovatec' && (
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card title="Usuarios Innovatec" value={stats.innovatec_visits_total || 0} />
+            </div>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <ChartCard title="Visitas Innovatec por día"><SimpleLine data={innovatecDailyData} /></ChartCard>
+              <ChartCard title="Visitas Innovatec por fecha y hora"><SimpleLine data={innovatecHourlyData} /></ChartCard>
+            </div>
+            <article className="rounded-xl border border-border p-4 bg-card">
+              <h3 className="font-semibold mb-3">Registros Innovatec (fecha y hora)</h3>
+              <div className="overflow-auto max-h-72">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left"><th>Nombre</th><th>Edad</th><th>Fecha y hora</th></tr></thead>
+                  <tbody>
+                    {(stats.innovatec_recent_entries || []).map((item, idx) => (
+                      <tr key={`${item.name}-${idx}`} className="border-t border-border"><td>{item.name}</td><td>{item.age}</td><td>{new Date(item.registered_at).toLocaleString('es-MX')}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </>
+        )}
       </section>
     </div>
   );
 };
 
-const Card = ({ title, value }) => (
-  <div className="rounded-xl border border-border p-4 bg-card">
-    <p className="text-muted-foreground text-xs">{title}</p>
-    <p className="text-2xl font-bold">{value}</p>
-  </div>
-);
-
-const ChartCard = ({ title, children }) => (
-  <article className="rounded-xl border border-border p-4 bg-card">
-    <h3 className="font-semibold mb-3">{title}</h3>
-    {children}
-  </article>
-);
+const Card = ({ title, value }) => <div className="rounded-xl border border-border p-4 bg-card"><p className="text-muted-foreground text-xs">{title}</p><p className="text-2xl font-bold">{value}</p></div>;
+const ChartCard = ({ title, children }) => <article className="rounded-xl border border-border p-4 bg-card"><h3 className="font-semibold mb-3">{title}</h3>{children}</article>;
+const SimpleLine = ({ data }) => <ResponsiveContainer width="100%" height={280}><LineChart data={data}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="period" /><YAxis allowDecimals={false} /><Tooltip /><Legend /><Line type="monotone" dataKey="total" stroke="#ef4444" strokeWidth={2} dot={false} /></LineChart></ResponsiveContainer>;
 
 export default StatsSection;
