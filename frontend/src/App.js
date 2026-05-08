@@ -28,8 +28,6 @@ const STORAGE_KEYS = {
   registered: 'registrado',
   registeredAt: 'fecha_registro',
 };
-const COUNT_API_NAMESPACE = 'crash-smart-detector';
-const COUNT_API_KEY = 'unique-registered-users';
 const DEMO_VIDEO_SRC = `${process.env.PUBLIC_URL}/videos/CrashVideo.mp4`;
 
 
@@ -57,8 +55,8 @@ const CrashApp = () => {
 
   const fetchGlobalCount = useCallback(async () => {
     try {
-      const response = await axios.get(`https://api.countapi.xyz/get/${COUNT_API_NAMESPACE}/${COUNT_API_KEY}`);
-      setGlobalCount(response?.data?.value ?? 0);
+      const response = await axios.get(`${API}/visits/count`);
+      setGlobalCount(response?.data?.total ?? 0);
     } catch (error) {
       console.error('No se pudo obtener contador global:', error);
       setGlobalCount(0);
@@ -193,10 +191,10 @@ const CrashApp = () => {
     localStorage.setItem(STORAGE_KEYS.registeredAt, new Date().toISOString());
 
     try {
-      const countResponse = await axios.get(`https://api.countapi.xyz/hit/${COUNT_API_NAMESPACE}/${COUNT_API_KEY}`);
-      setGlobalCount(countResponse?.data?.value ?? globalCount);
+      const visitResponse = await axios.post(`${API}/visits`, { name: userName.trim(), age: numericAge });
+      setGlobalCount(visitResponse?.data?.total ?? globalCount);
     } catch (error) {
-      console.error('No se pudo incrementar contador global:', error);
+      console.error('No se pudo guardar visita en BD:', error);
     }
 
     setIsRegistered(true);
