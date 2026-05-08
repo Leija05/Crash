@@ -54,6 +54,7 @@ const StatsSection = ({ stats, groupBy, setGroupBy, isOpen, onClose }) => {
           <Card title="Total impactos" value={stats.total_impacts} />
           <Card title="Impactos reales" value={stats.real_impacts} />
           <Card title="Falsas alarmas" value={stats.false_alarms} />
+          <Card title="Visitas Innovatec" value={stats.innovatec_visits_total || 0} />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">

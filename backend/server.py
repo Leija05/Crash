@@ -130,7 +130,63 @@ class AIDiagnosisResponse(BaseModel):
     warnings: List[str]
     recommendation: str
 
+INNOVATEC_VISITORS_SEED = [
+    {"name": "Sofía Martínez", "age": 15}, {"name": "Mateo Rodríguez", "age": 16},
+    {"name": "Valentina Gómez", "age": 17}, {"name": "Santiago López", "age": 18},
+    {"name": "Camila Hernández", "age": 19}, {"name": "Sebastián Pérez", "age": 20},
+    {"name": "Isabella Ramírez", "age": 21}, {"name": "Daniel Torres", "age": 22},
+    {"name": "Mariana Flores", "age": 23}, {"name": "Alejandro Rivera", "age": 24},
+    {"name": "Lucía Morales", "age": 25}, {"name": "Emiliano Cruz", "age": 26},
+    {"name": "Fernanda Ortiz", "age": 15}, {"name": "Diego Reyes", "age": 16},
+    {"name": "Regina Castillo", "age": 17}, {"name": "Javier Vargas", "age": 18},
+    {"name": "Natalia Silva", "age": 19}, {"name": "Ángel Mendoza", "age": 20},
+    {"name": "Renata Navarro", "age": 21}, {"name": "Ricardo Jiménez", "age": 22},
+    {"name": "Ximena Ruiz", "age": 23}, {"name": "Andrés Romero", "age": 24},
+    {"name": "Paula Vega", "age": 25}, {"name": "Leonardo Castro", "age": 26},
+    {"name": "Elena Campos", "age": 15}, {"name": "Gael Medina", "age": 16},
+    {"name": "Daniela Guerrero", "age": 17}, {"name": "Adrián Salazar", "age": 18},
+    {"name": "Mía Paredes", "age": 19}, {"name": "Hugo Rojas", "age": 20},
+    {"name": "Andrea Cabrera", "age": 21}, {"name": "José Luna", "age": 22},
+    {"name": "Ariana Fuentes", "age": 23}, {"name": "Óscar Ibarra", "age": 24},
+    {"name": "Julia Acosta", "age": 25}, {"name": "Bruno Miranda", "age": 26},
+    {"name": "Montserrat Galván", "age": 15}, {"name": "Iván Solís", "age": 16},
+    {"name": "Carla Espinosa", "age": 17}, {"name": "Marco Cárdenas", "age": 18},
+    {"name": "Ana Beltrán", "age": 19}, {"name": "Tomás Duarte", "age": 20},
+    {"name": "Abril Benítez", "age": 21}, {"name": "Pablo Estrada", "age": 22},
+    {"name": "Victoria Neri", "age": 23}, {"name": "Rodrigo Molina", "age": 24},
+    {"name": "Gabriela Ochoa", "age": 25}, {"name": "Franco Arias", "age": 26},
+    {"name": "Zoe Padilla", "age": 15}, {"name": "Cristian Serrano", "age": 16},
+    {"name": "Emma Valencia", "age": 17}, {"name": "Fernando Bautista", "age": 18},
+    {"name": "Danna Villalobos", "age": 19}, {"name": "Kevin Montoya", "age": 20},
+    {"name": "Noa Santamaría", "age": 21}, {"name": "Saúl Carrillo", "age": 22},
+    {"name": "Sara Aguirre", "age": 23}, {"name": "Axel Tapia", "age": 24},
+    {"name": "Clara Meza", "age": 25}, {"name": "Nicolás Cuevas", "age": 26},
+    {"name": "Alicia Figueroa", "age": 15}, {"name": "Alan Trujillo", "age": 16},
+    {"name": "Inés Toledo", "age": 17}, {"name": "Joel Montalvo", "age": 18},
+    {"name": "Bianca Carmona", "age": 19}, {"name": "Erick Zamora", "age": 20},
+    {"name": "Luna Peralta", "age": 21}, {"name": "Mauricio Cedillo", "age": 22},
+    {"name": "Nora Treviño", "age": 23}
+]
+
 # ==================== HELPER FUNCTIONS ====================
+async def seed_innovatec_data():
+    current = await db["datos innovatec"].count_documents({})
+    if current > 0:
+        return
+
+    day_one = datetime(2026, 5, 6, 12, 0, 0)
+    day_two = datetime(2026, 5, 7, 12, 0, 0)
+    records = []
+    for i, person in enumerate(INNOVATEC_VISITORS_SEED):
+        records.append({
+            "id": str(uuid.uuid4()),
+            "name": person["name"],
+            "age": person["age"],
+            "registered_at": day_one if i % 2 == 0 else day_two
+        })
+
+    if records:
+        await db["datos innovatec"].insert_many(records)
 
 def classify_severity(g_force: float) -> str:
     """Classify impact severity based on G-force"""
@@ -367,6 +423,8 @@ async def get_stats(group_by: str = "month"):
     if group_by not in {"day", "month", "year"}:
         raise HTTPException(status_code=400, detail="group_by must be day, month or year")
 
+    await seed_innovatec_data()
+
     total_impacts = await db.impact_events.count_documents({})
     false_alarms = await db.impact_events.count_documents({"was_false_alarm": True})
     total_users = await db.users.count_documents({})
@@ -400,6 +458,13 @@ async def get_stats(group_by: str = "month"):
         {"$sort": {"impacts": -1}},
         {"$limit": 5}
     ]).to_list(5)
+
+    total_innovatec_visits = await db["datos innovatec"].count_documents({})
+    innovatec_by_day_cursor = db["datos innovatec"].aggregate([
+        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$registered_at"}}, "total": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ])
+    innovatec_by_day = {item["_id"]: item["total"] async for item in innovatec_by_day_cursor}
     
     return {
         "database": db.name,
@@ -413,7 +478,9 @@ async def get_stats(group_by: str = "month"):
         "top_users_by_impacts": [
             {"user_id": item.get("_id") or "unknown", "impacts": item.get("impacts", 0)}
             for item in top_users
-        ]
+        ],
+        "innovatec_visits_total": total_innovatec_visits,
+        "innovatec_visits_by_day": innovatec_by_day
     }
 
 
