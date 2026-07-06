@@ -7,3 +7,4 @@ bcrypt>=4.1,<5
 PyJWT>=2.8,<3
 httpx>=0.27,<0.29
 google-genai>=1.19,<2
+email-validator>=2.2.0

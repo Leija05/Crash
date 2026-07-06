@@ -37,7 +37,7 @@ export function useCrashSocket() {
 
   const connect = useCallback(() => {
     const token = localStorage.getItem("crash_token") || "";
-    const url = API_BASE.replace(/^http/, "ws") + `/api/ws?token=${encodeURIComponent(token)}`;
+    const url = API_BASE.replace(/^http(s)?/, "ws$1") + `/api/ws?token=${encodeURIComponent(token)}`;
     setStatus("connecting");
     const ws = new WebSocket(url);
     wsRef.current = ws;

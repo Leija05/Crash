@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
 
   const refresh = useCallback(async () => {
     try {
-      const { data } = await api.get("/auth/me");
+      const { data } = await api.get("/auth/monitor/me");
       setUser(data);
     } catch {
       setUser(false);
@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     setError("");
     try {
-      const { data } = await api.post("/auth/login", { email, password });
+      const { data } = await api.post("/auth/monitor/login", { email, password });
       if (data.access_token) localStorage.setItem("crash_token", data.access_token);
       setUser({ id: data.id, email: data.email, name: data.name, role: data.role });
       return true;
@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try { await api.post("/auth/logout"); } catch { /* ignore */ }
+    try { await api.post("/auth/monitor/logout"); } catch { /* ignore */ }
     localStorage.removeItem("crash_token");
     setUser(false);
   };

@@ -205,7 +205,7 @@ export default function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelect
       params.set("status", "all");
       params.set("days", String(d));
       params.set("limit", "200");
-      const { data } = await api.get(`/impacts?${params.toString()}`);
+      const { data } = await api.get(`/monitor/impacts?${params.toString()}`);
       // exclude pending (those live in the active tab) and sort newest first
       const list = (data.impacts || [])
         .filter((i) => i.status !== "pending")
@@ -237,7 +237,7 @@ export default function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelect
 
   const acknowledge = async (id) => {
     try {
-      const { data } = await api.post(`/alerts/${id}/acknowledge`);
+      const { data } = await api.post(`/monitor/alerts/${id}/acknowledge`);
       setAlerts((prev) => prev.map((a) => (a.id === id ? data.alert : a)));
       playAck();
       // Auto-jump to history so the operator sees the attended record
@@ -257,7 +257,7 @@ export default function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelect
 
   const falseAlarm = async (id) => {
     try {
-      const { data } = await api.post(`/alerts/${id}/false-alarm`);
+      const { data } = await api.post(`/monitor/alerts/${id}/false-alarm`);
       setAlerts((prev) => prev.map((a) => (a.id === id ? data.alert : a)));
       setTab("history");
       setTimeout(() => loadHistory(days), 400);

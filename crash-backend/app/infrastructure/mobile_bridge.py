@@ -1,19 +1,3 @@
-"""Mobile data bridge for C.R.A.S.H. 2.0 web monitor.
-
-Reads the live mobile-app collections (users / telemetry / impact_events /
-user_profiles) from the shared MongoDB and exposes the same surface that the
-synthetic ``simulator`` did, so ``server.py`` can swap them transparently.
-
-Mapping:
-- driver  ← users where role="user"; id = str(_id)
-- live state ← latest telemetry document for that user
-                (lat/lng/speed only present if the mobile backend includes them)
-- gps fallback ← location of last impact_event in last 24h
-- alert    ← impact_event document; ack/false_alarm state stored in
-              ``monitor_acks`` (separate collection, never mutates mobile data)
-- status   ← critical (recent unacked impact) | active (recent telemetry)
-              | offline (no telemetry within OFFLINE_AFTER_S)
-"""
 from __future__ import annotations
 
 import asyncio
@@ -36,7 +20,6 @@ def _parse_iso(value: Optional[str]) -> Optional[datetime]:
     if not value or not isinstance(value, str):
         return None
     try:
-        # mobile stores `datetime.now(timezone.utc).isoformat()` -> "...+00:00"
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
         return None
@@ -84,11 +67,9 @@ class MobileBridge:
         self._user_name_cache: Dict[str, str] = {}
         self._first_load_done = False
 
-    # ----- lifecycle -----
     async def start(self, db, broadcast) -> None:
         self._db = db
         self._broadcast = broadcast
-        # Build initial state without raising "new alert" frames
         await self._refresh_drivers()
         await self._refresh_alerts(suppress_new=True)
         self._first_load_done = True
@@ -115,13 +96,12 @@ class MobileBridge:
                         "ts": datetime.now(timezone.utc).isoformat(),
                         "drivers": list(self.drivers.values()),
                     })
-                except Exception as exc:  # noqa: BLE001 — keep poller alive
+                except Exception as exc:
                     logger.warning("Bridge tick failed: %s", exc)
                 await asyncio.sleep(POLL_INTERVAL_S)
         except asyncio.CancelledError:
             return
 
-    # ----- helpers -----
     async def _user_name(self, user_id: str) -> str:
         if user_id in self._user_name_cache:
             return self._user_name_cache[user_id]
@@ -142,7 +122,6 @@ class MobileBridge:
     def _has_pending(ack_doc: Optional[dict]) -> bool:
         return not ack_doc or ack_doc.get("status", "pending") == "pending"
 
-    # ----- drivers -----
     async def _refresh_drivers(self) -> None:
         users = await self._db.users.find(
             {"role": "user"},
@@ -193,15 +172,12 @@ class MobileBridge:
             else:
                 status = "offline"
 
-            # GPS: robust extraction from telemetry formats + impact fallback
             lat, lng = _extract_coords(telemetry or live_location, recent_impact)
-            if lat is None or lng is None:
+            if lat is None or lng is None and telemetry:
                 lat, lng = _extract_coords(live_location, recent_impact)
 
-            # Speed: from telemetry if mobile sends it
             speed = (telemetry or {}).get("speed")
 
-            # G-force: live from telemetry, override with critical impact value
             gforce = (telemetry or {}).get("g_force") or 0
             if critical_gforce is not None:
                 gforce = critical_gforce
@@ -224,18 +200,16 @@ class MobileBridge:
                 "last_update": (telemetry or live_location or {}).get("timestamp") or now.isoformat(),
             }
 
-        # Drop drivers that no longer exist as mobile users
         for stale in [k for k in self.drivers if k not in active_ids]:
             del self.drivers[stale]
 
-    # ----- alerts -----
     async def _refresh_alerts(self, suppress_new: bool) -> List[dict]:
         cutoff = (
             datetime.now(timezone.utc) - timedelta(hours=ALERT_LOOKBACK_HOURS)
         ).isoformat()
         impacts = await self._db.impact_events.find(
             {"created_at": {"$gte": cutoff}}, {"_id": 0}
-        ).sort("created_at", -1).limit(300).to_list(300)
+        ).sort("created_at", -1).to_list(300)
 
         ack_states: Dict[str, dict] = {}
         if impacts:
@@ -283,7 +257,6 @@ class MobileBridge:
         self.alerts = new_alerts_map
         return new_pending
 
-    # ----- public API used by /api/* -----
     def list_drivers(self) -> List[dict]:
         return list(self.drivers.values())
 
@@ -303,7 +276,6 @@ class MobileBridge:
         ).sort("timestamp", -1).limit(limit)
         points = await cursor.to_list(length=limit)
         points.reverse()
-        # Normalise field names so the frontend keeps working
         normalised = []
         for p in points:
             normalised.append({
@@ -355,7 +327,6 @@ class MobileBridge:
         prof["emergency_contacts"] = contacts
         prof["settings"] = settings
         return prof
-
 
     async def _ensure_alert_cached(self, alert_id: str) -> Optional[dict]:
         if alert_id in self.alerts:
@@ -436,7 +407,6 @@ class MobileBridge:
         await self._broadcast({"type": "alert_update", "alert": a})
         return a
 
-    # ----- query all impacts (for the global /api/impacts endpoint) -----
     async def query_impacts(
         self,
         q: Optional[str] = None,
@@ -447,7 +417,6 @@ class MobileBridge:
         days: Optional[int] = None,
         limit: int = 500,
     ) -> List[dict]:
-        """Return all impacts (joined with monitor_acks + driver info), filtered."""
         date_query: Dict[str, Any] = {}
         if days is not None and days > 0 and not date_from and not date_to:
             date_from = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
@@ -463,10 +432,11 @@ class MobileBridge:
             sev = severity.lower()
             mongo_q["severity"] = {"$in": [sev, sev.capitalize(), sev.upper()]}
 
+        effective = max(1, min(int(limit), 1000))
         cursor = self._db.impact_events.find(mongo_q, {"_id": 0}).sort(
             "created_at", -1
-        ).limit(max(1, min(int(limit), 1000)))
-        impacts = await cursor.to_list(length=limit)
+        ).limit(effective)
+        impacts = await cursor.to_list(length=effective)
 
         if not impacts:
             return []
@@ -512,10 +482,8 @@ class MobileBridge:
                 "ai_diagnosis": imp.get("ai_diagnosis"),
                 "alerts_sent": imp.get("alerts_sent"),
             }
-            # Status filter
             if status and status != "all" and row["status"] != status:
                 continue
-            # Name search
             if q:
                 ql = q.strip().lower()
                 if ql and ql not in driver_name.lower() and ql not in driver_email.lower():

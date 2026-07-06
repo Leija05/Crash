@@ -1,19 +1,11 @@
-"""JWT auth utilities for C.R.A.S.H. 2.0 monitor."""
-import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import bcrypt
 import jwt
+from bson import ObjectId
 from fastapi import HTTPException, Request, Depends
-
-JWT_ALGORITHM = "HS256"
-ACCESS_TTL_MIN = 60 * 8  # 8h dashboards stay open
-REFRESH_TTL_DAYS = 7
-
-
-def _secret() -> str:
-    return os.environ["JWT_SECRET"]
+from app.core.config import settings
 
 
 def hash_password(password: str) -> str:
@@ -27,28 +19,28 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def create_access_token(user_id: str, email: str, role: str) -> str:
+def create_access_token(sub: str, email: str, role: str = "user") -> str:
     payload = {
-        "sub": user_id,
+        "sub": sub,
         "email": email,
         "role": role,
         "type": "access",
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TTL_MIN),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES),
     }
-    return jwt.encode(payload, _secret(), algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_refresh_token(user_id: str) -> str:
+def create_refresh_token(sub: str) -> str:
     payload = {
-        "sub": user_id,
+        "sub": sub,
         "type": "refresh",
-        "exp": datetime.now(timezone.utc) + timedelta(days=REFRESH_TTL_DAYS),
+        "exp": datetime.now(timezone.utc) + timedelta(days=30),
     }
-    return jwt.encode(payload, _secret(), algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
 
 def decode_token(token: str) -> dict:
-    return jwt.decode(token, _secret(), algorithms=[JWT_ALGORITHM])
+    return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
 
 
 def _extract_token(request: Request) -> Optional[str]:
@@ -61,8 +53,10 @@ def _extract_token(request: Request) -> Optional[str]:
     return None
 
 
-async def get_current_user(request: Request) -> dict:
-    from server import db  # late import to avoid cycle
+async def get_current_monitor_user(request: Request) -> dict:
+    from app.core.database import get_db
+
+    db = await get_db()
     token = _extract_token(request)
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -84,8 +78,38 @@ async def get_current_user(request: Request) -> dict:
     return user
 
 
+async def get_current_rider(request: Request) -> dict:
+    from app.core.database import get_db
+
+    db = await get_db()
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = decode_token(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Invalid token type")
+
+    try:
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+    except Exception:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    user["id"] = str(user["_id"])
+    user.pop("_id", None)
+    user.pop("password_hash", None)
+    return user
+
+
 def require_role(*roles):
-    async def checker(user: dict = Depends(get_current_user)) -> dict:
+    async def checker(user: dict = Depends(get_current_monitor_user)) -> dict:
         if user.get("role") not in roles:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return user

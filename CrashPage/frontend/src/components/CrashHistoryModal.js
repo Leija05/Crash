@@ -109,7 +109,7 @@ export default function CrashHistoryModal({ open, onClose }) {
       if (dateFrom) params.set("date_from", `${dateFrom}T00:00:00+00:00`);
       if (dateTo) params.set("date_to", `${dateTo}T23:59:59+00:00`);
       params.set("limit", "500");
-      const { data } = await api.get(`/impacts?${params.toString()}`);
+      const { data } = await api.get(`/monitor/impacts?${params.toString()}`);
       setImpacts(data.impacts || []);
     } catch (err) {
       setError(formatApiError(err));

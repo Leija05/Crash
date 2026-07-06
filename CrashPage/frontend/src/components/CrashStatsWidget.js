@@ -75,7 +75,7 @@ export default function CrashStatsWidget() {
     if (!silent) setLoading(true);
     setError("");
     try {
-      const { data } = await api.get("/impacts?days=30&status=all&limit=1000");
+      const { data } = await api.get("/monitor/impacts?days=30&status=all&limit=1000");
       setImpacts(data.impacts || []);
     } catch (err) {
       setError(formatApiError(err));

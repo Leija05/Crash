@@ -96,7 +96,7 @@ export default function IncidentCommandCenter({ open, onClose, alerts, drivers, 
   useEffect(() => {
     if (!open || !driver?.id) return;
     let cancelled = false;
-    api.get(`/drivers/${driver.id}/history?limit=120`)
+    api.get(`/monitor/drivers/${driver.id}/history?limit=120`)
       .then(({ data }) => { if (!cancelled) setHistory(data.points || []); })
       .catch(() => { if (!cancelled) setHistory([]); });
     return () => { cancelled = true; };
@@ -107,7 +107,7 @@ export default function IncidentCommandCenter({ open, onClose, alerts, drivers, 
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get(`/incidents/${encodeURIComponent(incidentId)}/log`);
+      const { data } = await api.get(`/monitor/incidents/${encodeURIComponent(incidentId)}/log`);
       setNotes(data.entries || []);
     } catch (e) {
       setError(formatApiError(e));
@@ -127,7 +127,7 @@ export default function IncidentCommandCenter({ open, onClose, alerts, drivers, 
     if (!text || incidentId === "sin-incidente") return;
     setError("");
     try {
-      const { data } = await api.post(`/incidents/${encodeURIComponent(incidentId)}/log`, { note: text });
+      const { data } = await api.post(`/monitor/incidents/${encodeURIComponent(incidentId)}/log`, { note: text });
       setNotes((prev) => [data.entry, ...prev]);
       setNoteText("");
     } catch (e) {

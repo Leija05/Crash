@@ -158,9 +158,9 @@ export default function History() {
     (async () => {
       try {
         const [d, h, e] = await Promise.all([
-          api.get(`/drivers/${driverId}`),
-          api.get(`/drivers/${driverId}/history?limit=300`),
-          api.get(`/drivers/${driverId}/events?limit=100`),
+          api.get(`/monitor/drivers/${driverId}`),
+          api.get(`/monitor/drivers/${driverId}/history?limit=300`),
+          api.get(`/monitor/drivers/${driverId}/events?limit=100`),
         ]);
         if (!mounted) return;
         setProfile(d.data.driver);

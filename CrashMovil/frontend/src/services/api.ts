@@ -44,19 +44,19 @@ export const authAPI = {
 // Profile
 export const profileAPI = {
   get: (token: string) =>
-    apiRequest('/profile', { token }),
+    apiRequest('/riders/profile', { token }),
   update: (token: string, data: any) =>
-    apiRequest('/profile', { method: 'PUT', body: data, token }),
+    apiRequest('/riders/profile', { method: 'PUT', body: data, token }),
 };
 
 // Contacts
 export const contactsAPI = {
   list: (token: string) =>
-    apiRequest('/contacts', { token }),
+    apiRequest('/riders/contacts', { token }),
   add: (token: string, data: { name: string; phone: string; relationship?: string }) =>
-    apiRequest('/contacts', { method: 'POST', body: data, token }),
+    apiRequest('/riders/contacts', { method: 'POST', body: data, token }),
   delete: (token: string, contactId: string) =>
-    apiRequest(`/contacts/${contactId}`, { method: 'DELETE', token }),
+    apiRequest(`/riders/contacts/${contactId}`, { method: 'DELETE', token }),
 };
 
 // Impacts
@@ -72,13 +72,19 @@ export const impactsAPI = {
 // Settings
 export const settingsAPI = {
   get: (token: string) =>
-    apiRequest('/settings', { token }),
+    apiRequest('/riders/settings', { token }),
   update: (token: string, data: any) =>
-    apiRequest('/settings', { method: 'PUT', body: data, token }),
+    apiRequest('/riders/settings', { method: 'PUT', body: data, token }),
 };
 
 // Telemetry
 export const telemetryAPI = {
   send: (token: string, data: any) =>
     apiRequest('/telemetry', { method: 'POST', body: data, token }),
+};
+
+// False Alarm (from notification)
+export const falseAlarmAPI = {
+  create: (token: string, data: any) =>
+    apiRequest('/impacts/false-alarm', { method: 'POST', body: data, token }),
 };
