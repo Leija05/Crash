@@ -122,6 +122,16 @@ export default function ImpactDetailScreen() {
         )}
 
         {/* AI Diagnosis */}
+        {/* Replay Button */}
+        <TouchableOpacity
+          style={styles.replayBtn}
+          onPress={() => router.push(`/replay/${id}`)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="play-circle" size={22} color="#0A0A0A" />
+          <Text style={styles.replayBtnText}>REPRODUCIR ACCIDENTE</Text>
+        </TouchableOpacity>
+
         {d ? (
           <View style={styles.section}>
             <View style={styles.aiHeader}>
@@ -243,4 +253,10 @@ const styles = StyleSheet.create({
   stepNumText: { fontSize: 11, fontWeight: '800', color: COLORS.accent },
   noDiag: { alignItems: 'center', paddingVertical: 24 },
   noDiagText: { fontSize: 14, color: '#666', marginTop: 8 },
+  replayBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: COLORS.accent, borderRadius: 999, height: 54,
+    marginBottom: 12,
+  },
+  replayBtnText: { color: '#0A0A0A', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
 });

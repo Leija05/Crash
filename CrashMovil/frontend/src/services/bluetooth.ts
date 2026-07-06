@@ -95,13 +95,16 @@ class BluetoothTelemetryService {
     if (Platform.OS !== 'android') return true;
     try {
       const api = parseInt(Platform.Version.toString(), 10);
-      const perms = api >= 31
+      const perms: string[] = api >= 31
         ? [
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         ]
         : [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+      if (api >= 33) {
+        perms.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      }
       const granted = await PermissionsAndroid.requestMultiple(perms);
       return Object.values(granted).every(r => r === PermissionsAndroid.RESULTS.GRANTED);
     } catch { return false; }

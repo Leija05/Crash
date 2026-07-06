@@ -7,11 +7,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { COLORS, RADIUS, SPACING, severityColor, severityLabel } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { contactsAPI, impactsAPI, settingsAPI, telemetryAPI } from '../../src/services/api';
+import { foregroundService } from '../../src/services/foregroundService';
+
+function estimateSpeed(ax: number, ay: number, az: number): number {
+  const magnitude = Math.sqrt(ax * ax + ay * ay + az * az);
+  return Math.max(0, (magnitude - 9.8) * 3.6);
+}
 
 const MAX_G_RING = 12;
 const SEGMENTS = 40;
@@ -48,6 +54,7 @@ export default function DashboardScreen() {
 
   const telemetryRef = useRef(telemetry); 
   const impactTelemetryRef = useRef(telemetry);
+  const telemetryForServiceRef = useRef(telemetry);
   const [staleData, setStaleData] = useState(false);
   const impactTriggeredRef = useRef(false);
   const emergencyInFlightRef = useRef(false);
@@ -114,6 +121,34 @@ export default function DashboardScreen() {
     }, 1000);
     return () => clearInterval(t);
   }, [connected]);
+
+  useEffect(() => {
+    if (connected) {
+      foregroundService.start(deviceName || 'C.R.A.S.H.');
+    } else {
+      foregroundService.stop();
+    }
+  }, [connected, deviceName]);
+
+  useEffect(() => {
+    if (telemetry) telemetryForServiceRef.current = telemetry;
+  }, [telemetry]);
+
+  useEffect(() => {
+    if (!connected || !telemetry) return;
+    const interval = setInterval(() => {
+      const t = telemetryForServiceRef.current;
+      if (!t) return;
+      const speed = estimateSpeed(t.acceleration_x, t.acceleration_y, t.acceleration_z);
+      foregroundService.updateTelemetry(
+        deviceName || 'C.R.A.S.H.',
+        speed,
+        t.g_force,
+        batteryLevel,
+      );
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [connected, deviceName, batteryLevel]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -335,18 +370,20 @@ export default function DashboardScreen() {
       const now = Date.now();
       if (now - lastNotificationUpdateRef.current < NOTIFICATION_TELEMETRY_THROTTLE_MS) return;
       lastNotificationUpdateRef.current = now;
-      const lat = telemetryForDisplay?.latitude;
-      const lon = telemetryForDisplay?.longitude;
-      const gText = `${(telemetryForDisplay?.g_force ?? 0).toFixed(2)}G`;
-      const body = `Activo · ${lat?.toFixed(5) ?? '--'}, ${lon?.toFixed(5) ?? '--'} · ${gText}`;
+      const t = telemetryForDisplay;
+      const gVal = t?.g_force ?? 0;
+      const speed = t ? estimateSpeed(t.acceleration_x, t.acceleration_y, t.acceleration_z) : 0;
+      const batText = batteryLevel !== null ? ` · Batería ${batteryLevel}%` : '';
+      const title = `C.R.A.S.H. · ${deviceName || 'Casco'}`;
+      const body = `Velocidad: ${Math.round(speed)} km/h · ${gVal.toFixed(2)}G${batText}`;
       await Notifications.scheduleNotificationAsync({
         identifier: NOTIFICATION_STATUS_ID,
-        content: { title: 'C.R.A.S.H. monitoreo activo', body, sticky: true, priority: Notifications.AndroidNotificationPriority.HIGH },
+        content: { title, body, sticky: true, priority: Notifications.AndroidNotificationPriority.HIGH },
         trigger: null,
       });
     };
     pushStatusNotification();
-  }, [connected, telemetryForDisplay]);
+  }, [connected, telemetryForDisplay, deviceName, batteryLevel]);
 
   useEffect(() => {
     const updateCountdownNotification = async () => {
@@ -623,25 +660,30 @@ function MetricCard({ label, value, unit, color, live }: {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#06080F' },
-  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING.md },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 20 },
+
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    marginBottom: SPACING.md, paddingTop: SPACING.sm,
+  },
   greeting: { fontSize: 13, color: COLORS.textSec },
   appName: { fontSize: 26, fontWeight: '900', color: COLORS.text, letterSpacing: 3, marginTop: 2 },
   modePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(52,211,153,0.12)',
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(52,211,153,0.10)',
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.15)',
   },
-  modePillDev: { backgroundColor: 'rgba(251,191,36,0.14)' },
   modeText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
 
   statusBar: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#0B0F1A', borderWidth: 1, borderColor: '#151B2B',
+    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
     borderRadius: RADIUS.lg, padding: 14, marginBottom: SPACING.md,
+    ...SHADOWS.sm,
   },
-  statusBarConnected: { borderColor: 'rgba(52,211,153,0.3)', backgroundColor: 'rgba(52,211,153,0.05)' },
+  statusBarConnected: { borderColor: 'rgba(52,211,153,0.25)', backgroundColor: 'rgba(52,211,153,0.04)' },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusLabel: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
   statusDetail: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
@@ -649,11 +691,12 @@ const styles = StyleSheet.create({
   ringCard: {
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#151B2B',
-    backgroundColor: '#070B16',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.cardBg,
     alignItems: 'center',
     paddingVertical: 20,
     marginBottom: SPACING.md,
+    ...SHADOWS.md,
   },
   ringWrap: { alignItems: 'center' },
   ringTrack: {
@@ -675,27 +718,28 @@ const styles = StyleSheet.create({
     height: 190,
     borderRadius: 95,
     borderWidth: 1,
-    borderColor: '#1A2033',
+    borderColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(7,11,22,0.9)',
+    backgroundColor: 'rgba(8,8,24,0.9)',
   },
   gValue: { fontSize: 66, fontWeight: '900', color: COLORS.text, lineHeight: 72 },
-  gTitle: { color: '#A9B2C8', letterSpacing: 3, fontSize: 12, fontWeight: '700' },
+  gTitle: { color: COLORS.textSec, letterSpacing: 3, fontSize: 12, fontWeight: '700' },
   gSubRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 6 },
   gBullet: { width: 8, height: 8, borderRadius: 999 },
-  gSubText: { color: '#D0D6E5', fontWeight: '600' },
+  gSubText: { color: COLORS.text, fontWeight: '600' },
   severityText: { marginTop: 6, fontSize: 10, letterSpacing: 1.5, color: COLORS.textSec, fontWeight: '700' },
-  ms2: { color: '#7F879A', marginTop: 8, fontSize: 13, letterSpacing: 3 },
+  ms2: { color: COLORS.textDim, marginTop: 8, fontSize: 13, letterSpacing: 3 },
   peakRow: {
     marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: RADIUS.md,
-    backgroundColor: '#0E1320',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
   },
   peakLabel: { color: COLORS.textDim, fontSize: 10, fontWeight: '700', letterSpacing: 2 },
   peakValue: { color: COLORS.text, fontSize: 13, fontWeight: '900' },
@@ -703,20 +747,21 @@ const styles = StyleSheet.create({
   coordsCard: {
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: '#151B2B',
-    backgroundColor: '#0B0F1A',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
     padding: 14,
     marginBottom: SPACING.md,
+    ...SHADOWS.sm,
   },
-  coordsTitle: { color: COLORS.textSec, fontSize: 10, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
+  coordsTitle: { color: COLORS.textSec, fontSize: 9, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
   coordsGrid: { flexDirection: 'row', gap: 10 },
-  coordsGeo: { color: COLORS.textSec, marginTop: 10, fontSize: 12, textAlign: 'center' },
+  coordsGeo: { color: COLORS.textDim, marginTop: 10, fontSize: 12, textAlign: 'center' },
   coordCell: {
     flex: 1,
     borderRadius: RADIUS.md,
-    backgroundColor: '#060A14',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     borderWidth: 1,
-    borderColor: '#1A2033',
+    borderColor: COLORS.border,
     paddingVertical: 12,
     alignItems: 'center',
   },
@@ -724,16 +769,17 @@ const styles = StyleSheet.create({
   coordValue: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
 
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  sectionTitle: { fontSize: 10, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2 },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: '#0E1320' },
-  liveBadgeOn: { backgroundColor: 'rgba(52,211,153,0.1)' },
+  sectionTitle: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2 },
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255,255,255,0.04)' },
+  liveBadgeOn: { backgroundColor: 'rgba(52,211,153,0.08)' },
   liveDot: { width: 6, height: 6, borderRadius: 3 },
   liveText: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: SPACING.md },
   metric: {
-    width: '48%', flexGrow: 1, backgroundColor: '#0B0F1A',
-    borderRadius: RADIUS.md, padding: 14, borderWidth: 1, borderColor: '#151B2B',
+    width: '48%', flexGrow: 1, backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md, padding: 14, borderWidth: 1, borderColor: COLORS.border,
+    ...SHADOWS.sm,
   },
   metricLabel: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6 },
   metricValue: { fontSize: 22, fontWeight: '900', color: COLORS.textDim },
@@ -743,35 +789,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     backgroundColor: COLORS.accent, borderRadius: RADIUS.pill, height: 54,
     marginBottom: SPACING.md,
+    ...SHADOWS.md,
   },
-  primaryBtnDev: { backgroundColor: COLORS.warning },
   primaryBtnDanger: { backgroundColor: COLORS.primary },
   primaryBtnText: { color: '#FFF', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
 
   infoBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#0B0F1A', padding: 12, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: '#151B2B', marginTop: 4,
+    backgroundColor: COLORS.surface, padding: 12, borderRadius: RADIUS.md,
+    borderWidth: 1, borderColor: COLORS.border, marginTop: 4,
   },
   infoText: { fontSize: 11, color: COLORS.textSec, flex: 1 },
   warningCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(251,191,36,0.10)', borderColor: 'rgba(251,191,36,0.35)', borderWidth: 1,
+    backgroundColor: 'rgba(251,191,36,0.06)', borderColor: 'rgba(251,191,36,0.25)', borderWidth: 1,
     borderRadius: RADIUS.md, padding: 12, marginTop: 4,
   },
   warningTitle: { color: COLORS.warning, fontWeight: '800', fontSize: 13, marginBottom: 2 },
   warningText: { color: COLORS.textSec, fontSize: 11 },
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  dialog: { width: '100%', backgroundColor: '#0B0F1A', borderWidth: 1, borderColor: '#1A2033', borderRadius: 16, padding: 18 },
-  countdownIconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.warning, marginBottom: 10 },
+
+  overlay: { flex: 1, backgroundColor: COLORS.overlay, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  dialog: {
+    width: '100%', maxWidth: 360,
+    backgroundColor: COLORS.surfaceAlt, borderWidth: 1, borderColor: COLORS.borderStrong,
+    borderRadius: RADIUS.lg, padding: 20,
+    ...SHADOWS.lg,
+  },
+  countdownIconWrap: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.warning, marginBottom: 12 },
   dialogTitle: { color: COLORS.text, fontSize: 20, fontWeight: '900', marginBottom: 8 },
-  dialogText: { color: COLORS.textSec, fontSize: 14, marginBottom: 6 },
+  dialogText: { color: COLORS.textSec, fontSize: 14, marginBottom: 8, lineHeight: 20 },
   countdownLabel: { color: COLORS.textDim, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 4 },
-  countdownValue: { color: COLORS.warning, fontSize: 44, fontWeight: '900', marginTop: 2, marginBottom: 12 },
-  dialogActions: { flexDirection: 'row', gap: 8 },
-  cancelBtnSoft: { flex: 1, backgroundColor: '#151B2B', borderRadius: 999, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
+  countdownValue: { color: COLORS.warning, fontSize: 52, fontWeight: '900', marginTop: 4, marginBottom: 16 },
+  dialogActions: { flexDirection: 'row', gap: 10 },
+  cancelBtnSoft: { flex: 1, backgroundColor: COLORS.elevated, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center' },
   cancelSoftText: { color: COLORS.text, fontWeight: '800', letterSpacing: 0.7 },
-  cancelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: 999, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
+  cancelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center' },
   cancelText: { color: '#FFF', fontWeight: '900', letterSpacing: 1 },
-  contactSent: { color: COLORS.text, fontSize: 13, marginBottom: 4 },
+  contactSent: { color: COLORS.textSec, fontSize: 13, marginBottom: 4 },
 });

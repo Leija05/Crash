@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from math import radians, sin, cos, sqrt, atan2
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pymongo.errors import DuplicateKeyError
 
 from app.api.impacts.service import classify_severity
@@ -103,6 +103,54 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
         "g_force": body.g_force,
         "severity": classify_severity(body.g_force),
         "location_tracking_enabled": track_location,
+    }
+
+
+@router.get("/history")
+async def get_telemetry_history(
+    impact_id: str,
+    before_minutes: int = 5,
+    after_minutes: int = 5,
+    limit: int = 200,
+    user: dict = Depends(get_current_rider),
+):
+    db = await get_db()
+    impact = await db.impact_events.find_one(
+        {"id": impact_id, "user_id": user["id"]},
+        {"_id": 0, "created_at": 1, "g_force": 1, "location": 1},
+    )
+    if not impact:
+        raise HTTPException(status_code=404, detail="Impacto no encontrado")
+
+    impact_time_str = impact.get("created_at")
+    if not impact_time_str:
+        return {"points": [], "impact": impact}
+
+    try:
+        impact_dt = datetime.fromisoformat(impact_time_str)
+    except Exception:
+        return {"points": [], "impact": impact}
+
+    from_start = impact_dt - timedelta(minutes=before_minutes)
+    from_end = impact_dt + timedelta(minutes=after_minutes)
+
+    cursor = db.telemetry.find(
+        {
+            "user_id": user["id"],
+            "timestamp": {"$gte": from_start.isoformat(), "$lte": from_end.isoformat()},
+        },
+        {"_id": 0, "acceleration": 1, "gyroscope": 1, "g_force": 1, "timestamp": 1, "helmet_connected": 1},
+    ).sort("timestamp", 1).limit(limit)
+
+    points = await cursor.to_list(length=limit)
+    return {
+        "points": points,
+        "impact": {
+            "id": impact_id,
+            "g_force": impact.get("g_force"),
+            "timestamp": impact_time_str,
+            "location": impact.get("location"),
+        },
     }
 
 
