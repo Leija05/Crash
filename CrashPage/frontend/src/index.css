@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Chivo:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+
+:root {
+    --bg-app: #0A0A0A;
+    --bg-app-2: #0d0d0f;
+}
+
+html, body, #root {
+    height: 100%;
+    background-color: var(--bg-app);
+    color: #f5f5f5;
+}
+
+body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-app);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(239,68,68,0.09), transparent 40%),
+      radial-gradient(circle at 80% 100%, rgba(239,68,68,0.05), transparent 40%);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Chivo', system-ui, sans-serif;
+    letter-spacing: -0.01em;
+}
+
+.font-mono, code, .mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Scanline / grain overlay used in login + headers */
+.grid-grain {
+    background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+/* ------------ Leaflet dark tweaks ------------ */
+.leaflet-container {
+    background: #0a0a0a !important;
+    font-family: 'IBM Plex Sans', sans-serif;
+    outline: none;
+}
+.leaflet-control-attribution {
+    background: rgba(0,0,0,0.5) !important;
+    color: rgba(255,255,255,0.5) !important;
+    font-size: 10px;
+    backdrop-filter: blur(8px);
+}
+.leaflet-control-attribution a { color: rgba(255,255,255,0.7) !important; }
+.leaflet-control-zoom a {
+    background: rgba(20,20,22,0.85) !important;
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.1) !important;
+    backdrop-filter: blur(10px);
+}
+.leaflet-control-zoom a:hover {
+    background: rgba(40,40,45,0.9) !important;
+}
+
+.leaflet-popup-content-wrapper {
+    background: rgba(15,15,18,0.92) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px !important;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+}
+.leaflet-popup-tip { background: rgba(15,15,18,0.92) !important; }
+.leaflet-popup-content { margin: 12px 16px !important; font-family: 'IBM Plex Sans', sans-serif; }
+
+/* Custom driver marker */
+.crash-marker {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid rgba(255,255,255,0.85);
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.4);
+    position: relative;
+}
+.crash-marker.active   { background: #10b981; }
+.crash-marker.warning  { background: #f59e0b; }
+.crash-marker.critical { background: #ef4444; }
+.crash-marker.offline  { background: #525252; border-color: rgba(255,255,255,0.4); }
+
+.crash-marker .pulse {
+    position: absolute; inset: -10px; border-radius: 50%;
+    border: 2px solid currentColor; opacity: 0.6;
+    animation: ringPulse 1.6s ease-out infinite;
+}
+.crash-marker.active .pulse   { color: #10b981; }
+.crash-marker.critical .pulse { color: #ef4444; animation-duration: 0.9s; }
+.crash-marker.offline .pulse  { display: none; }
+
+@keyframes ringPulse {
+    0%   { transform: scale(0.6); opacity: 0.7; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Critical alert flashes */
+@keyframes critFlash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0), inset 0 0 0 1px rgba(239,68,68,0.4); }
+    50%      { box-shadow: 0 0 30px 4px rgba(239,68,68,0.45), inset 0 0 0 1px rgba(239,68,68,0.9); }
+}
+.alert-flashing { animation: critFlash 1.2s ease-in-out infinite; }
+
+/* Subtle scrollbars */
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* Selection */
+::selection { background: rgba(239,68,68,0.35); color: white; }
+
+@layer base {
+    :root {
+        --background: 0 0% 4%;
+        --foreground: 0 0% 98%;
+        --card: 0 0% 6%;
+        --card-foreground: 0 0% 98%;
+        --popover: 0 0% 6%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 152 76% 44%;
+        --primary-foreground: 0 0% 4%;
+        --secondary: 0 0% 14%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 0 0% 14%;
+        --muted-foreground: 0 0% 64%;
+        --accent: 0 0% 14%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 0 0% 14%;
+        --input: 0 0% 14%;
+        --ring: 152 76% 44%;
+        --radius: 1rem;
+    }
+}
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+}
+
+
+
+/* Light theme */
+body[data-theme='light'] {
+  --bg-app: #f4f7fb;
+  --bg-app-2: #e9eef6;
+  color: #0f172a;
+  background-color: var(--bg-app);
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(239,68,68,0.12), transparent 35%),
+    radial-gradient(circle at 90% 100%, rgba(220,38,38,0.08), transparent 40%);
+}
+
+body[data-theme='light'] .App,
+body[data-theme='light'] #root {
+  background-color: var(--bg-app);
+  color: #0f172a;
+}
+
+body[data-theme='light'] [class*='bg-[#0A0A0A]'],
+body[data-theme='light'] [class*='bg-black'],
+body[data-theme='light'] [class*='bg-white/[0.03]'],
+body[data-theme='light'] [class*='bg-white/[0.02]'] {
+  background-color: rgba(255,255,255,0.86) !important;
+  color: #0f172a !important;
+}
+
+body[data-theme='light'] [class*='border-white/10'],
+body[data-theme='light'] [class*='border-white/20'] {
+  border-color: rgba(15,23,42,0.15) !important;
+}
+
+body[data-theme='light'] [class*='text-neutral-500'] { color: #64748b !important; }
+body[data-theme='light'] [class*='text-neutral-400'] { color: #334155 !important; }
+body[data-theme='light'] [class*='text-neutral-300'] { color: #1e293b !important; }
+
+body[data-theme='light'] .leaflet-container {
+  background: #dbe7f3 !important;
+  filter: brightness(1.08) saturate(0.9);
+}
+
+
+.red-accent-panel{position:relative;}
+.red-accent-panel::after{content:"";position:absolute;inset:8px;border:1px solid rgba(239,68,68,.22);border-radius:14px;pointer-events:none;}
+body[data-theme='light'] .red-accent-panel::after{border-color:rgba(220,38,38,.28);}
+
+@keyframes panelEntrance {
+  0% { opacity: 0; transform: translateY(10px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.panel-entrance {
+  animation: panelEntrance 280ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-entrance,
+  .alert-flashing,
+  .crash-marker .pulse {
+    animation: none !important;
+  }
+}
