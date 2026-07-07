@@ -1,33 +1,15 @@
+import { memo } from "react";
 import { Bluetooth, BluetoothOff, Gauge, MapPin, Activity, Battery } from "lucide-react";
-
-function Card({ label, children, tone = "default", testid }) {
-  const toneClass = {
-    default:  "border-white/10",
-    critical: "border-red-500/40 shadow-[0_0_25px_rgba(239,68,68,0.15)]",
-    active:   "border-emerald-500/30",
-    warning:  "border-amber-500/30",
-  }[tone] || "border-white/10";
-
-  return (
-    <div
-      data-testid={testid}
-      className={`relative bg-white/5 backdrop-blur-2xl border ${toneClass} rounded-2xl p-5 overflow-hidden`}
-    >
-      <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{label}</div>
-      <div className="mt-2">{children}</div>
-    </div>
-  );
-}
 
 const fmtNum = (v, digits = 0) =>
   typeof v === "number" && Number.isFinite(v) ? v.toFixed(digits) : "—";
 
-export default function TelemetryBento({ driver }) {
+function TelemetryBento({ driver }) {
   if (!driver) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="telemetry-bento-empty">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-5 h-[140px] flex items-center justify-center">
+          <div key={i} className="glass-card rounded-2xl p-5 h-[140px] flex items-center justify-center">
             <span className="text-[10px] uppercase tracking-[0.3em] text-neutral-600">
               Selecciona un conductor
             </span>
@@ -52,95 +34,109 @@ export default function TelemetryBento({ driver }) {
   const speedColor = speed != null && speed > 80 ? "text-amber-400" : "text-white";
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="telemetry-bento">
-      <Card
-        label="Casco · Bluetooth"
-        tone={driver.helmet_connected ? "active" : "critical"}
-        testid="telemetry-helmet"
-      >
-        <div className="flex items-center gap-3">
-          {driver.helmet_connected ? (
-            <Bluetooth className="h-7 w-7 text-emerald-400" />
-          ) : (
-            <BluetoothOff className="h-7 w-7 text-red-400" />
-          )}
-          <div>
-            <div className="font-mono text-2xl font-bold text-white">
-              {driver.helmet_connected ? "ONLINE" : "OFFLINE"}
-            </div>
-            <div className="text-xs text-neutral-400 mt-0.5">
-              {driver.helmet_connected ? "Conectado al headset" : "Sin telemetría reciente"}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card
-        label="Velocidad"
-        testid="telemetry-speed"
-        tone={speed != null && speed > 80 ? "warning" : "default"}
-      >
-        <div className="flex items-end gap-2">
-          <Gauge className="h-7 w-7 text-emerald-400 mb-1" />
-          <div>
-            <div className={`font-mono text-4xl font-bold tracking-tighter ${speedColor}`}>
-              {fmtNum(speed)}
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">km/h</div>
-          </div>
-        </div>
-      </Card>
-
-      <Card label="G-Force" testid="telemetry-gforce" tone={gforceTone === "critical" ? "critical" : "default"}>
-        <div className="flex items-end gap-2">
-          <Activity className={`h-7 w-7 mb-1 ${
-            gforceTone === "critical" ? "text-red-400"
-            : gforceTone === "warning" ? "text-amber-400"
-            : "text-emerald-400"
-          }`} />
-          <div>
-            <div className={`font-mono text-4xl font-bold tracking-tighter ${
-              gforceTone === "critical" ? "text-red-400" : "text-white"
-            }`}>
-              {fmtNum(gforce, 2)}<span className="text-base text-neutral-500 ml-1">G</span>
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">
-              {isCrit ? "IMPACTO DETECTADO"
-                : gforce != null && gforce >= 2.5 ? "Esfuerzo"
-                : gforce != null ? "Estable"
-                : "Sin datos"}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card label="GPS · Batería" testid="telemetry-gps">
-        <div className="flex items-start gap-2">
-          <MapPin className="h-6 w-6 text-emerald-400 mt-1" />
-          <div className="flex-1">
-            {lat != null && lng != null ? (
-              <>
-                <div className="font-mono text-sm text-white leading-tight">
-                  {lat.toFixed(5)}<span className="text-neutral-500">°</span>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in" data-testid="telemetry-bento">
+      <div className="glass-card rounded-2xl p-5 overflow-hidden hover-lift card-3d">
+        <div className="card-3d-inner">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">Casco · Bluetooth</div>
+          <div className="mt-2">
+            <div className="flex items-center gap-3">
+              {driver.helmet_connected ? (
+                <Bluetooth className="h-7 w-7 text-emerald-400" />
+              ) : (
+                <BluetoothOff className="h-7 w-7 text-red-400" />
+              )}
+              <div>
+                <div className={`font-mono text-2xl font-bold ${driver.helmet_connected ? "text-emerald-400" : "text-red-400"}`}>
+                  {driver.helmet_connected ? "ONLINE" : "OFFLINE"}
                 </div>
-                <div className="font-mono text-sm text-white leading-tight">
-                  {lng.toFixed(5)}<span className="text-neutral-500">°</span>
+                <div className="text-xs text-neutral-400 mt-0.5">
+                  {driver.helmet_connected ? "Conectado al headset" : "Sin telemetría reciente"}
                 </div>
-              </>
-            ) : (
-              <div className="font-mono text-sm text-neutral-500 leading-tight">
-                Sin coordenadas
               </div>
-            )}
-            {driver.battery != null ? (
-              <div className="flex items-center gap-1.5 mt-2">
-                <Battery className="h-3 w-3 text-neutral-400" />
-                <div className="text-[11px] font-mono text-neutral-300">{driver.battery}%</div>
-              </div>
-            ) : null}
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
+
+      <div className="glass-card rounded-2xl p-5 overflow-hidden hover-lift card-3d">
+        <div className="card-3d-inner">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">Velocidad</div>
+          <div className="mt-2">
+            <div className="flex items-end gap-2">
+              <Gauge className="h-7 w-7 text-emerald-400 mb-1" />
+              <div>
+                <div className={`font-mono text-4xl font-bold tracking-tighter ${speedColor}`}>
+                  {fmtNum(speed)}
+                </div>
+                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">km/h</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={`glass-card rounded-2xl p-5 overflow-hidden hover-lift card-3d ${gforceTone === "critical" ? "glass-card-red" : gforceTone === "active" ? "glass-card-emerald" : ""}`}>
+        <div className="card-3d-inner">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">G-Force</div>
+          <div className="mt-2">
+            <div className="flex items-end gap-2">
+              <Activity className={`h-7 w-7 mb-1 ${
+                gforceTone === "critical" ? "text-red-400"
+                : gforceTone === "warning" ? "text-amber-400"
+                : "text-emerald-400"
+              }`} />
+              <div>
+                <div className={`font-mono text-4xl font-bold tracking-tighter ${
+                  gforceTone === "critical" ? "text-red-400" : "text-white"
+                }`}>
+                  {fmtNum(gforce, 2)}<span className="text-base text-neutral-500 ml-1">G</span>
+                </div>
+                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">
+                  {isCrit ? "IMPACTO DETECTADO"
+                    : gforce != null && gforce >= 2.5 ? "Esfuerzo"
+                    : gforce != null ? "Estable"
+                    : "Sin datos"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-card rounded-2xl p-5 overflow-hidden hover-lift card-3d">
+        <div className="card-3d-inner">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">GPS · Batería</div>
+          <div className="mt-2">
+            <div className="flex items-start gap-2">
+              <MapPin className="h-6 w-6 text-emerald-400 mt-1" />
+              <div className="flex-1">
+                {lat != null && lng != null ? (
+                  <>
+                    <div className="font-mono text-sm text-white leading-tight">
+                      {lat.toFixed(5)}<span className="text-neutral-500">°</span>
+                    </div>
+                    <div className="font-mono text-sm text-white leading-tight">
+                      {lng.toFixed(5)}<span className="text-neutral-500">°</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="font-mono text-sm text-neutral-500 leading-tight">
+                    Sin coordenadas
+                  </div>
+                )}
+                {driver.battery != null ? (
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <Battery className="h-3 w-3 text-neutral-400" />
+                    <div className="text-[11px] font-mono text-neutral-300">{driver.battery}%</div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+export default memo(TelemetryBento);

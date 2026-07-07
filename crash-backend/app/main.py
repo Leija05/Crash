@@ -2,12 +2,16 @@ import asyncio
 import json
 import logging
 import os
+import time
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 
 from app.api.auth.router import router as auth_router
 from app.api.impacts.router import router as impacts_router
@@ -18,6 +22,9 @@ from app.api.telemetry.router import router as telemetry_router
 from app.core.config import settings
 from app.core.database import get_db, close_db
 from app.core.security import decode_token, hash_password, verify_password
+from app.core.rate_limiter import rate_limiter
+from app.core.cache import cache
+from app.core.exceptions import AppException, app_exception_handler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,7 +32,99 @@ logging.basicConfig(
 )
 logger = logging.getLogger("crash")
 
-app = FastAPI(title="C.R.A.S.H. 2.0 Unified API")
+
+class PerformanceMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start
+        response.headers["X-Process-Time"] = f"{process_time:.4f}"
+        if process_time > 1:
+            logger.warning(f"Slow request: {request.method} {request.url.path} took {process_time:.3f}s")
+        return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
+
+
+CUSTOM_SWAGGER_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>C.R.A.S.H. API</title>
+  <style>
+    :root {
+      --bg: #0A0A0A;
+      --surface: #0d0d0f;
+      --border: rgba(255,255,255,0.1);
+      --text: #f5f5f5;
+      --primary: #10b981;
+      --destructive: #ef4444;
+    }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; }
+    .swagger-ui { color: var(--text) !important; }
+    .swagger-ui .topbar { background: var(--surface) !important; border-bottom: 1px solid var(--border); }
+    .swagger-ui .topbar .download-url-wrapper .select-label { color: var(--text) !important; }
+    .swagger-ui .info .title { color: var(--text) !important; }
+    .swagger-ui .info { margin: 20px 0; }
+    .swagger-ui .scheme-container { background: var(--surface) !important; box-shadow: none !important; border: 1px solid var(--border); border-radius: 12px; }
+    .swagger-ui .opblock-tag { border-bottom: 1px solid var(--border); color: var(--text) !important; }
+    .swagger-ui .opblock .opblock-summary { border-color: var(--border) !important; }
+    .swagger-ui .opblock { background: var(--surface) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; margin: 8px 0; }
+    .swagger-ui .opblock .opblock-summary-description { color: rgba(255,255,255,0.6) !important; }
+    .swagger-ui .opblock-body { background: var(--surface) !important; }
+    .swagger-ui .opblock-body pre { background: rgba(0,0,0,0.3) !important; border-radius: 8px; }
+    .swagger-ui table thead tr td, .swagger-ui table thead tr th { border-bottom: 1px solid var(--border); color: var(--text) !important; }
+    .swagger-ui .response-col_status { color: var(--text) !important; }
+    .swagger-ui .btn { border-radius: 8px !important; }
+    .swagger-ui .btn.execute { background: var(--primary) !important; border-color: var(--primary) !important; }
+    .swagger-ui input, .swagger-ui select, .swagger-ui textarea { background: rgba(0,0,0,0.3) !important; border: 1px solid var(--border) !important; color: var(--text) !important; border-radius: 8px !important; }
+    .swagger-ui .model-box { background: rgba(0,0,0,0.2) !important; border-radius: 8px; }
+    .swagger-ui .model { color: var(--text) !important; }
+    .swagger-ui .markdown p, .swagger-ui .markdown li { color: rgba(255,255,255,0.7) !important; }
+    .swagger-ui .opblock-summary-control:focus { outline: none; }
+    .swagger-ui .opblock-summary-path { color: var(--primary) !important; }
+    .swagger-ui .response-col_description { color: rgba(255,255,255,0.7) !important; }
+    .swagger-ui .parameters-col_description { color: rgba(255,255,255,0.7) !important; }
+    .swagger-ui .model-toggle { filter: invert(1); }
+    .swagger-ui .loading-container { background: var(--bg); }
+    .swagger-ui .loading-container .loading { border-color: var(--border); }
+    svg:not(:root) { fill: currentColor; }
+  </style>
+</head>
+<body style="background:#0A0A0A;">
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: '/api/openapi.json',
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      presets: [SwaggerUIBundle.presets.apis],
+      layout: "BaseLayout",
+      defaultModelsExpandDepth: 1,
+      docExpansion: "list",
+    });
+  </script>
+</body>
+</html>
+"""
+
+app = FastAPI(
+    title="C.R.A.S.H. 2.0 Unified API",
+    docs_url=None,
+    redoc_url="/api/redoc",
+)
+
+app.add_exception_handler(AppException, app_exception_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +133,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+app.add_middleware(PerformanceMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(impacts_router, prefix="/api")
@@ -44,12 +146,47 @@ app.include_router(monitor_router, prefix="/api")
 
 @app.get("/api/")
 async def root():
-    return {"service": "crash-unified", "status": "ok", "demo": settings.DEMO_MODE}
+    return {
+        "service": "crash-unified",
+        "version": "2.0",
+        "status": "ok",
+        "demo": settings.DEMO_MODE,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
+
+@app.get("/api/docs", include_in_schema=False)
+async def custom_swagger_ui():
+    return HTMLResponse(CUSTOM_SWAGGER_HTML)
 
 @app.get("/api/health")
-async def health():
-    return {"status": "healthy", "database": "connected"}
+async def health(request: Request):
+    db_status = "unknown"
+    db_detail = ""
+    try:
+        db = await get_db()
+        await db.command("ping")
+        db_status = "connected"
+    except Exception as e:
+        db_status = "error"
+        db_detail = str(e)
+
+    cache_stats = cache.stats()
+    return {
+        "status": "healthy" if db_status == "connected" else "degraded",
+        "database": db_status,
+        "database_detail": db_detail,
+        "demo_mode": settings.DEMO_MODE,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "uptime_seconds": round(time.time() - app.state.startup_time) if hasattr(app.state, "startup_time") else 0,
+        "cache": cache_stats,
+        "rate_limiter": rate_limiter.stats(),
+    }
+
+
+@app.get("/api/health/ready")
+async def health_ready():
+    return {"status": "ready", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @app.get("/webhook/whatsapp")
@@ -126,7 +263,12 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-            await websocket.receive_text()
+            data = await websocket.receive_text()
+            if data == '{"type":"ping"}':
+                try:
+                    await websocket.send_json({"type": "pong", "ts": datetime.now(timezone.utc).isoformat()})
+                except Exception:
+                    break
     except WebSocketDisconnect:
         await manager.disconnect(websocket)
         logger.info("WS: disconnected")
@@ -185,6 +327,7 @@ async def _seed_operators() -> None:
 
 @app.on_event("startup")
 async def on_startup() -> None:
+    app.state.startup_time = time.time()
     db = await get_db()
     await db.monitor_operators.create_index("email", unique=True)
     await db.monitor_acks.create_index("impact_id", unique=True)
@@ -192,7 +335,9 @@ async def on_startup() -> None:
     await db.users.create_index("email", unique=True)
     await db.emergency_contacts.create_index("user_id")
     await db.impact_events.create_index("user_id")
+    await db.impact_events.create_index([("user_id", 1), ("created_at", -1)])
     await db.telemetry.create_index("user_id")
+    await db.telemetry.create_index([("user_id", 1), ("ts", -1)])
     await db.location_history.create_index("user_id")
     await db.location_history.create_index("timestamp", expireAfterSeconds=86400)
     await db.user_live_locations.create_index("user_id", unique=True)

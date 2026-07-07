@@ -1,4 +1,5 @@
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const REQUEST_TIMEOUT = 15000;
 
 type FetchOptions = {
   method?: string;
@@ -6,7 +7,7 @@ type FetchOptions = {
   token?: string | null;
 };
 
-export async function apiRequest(path: string, options: FetchOptions = {}) {
+async function apiRequest(path: string, options: FetchOptions = {}) {
   const { method = 'GET', body, token } = options;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -15,21 +16,27 @@ export async function apiRequest(path: string, options: FetchOptions = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const config: RequestInit = { method, headers };
-  if (body) {
-    config.body = JSON.stringify(body);
-  }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-  const res = await fetch(`${API_BASE}/api${path}`, config);
-  const data = await res.json();
+  try {
+    const config: RequestInit = { method, headers, signal: controller.signal };
+    if (body) {
+      config.body = JSON.stringify(body);
+    }
 
-  if (!res.ok) {
-    throw new Error(data.detail || data.message || 'Error en la solicitud');
+    const res = await fetch(`${API_BASE}/api${path}`, config);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || data.message || 'Error en la solicitud');
+    }
+    return data;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return data;
 }
 
-// Auth
 export const authAPI = {
   register: (name: string, email: string, password: string) =>
     apiRequest('/auth/register', { method: 'POST', body: { name, email, password } }),
@@ -41,52 +48,35 @@ export const authAPI = {
     apiRequest('/auth/refresh', { method: 'POST', body: { refresh_token: refreshToken } }),
 };
 
-// Profile
 export const profileAPI = {
-  get: (token: string) =>
-    apiRequest('/riders/profile', { token }),
-  update: (token: string, data: any) =>
-    apiRequest('/riders/profile', { method: 'PUT', body: data, token }),
+  get: (token: string) => apiRequest('/riders/profile', { token }),
+  update: (token: string, data: any) => apiRequest('/riders/profile', { method: 'PUT', body: data, token }),
 };
 
-// Contacts
 export const contactsAPI = {
-  list: (token: string) =>
-    apiRequest('/riders/contacts', { token }),
+  list: (token: string) => apiRequest('/riders/contacts', { token }),
   add: (token: string, data: { name: string; phone: string; relationship?: string }) =>
     apiRequest('/riders/contacts', { method: 'POST', body: data, token }),
-  delete: (token: string, contactId: string) =>
-    apiRequest(`/riders/contacts/${contactId}`, { method: 'DELETE', token }),
+  delete: (token: string, contactId: string) => apiRequest(`/riders/contacts/${contactId}`, { method: 'DELETE', token }),
 };
 
-// Impacts
 export const impactsAPI = {
-  list: (token: string) =>
-    apiRequest('/impacts', { token }),
-  get: (token: string, id: string) =>
-    apiRequest(`/impacts/${id}`, { token }),
-  create: (token: string, data: any) =>
-    apiRequest('/impacts', { method: 'POST', body: data, token }),
+  list: (token: string) => apiRequest('/impacts', { token }),
+  get: (token: string, id: string) => apiRequest(`/impacts/${id}`, { token }),
+  create: (token: string, data: any) => apiRequest('/impacts', { method: 'POST', body: data, token }),
 };
 
-// Settings
 export const settingsAPI = {
-  get: (token: string) =>
-    apiRequest('/riders/settings', { token }),
-  update: (token: string, data: any) =>
-    apiRequest('/riders/settings', { method: 'PUT', body: data, token }),
+  get: (token: string) => apiRequest('/riders/settings', { token }),
+  update: (token: string, data: any) => apiRequest('/riders/settings', { method: 'PUT', body: data, token }),
 };
 
-// Telemetry
 export const telemetryAPI = {
-  send: (token: string, data: any) =>
-    apiRequest('/telemetry', { method: 'POST', body: data, token }),
+  send: (token: string, data: any) => apiRequest('/telemetry', { method: 'POST', body: data, token }),
   history: (token: string, impactId: string, beforeMinutes = 5, afterMinutes = 5) =>
     apiRequest(`/telemetry/history?impact_id=${impactId}&before_minutes=${beforeMinutes}&after_minutes=${afterMinutes}`, { token }),
 };
 
-// False Alarm (from notification)
 export const falseAlarmAPI = {
-  create: (token: string, data: any) =>
-    apiRequest('/impacts/false-alarm', { method: 'POST', body: data, token }),
+  create: (token: string, data: any) => apiRequest('/impacts/false-alarm', { method: 'POST', body: data, token }),
 };

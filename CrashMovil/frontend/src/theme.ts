@@ -2,29 +2,33 @@ import { Platform } from 'react-native';
 
 export const COLORS = {
   bg: '#050506',
-  surface: '#101014',
-  surfaceAlt: '#161620',
-  elevated: '#1D1D28',
-  border: 'rgba(255,255,255,0.08)',
-  borderStrong: 'rgba(255,255,255,0.14)',
-  text: '#F5F5F7',
-  textSec: '#9A9AA8',
-  textDim: '#5F5F6E',
+  surface: '#0D0D12',
+  surfaceAlt: '#14141C',
+  elevated: '#1A1A26',
+  border: 'rgba(255,255,255,0.07)',
+  borderStrong: 'rgba(255,255,255,0.12)',
+  text: '#F2F2F5',
+  textSec: '#9494A5',
+  textDim: '#5C5C6E',
   primary: '#FF3B30',
-  primarySoft: 'rgba(255,59,48,0.14)',
+  primarySoft: 'rgba(255,59,48,0.12)',
   accent: '#CCFF00',
-  accentSoft: 'rgba(204,255,0,0.12)',
+  accentSoft: 'rgba(204,255,0,0.10)',
   success: '#34D399',
   warning: '#FBBF24',
   info: '#60A5FA',
   danger: '#F87171',
+  cardBg: '#0D0D12',
+  overlay: 'rgba(0,0,0,0.75)',
+  glassBg: 'rgba(13,13,18,0.85)',
+  glassBorder: 'rgba(255,255,255,0.08)',
 };
 
 export const RADIUS = {
   sm: 10,
   md: 14,
   lg: 20,
-  xl: 28,
+  xl: 26,
   pill: 999,
 };
 
@@ -37,39 +41,40 @@ export const SPACING = {
 };
 
 export const FONT = Platform.select({
-  ios: {
-    mono: 'Menlo',
-  },
-  android: {
-    mono: 'monospace',
-  },
-  default: {
-    mono: 'monospace',
-  },
+  ios: { mono: 'Menlo' },
+  android: { mono: 'monospace' },
+  default: { mono: 'monospace' },
 })!;
 
 export const SHADOWS = {
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 3,
   },
   md: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
     elevation: 5,
   },
   lg: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
     elevation: 8,
   },
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 6,
+  }),
 };
 
 export function severityColor(gForce: number) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
@@ -18,7 +18,7 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
     if (!email.trim() || !password.trim()) { setError('Completa todos los campos'); return; }
     setError('');
     setLoading(true);
@@ -28,22 +28,28 @@ export default function LoginScreen() {
     } catch (e: any) {
       setError(e.message || 'Error al iniciar sesión');
     } finally { setLoading(false); }
-  };
+  }, [email, password, login, router]);
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="shield-checkmark" size={42} color={COLORS.primary} />
+            <View style={styles.logoOuter}>
+              <View style={styles.logoInner}>
+                <Ionicons name="shield-checkmark" size={40} color={COLORS.primary} />
+              </View>
             </View>
+            <Text style={styles.badge}>CRITICAL RESPONSE</Text>
             <Text style={styles.title}>C.R.A.S.H.</Text>
             <Text style={styles.subtitle}>Collision Response & Alert Safety Hub</Text>
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.formTitle}>Iniciar sesión</Text>
+            <View style={styles.formHeader}>
+              <Text style={styles.formTitle}>Iniciar sesión</Text>
+              <Text style={styles.formDesc}>Accede al panel de monitoreo</Text>
+            </View>
 
             {error ? (
               <View style={styles.errorBox}>
@@ -53,7 +59,7 @@ export default function LoginScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>EMAIL</Text>
+              <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={18} color={COLORS.textSec} />
                 <TextInput
@@ -96,13 +102,19 @@ export default function LoginScreen() {
               disabled={loading}
               activeOpacity={0.85}
             >
-              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>ENTRAR</Text>}
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>ACCEDER AL CENTRO</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity testID="go-to-register-btn" style={styles.linkBtn} onPress={() => router.push('/register')}>
               <Text style={styles.linkText}>¿No tienes cuenta? <Text style={styles.linkAccent}>Regístrate</Text></Text>
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.footer}>C.R.A.S.H. v1.0 · Encrypted</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -112,16 +124,29 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: SPACING.lg },
-  header: { alignItems: 'center', marginBottom: SPACING.xl },
-  logoContainer: {
-    width: 80, height: 80, borderRadius: RADIUS.xl,
+  header: { alignItems: 'center', marginBottom: SPACING.xl + 8 },
+  logoOuter: {
+    width: 88, height: 88, borderRadius: 28,
     backgroundColor: COLORS.primarySoft,
-    alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.md,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,59,48,0.25)',
+    marginBottom: SPACING.md,
   },
-  title: { fontSize: 36, fontWeight: '900', color: COLORS.text, letterSpacing: 4 },
-  subtitle: { fontSize: 11, color: COLORS.textSec, letterSpacing: 1.5, marginTop: 4, textTransform: 'uppercase' },
+  logoInner: {
+    width: 68, height: 68, borderRadius: 22,
+    backgroundColor: 'rgba(255,59,48,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  badge: {
+    fontSize: 9, color: COLORS.textDim, letterSpacing: 3,
+    marginBottom: 6, fontWeight: '700',
+  },
+  title: { fontSize: 38, fontWeight: '900', color: COLORS.text, letterSpacing: 4 },
+  subtitle: { fontSize: 10, color: COLORS.textSec, letterSpacing: 1.5, marginTop: 4, textTransform: 'uppercase' },
   form: { backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, padding: SPACING.lg, borderWidth: 1, borderColor: COLORS.border },
-  formTitle: { fontSize: 22, fontWeight: '700', color: COLORS.text, marginBottom: SPACING.md },
+  formHeader: { marginBottom: SPACING.md },
+  formTitle: { fontSize: 22, fontWeight: '700', color: COLORS.text },
+  formDesc: { fontSize: 13, color: COLORS.textSec, marginTop: 4 },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.primarySoft, padding: 12, borderRadius: RADIUS.md, marginBottom: SPACING.md },
   errorText: { color: COLORS.primary, fontSize: 13, flex: 1 },
   inputGroup: { marginBottom: SPACING.md },
@@ -130,8 +155,9 @@ const styles = StyleSheet.create({
   input: { flex: 1, height: 48, color: COLORS.text, fontSize: 15 },
   button: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, height: 54, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900', letterSpacing: 2 },
+  buttonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
   linkBtn: { alignItems: 'center', marginTop: SPACING.md },
   linkText: { color: COLORS.textSec, fontSize: 13 },
   linkAccent: { color: COLORS.accent, fontWeight: '700' },
+  footer: { textAlign: 'center', color: COLORS.textDim, fontSize: 10, marginTop: SPACING.lg, letterSpacing: 1 },
 });

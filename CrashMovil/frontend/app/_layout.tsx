@@ -11,12 +11,12 @@ export default function RootLayout() {
       <AppSettingsProvider>
         <AuthProvider>
           <BluetoothProvider>
-            <StatusBar style="light" />
+            <StatusBar style="light" translucent />
             <Stack
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: '#050506' },
-                animation: 'fade',
+                animation: 'slide_from_right',
               }}
             />
           </BluetoothProvider>

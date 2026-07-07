@@ -1,9 +1,8 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker, Circle, Polyline } from "react-leaflet";
 import L from "leaflet";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Crosshair } from "lucide-react";
 
-// Fix leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -22,7 +21,6 @@ function makeIcon(status) {
 }
 
 const hasCoords = (d) => typeof d?.lat === "number" && typeof d?.lng === "number";
-
 
 function FocusPointController({ point, nonce }) {
   const map = useMap();
@@ -52,22 +50,47 @@ function clusterDangerZones(points) {
 
 function FocusController({ focusDriver }) {
   const map = useMap();
-  const lastFocusedIdRef = useRef(null);
+  const lastFocusedRef = useRef(null);
   useEffect(() => {
-    if (
-      focusDriver &&
-      hasCoords(focusDriver) &&
-      focusDriver.id &&
-      lastFocusedIdRef.current !== focusDriver.id
-    ) {
+    if (focusDriver && hasCoords(focusDriver) && focusDriver.id && lastFocusedRef.current !== focusDriver.id) {
       map.flyTo([focusDriver.lat, focusDriver.lng], 15, { duration: 0.8 });
-      lastFocusedIdRef.current = focusDriver.id;
+      lastFocusedRef.current = focusDriver.id;
     }
   }, [focusDriver, map]);
   return null;
 }
 
-export default function LiveMap({ drivers, alerts, selectedId, onSelect }) {
+function DriverMarkers({ positioned, onSelect }) {
+  return positioned.map((d) => {
+    const recentPath = (d.recent_path || d.route || [])
+      .map((p) => [p.lat, p.lng])
+      .filter(([lat, lng]) => typeof lat === "number" && typeof lng === "number");
+    return (
+      <Marker
+        key={d.id}
+        position={[d.lat, d.lng]}
+        icon={makeIcon(d.status)}
+        eventHandlers={{ click: () => onSelect?.(d.id) }}
+      >
+        <Popup>
+          <div className="min-w-[200px]">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{d.id?.slice?.(-8)}</div>
+            <div className="font-semibold text-base mb-2">{d.name}</div>
+            <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+              <div><div className="text-[10px] uppercase text-neutral-500">Velocidad</div><div className="text-emerald-400">{d.speed != null ? `${Math.round(d.speed)} km/h` : "—"}</div></div>
+              <div><div className="text-[10px] uppercase text-neutral-500">G-Force</div><div className={d.gforce > 3 ? "text-red-400" : "text-white"}>{d.gforce != null ? d.gforce.toFixed(2) : "—"}G</div></div>
+              <div className="col-span-2"><div className="text-[10px] uppercase text-neutral-500">GPS</div><div>{d.lat.toFixed(5)}, {d.lng.toFixed(5)}</div></div>
+            </div>
+          </div>
+        </Popup>
+      </Marker>
+    );
+  });
+}
+
+const MemoDriverMarkers = memo(DriverMarkers);
+
+function LiveMap({ drivers, alerts, selectedId, onSelect }) {
   const [theme, setTheme] = useState(() => document.body.dataset.theme || "dark");
   const [focusNonce, setFocusNonce] = useState(0);
 
@@ -76,23 +99,26 @@ export default function LiveMap({ drivers, alerts, selectedId, onSelect }) {
     window.addEventListener("themechange", updateTheme);
     return () => window.removeEventListener("themechange", updateTheme);
   }, []);
+
   const driverList = useMemo(() => Object.values(drivers || {}), [drivers]);
   const positioned = useMemo(() => driverList.filter(hasCoords), [driverList]);
-  const impactPoints = useMemo(() => {
-    return (alerts || [])
+
+  const { impactPoints, dangerZones, latestImpact } = useMemo(() => {
+    const points = (alerts || [])
       .filter((a) => a.type === "impact" && typeof a.lat === "number" && typeof a.lng === "number")
       .map((a) => ({ lat: a.lat, lng: a.lng, gforce: a.gforce, id: a.id, driver: a.driver_name || a.driver_id }));
+    return {
+      impactPoints: points,
+      dangerZones: clusterDangerZones(points),
+      latestImpact: points[0] || null,
+    };
   }, [alerts]);
-  const dangerZones = useMemo(() => clusterDangerZones(impactPoints), [impactPoints]);
-  const latestImpact = impactPoints[0] || null;
 
-  // Center: first driver with coords, else CDMX
-  const center = positioned[0]
-    ? [positioned[0].lat, positioned[0].lng]
-    : [19.4326, -99.1332];
-
+  const center = positioned[0] ? [positioned[0].lat, positioned[0].lng] : [19.4326, -99.1332];
   const focus = selectedId ? drivers[selectedId] : null;
   const noGpsCount = driverList.length - positioned.length;
+  const handleSelect = useCallback((id) => onSelect?.(id), [onSelect]);
+  const handleFocusImpact = useCallback(() => setFocusNonce((n) => n + 1), []);
 
   return (
     <div className="relative h-full w-full" data-testid="live-map">
@@ -118,21 +144,9 @@ export default function LiveMap({ drivers, alerts, selectedId, onSelect }) {
             key={`danger-zone-${idx}-${z.lat}-${z.lng}`}
             center={[z.lat, z.lng]}
             radius={180 + z.count * 55}
-            pathOptions={{
-              color: z.count > 1 ? "#ef4444" : "#f97316",
-              fillColor: z.count > 1 ? "#ef4444" : "#f97316",
-              fillOpacity: Math.min(0.22, 0.08 + z.count * 0.04),
-              opacity: 0.35,
-              weight: 1,
-            }}
+            pathOptions={{ color: z.count > 1 ? "#ef4444" : "#f97316", fillColor: z.count > 1 ? "#ef4444" : "#f97316", fillOpacity: Math.min(0.22, 0.08 + z.count * 0.04), opacity: 0.35, weight: 1 }}
           >
-            <Popup>
-              <div className="text-xs">
-                <div className="font-semibold">Zona peligrosa</div>
-                <div>{z.count} impacto{z.count > 1 ? "s" : ""} registrado{z.count > 1 ? "s" : ""}</div>
-                <div>G máx: {z.maxG ? z.maxG.toFixed(2) : "—"}</div>
-              </div>
-            </Popup>
+            <Popup><div className="text-xs"><div className="font-semibold">Zona peligrosa</div><div>{z.count} impacto{z.count > 1 ? "s" : ""} registrado{z.count > 1 ? "s" : ""}</div><div>G máx: {z.maxG ? z.maxG.toFixed(2) : "—"}</div></div></Popup>
           </Circle>
         ))}
 
@@ -143,13 +157,7 @@ export default function LiveMap({ drivers, alerts, selectedId, onSelect }) {
             radius={Math.min(18, 6 + (p.gforce || 1) * 2)}
             pathOptions={{ color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.42, weight: 1, opacity: 0.55 }}
           >
-            <Popup>
-              <div className="text-xs">
-                <div className="font-semibold">Impacto histórico</div>
-                <div>{p.driver || "Conductor"}</div>
-                <div>{p.gforce != null ? `${p.gforce.toFixed(2)}G` : "G-Force no reportada"}</div>
-              </div>
-            </Popup>
+            <Popup><div className="text-xs"><div className="font-semibold">Impacto histórico</div><div>{p.driver || "Conductor"}</div><div>{p.gforce != null ? `${p.gforce.toFixed(2)}G` : "G-Force no reportada"}</div></div></Popup>
           </CircleMarker>
         ))}
 
@@ -166,46 +174,9 @@ export default function LiveMap({ drivers, alerts, selectedId, onSelect }) {
           ) : null;
         })}
 
-        {positioned.map((d) => (
-          <Marker
-            key={d.id}
-            position={[d.lat, d.lng]}
-            icon={makeIcon(d.status)}
-            eventHandlers={{ click: () => onSelect?.(d.id) }}
-          >
-            <Popup>
-              <div className="min-w-[200px]">
-                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">
-                  {d.id?.slice?.(-8)}
-                </div>
-                <div className="font-semibold text-base mb-2">{d.name}</div>
-                <div className="grid grid-cols-2 gap-2 font-mono text-xs">
-                  <div>
-                    <div className="text-[10px] uppercase text-neutral-500">Velocidad</div>
-                    <div className="text-emerald-400">
-                      {d.speed != null ? `${Math.round(d.speed)} km/h` : "—"}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase text-neutral-500">G-Force</div>
-                    <div className={d.gforce > 3 ? "text-red-400" : "text-white"}>
-                      {d.gforce != null ? d.gforce.toFixed(2) : "—"}G
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    <div className="text-[10px] uppercase text-neutral-500">GPS</div>
-                    <div>
-                      {d.lat.toFixed(5)}, {d.lng.toFixed(5)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        <MemoDriverMarkers positioned={positioned} onSelect={handleSelect} />
       </MapContainer>
 
-      {/* Floating legend */}
       <div className="absolute bottom-4 left-4 z-[400] rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl p-3 text-[10px] uppercase tracking-[0.2em] text-neutral-300 space-y-1.5">
         <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.7)]" /> Activo</div>
         <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.7)]" /> Accidente</div>
@@ -216,7 +187,7 @@ export default function LiveMap({ drivers, alerts, selectedId, onSelect }) {
       {latestImpact ? (
         <button
           type="button"
-          onClick={() => setFocusNonce((n) => n + 1)}
+          onClick={handleFocusImpact}
           className="absolute top-4 left-4 z-[400] rounded-xl border border-red-500/40 bg-red-500/15 hover:bg-red-500/25 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-red-200 flex items-center gap-2 transition-colors"
           data-testid="focus-latest-impact"
         >
@@ -232,15 +203,13 @@ export default function LiveMap({ drivers, alerts, selectedId, onSelect }) {
         </div>
       ) : null}
 
-      {/* No-GPS warning */}
       {noGpsCount > 0 ? (
-        <div
-          data-testid="no-gps-banner"
-          className="absolute top-4 right-4 z-[400] max-w-[280px] rounded-xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-amber-300"
-        >
+        <div data-testid="no-gps-banner" className="absolute top-4 right-4 z-[400] max-w-[280px] rounded-xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-amber-300">
           {noGpsCount} sin GPS — el mobile aún no envía coordenadas en /api/telemetry
         </div>
       ) : null}
     </div>
   );
 }
+
+export default memo(LiveMap);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../services/api';
 
@@ -37,32 +37,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    loadStoredAuth();
+    return () => { mountedRef.current = false; };
   }, []);
 
-  const loadStoredAuth = async () => {
+  const loadStoredAuth = useCallback(async () => {
     try {
-      const storedToken = await AsyncStorage.getItem('access_token');
-      const storedRefresh = await AsyncStorage.getItem('refresh_token');
-      if (storedToken) {
+      const [storedToken, storedRefresh] = await Promise.all([
+        AsyncStorage.getItem('access_token'),
+        AsyncStorage.getItem('refresh_token'),
+      ]);
+      if (storedToken && mountedRef.current) {
         const userData = await authAPI.me(storedToken);
-        setUser(userData);
-        setToken(storedToken);
-        setRefreshToken(storedRefresh);
+        if (mountedRef.current) {
+          setUser(userData);
+          setToken(storedToken);
+          setRefreshToken(storedRefresh);
+        }
       }
-    } catch (e) {
-      await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
+    } catch {
+      if (mountedRef.current) {
+        await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => { loadStoredAuth(); }, [loadStoredAuth]);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await authAPI.login(email, password);
-    await AsyncStorage.setItem('access_token', data.access_token);
-    await AsyncStorage.setItem('refresh_token', data.refresh_token);
+    await AsyncStorage.multiSet([
+      ['access_token', data.access_token],
+      ['refresh_token', data.refresh_token],
+    ]);
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);
@@ -70,8 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const data = await authAPI.register(name, email, password);
-    await AsyncStorage.setItem('access_token', data.access_token);
-    await AsyncStorage.setItem('refresh_token', data.refresh_token);
+    await AsyncStorage.multiSet([
+      ['access_token', data.access_token],
+      ['refresh_token', data.refresh_token],
+    ]);
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);

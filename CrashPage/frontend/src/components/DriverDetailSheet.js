@@ -101,7 +101,7 @@ export default function DriverDetailSheet({
         <div className="sticky top-0 z-10 bg-[#0d0d0f]/95 backdrop-blur-xl border-b border-white/10 px-6 py-5">
           <SheetHeader className="text-left space-y-2">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center avatar-ring">
                 <Bike className="h-5 w-5 text-emerald-400" />
               </div>
               <div className="flex-1 min-w-0">
@@ -248,7 +248,7 @@ export default function DriverDetailSheet({
                         <div className="flex gap-1">
                           <a
                             href={`tel:${c.phone}`}
-                            className="h-8 w-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center transition-colors"
+                            className="h-8 w-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center transition-all hover-lift"
                             title="Llamar"
                           >
                             <Phone className="h-3.5 w-3.5 text-emerald-400" />
@@ -257,7 +257,7 @@ export default function DriverDetailSheet({
                             href={`https://wa.me/${(c.phone || "").replace(/[^\d]/g, "")}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors"
+                            className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all hover-lift"
                             title="WhatsApp"
                           >
                             <MessageCircle className="h-3.5 w-3.5 text-neutral-300" />

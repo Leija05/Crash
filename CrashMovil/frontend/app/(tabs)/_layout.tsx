@@ -1,8 +1,19 @@
 import { Redirect, Tabs } from 'expo-router';
+import { memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { COLORS } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+
+function TabIcon({ name, color, size, focused }: { name: any; color: string; size: number; focused: boolean }) {
+  return (
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <Ionicons name={name} size={size - 2} color={color} />
+    </View>
+  );
+}
+
+const MemoIcon = memo(TabIcon);
 
 export default function TabLayout() {
   const { token, loading } = useAuth();
@@ -26,7 +37,7 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="speedometer" color={color} size={size} focused={focused} />
+            <MemoIcon name="speedometer" color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -35,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: 'Impactos',
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="warning" color={color} size={size} focused={focused} />
+            <MemoIcon name="warning" color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -44,7 +55,7 @@ export default function TabLayout() {
         options={{
           title: 'Contactos',
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="people" color={color} size={size} focused={focused} />
+            <MemoIcon name="people" color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -53,7 +64,7 @@ export default function TabLayout() {
         options={{
           title: 'Perfil',
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="person-circle" color={color} size={size} focused={focused} />
+            <MemoIcon name="person-circle" color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -62,7 +73,7 @@ export default function TabLayout() {
         options={{
           title: 'Ajustes',
           tabBarIcon: ({ color, size, focused }) => (
-            <TabIcon name="settings-sharp" color={color} size={size} focused={focused} />
+            <MemoIcon name="settings-sharp" color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -70,20 +81,10 @@ export default function TabLayout() {
   );
 }
 
-function TabIcon({
-  name, color, size, focused,
-}: { name: any; color: string; size: number; focused: boolean }) {
-  return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <Ionicons name={name} size={size - 2} color={color} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#0A0A10',
-    borderTopColor: 'rgba(255,255,255,0.06)',
+    borderTopColor: 'rgba(255,255,255,0.05)',
     borderTopWidth: 1,
     height: 72,
     paddingBottom: 10,
@@ -103,6 +104,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   iconWrapActive: {
-    backgroundColor: 'rgba(204,255,0,0.12)',
+    backgroundColor: 'rgba(204,255,0,0.10)',
   },
 });
