@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import "./App.css";
 import { AuthProvider } from "./auth/AuthContext";
+import { I18nProvider } from "./i18n";
+import { SettingsProvider } from "./context/SettingsContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 const Login = lazy(() => import("./pages/Login"));
@@ -56,13 +58,17 @@ function AnimatedRoutes() {
 function AppContent() {
   return (
     <div className="App min-h-screen">
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<LoadingFallback />}>
-            <AnimatedRoutes />
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <SettingsProvider>
+            <BrowserRouter>
+              <Suspense fallback={<LoadingFallback />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </BrowserRouter>
+          </SettingsProvider>
+        </AuthProvider>
+      </I18nProvider>
     </div>
   );
 }

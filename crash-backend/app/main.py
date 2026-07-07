@@ -13,6 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from fastapi.openapi.docs import get_swagger_ui_html
 
+from app.api.admin.router import router as admin_router
 from app.api.auth.router import router as auth_router
 from app.api.impacts.router import router as impacts_router
 from app.api.monitor.router import router as monitor_router
@@ -50,7 +51,31 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         return response
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, max_requests: int = 200, window_seconds: int = 60):
+        super().__init__(app)
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+
+    async def dispatch(self, request: Request, call_next):
+        from app.core.rate_limiter import RateLimitConfig
+        client_ip = request.client.host if request.client else "unknown"
+        config = RateLimitConfig(
+            window_seconds=self.window_seconds,
+            max_requests=self.max_requests,
+        )
+        if not rate_limiter.check(f"global:{client_ip}", config):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Demasiadas solicitudes. Intenta de nuevo m\u00e1s tarde."},
+            )
+        return await call_next(request)
 
 
 CUSTOM_SWAGGER_HTML = """
@@ -126,17 +151,29 @@ app = FastAPI(
 
 app.add_exception_handler(AppException, app_exception_handler)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=".*",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+allowed = settings.ALLOWED_ORIGINS
+if allowed == ["*"]:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(PerformanceMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, max_requests=200, window_seconds=60)
 
+app.include_router(admin_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(impacts_router, prefix="/api")
 app.include_router(telemetry_router, prefix="/api")

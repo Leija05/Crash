@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { COLORS } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useI18n } from '../../src/i18n';
 
 function TabIcon({ name, color, size, focused }: { name: any; color: string; size: number; focused: boolean }) {
   return (
@@ -17,6 +18,8 @@ const MemoIcon = memo(TabIcon);
 
 export default function TabLayout() {
   const { token, loading } = useAuth();
+  const { t } = useI18n();
+
   if (!loading && !token) {
     return <Redirect href="/login" />;
   }
@@ -35,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, size, focused }) => (
             <MemoIcon name="speedometer" color={color} size={size} focused={focused} />
           ),
@@ -44,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="impacts"
         options={{
-          title: 'Impactos',
+          title: t('nav.dashboard'),
           tabBarIcon: ({ color, size, focused }) => (
             <MemoIcon name="warning" color={color} size={size} focused={focused} />
           ),
@@ -53,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="contacts"
         options={{
-          title: 'Contactos',
+          title: t('profile.emergencyContacts').split(' ')[0],
           tabBarIcon: ({ color, size, focused }) => (
             <MemoIcon name="people" color={color} size={size} focused={focused} />
           ),
@@ -62,7 +65,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, size, focused }) => (
             <MemoIcon name="person-circle" color={color} size={size} focused={focused} />
           ),
@@ -71,7 +74,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Ajustes',
+          title: t('tabs.settings'),
           tabBarIcon: ({ color, size, focused }) => (
             <MemoIcon name="settings-sharp" color={color} size={size} focused={focused} />
           ),

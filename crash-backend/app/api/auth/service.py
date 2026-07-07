@@ -1,14 +1,37 @@
+import time
 from datetime import datetime, timezone
 
 import uuid
 from fastapi import HTTPException
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.security import (
     create_access_token,
     create_refresh_token,
     hash_password,
     verify_password,
 )
+
+_login_attempts: dict[str, list[float]] = {}
+
+
+def _check_bruteforce(identifier: str) -> None:
+    now = time.monotonic()
+    attempts = _login_attempts.get(identifier, [])
+    cutoff = now - settings.LOGIN_LOCKOUT_MINUTES * 60
+    attempts = [t for t in attempts if t > cutoff]
+    if len(attempts) >= settings.LOGIN_MAX_ATTEMPTS:
+        remaining = int(cutoff + settings.LOGIN_LOCKOUT_MINUTES * 60 - now)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos. Intenta de nuevo en {max(1, remaining // 60)} minuto(s).",
+        )
+    attempts.append(now)
+    _login_attempts[identifier] = attempts
+
+
+def _reset_bruteforce(identifier: str) -> None:
+    _login_attempts.pop(identifier, None)
 
 
 async def register_rider(email: str, password: str, name: str) -> dict:
@@ -63,12 +86,15 @@ async def register_rider(email: str, password: str, name: str) -> dict:
 async def login_rider(email: str, password: str) -> dict:
     db = await get_db()
     email = email.strip().lower()
+    _check_bruteforce(f"rider:{email}")
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    _reset_bruteforce(f"rider:{email}")
     user_id = str(user["_id"])
-    access = create_access_token(user_id, email)
-    refresh = create_refresh_token(user_id)
+    token_version = user.get("token_version", 1)
+    access = create_access_token(user_id, email, user.get("role", "user"), token_version)
+    refresh = create_refresh_token(user_id, token_version)
     return {
         "access_token": access,
         "refresh_token": refresh,
@@ -82,9 +108,11 @@ async def login_rider(email: str, password: str) -> dict:
 async def login_monitor(email: str, password: str) -> dict:
     db = await get_db()
     email = email.lower()
+    _check_bruteforce(f"monitor:{email}")
     user = await db.monitor_operators.find_one({"email": email})
     if not user or not verify_password(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    _reset_bruteforce(f"monitor:{email}")
 
     access = create_access_token(user["id"], user["email"], user["role"])
     return {

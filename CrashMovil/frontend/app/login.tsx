@@ -6,10 +6,13 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/AuthContext';
+import { useI18n } from '../src/i18n';
+import { CrashLogoFull } from '../src/components/CrashLogo';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from '../src/theme';
 
 export default function LoginScreen() {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -26,7 +29,7 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       router.replace('/(tabs)');
     } catch (e: any) {
-      setError(e.message || 'Error al iniciar sesión');
+      setError(e.message || 'Error al iniciar sesi\u00f3n');
     } finally { setLoading(false); }
   }, [email, password, login, router]);
 
@@ -35,20 +38,13 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <View style={styles.logoOuter}>
-              <View style={styles.logoInner}>
-                <Ionicons name="shield-checkmark" size={40} color={COLORS.primary} />
-              </View>
-            </View>
-            <Text style={styles.badge}>CRITICAL RESPONSE</Text>
-            <Text style={styles.title}>C.R.A.S.H.</Text>
-            <Text style={styles.subtitle}>Collision Response & Alert Safety Hub</Text>
+            <CrashLogoFull size={32} />
           </View>
 
           <View style={styles.form}>
             <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Iniciar sesión</Text>
-              <Text style={styles.formDesc}>Accede al panel de monitoreo</Text>
+              <Text style={styles.formTitle}>{t('login.title')}</Text>
+              <Text style={styles.formDesc}>{t('login.subtitle')}</Text>
             </View>
 
             {error ? (
@@ -59,13 +55,13 @@ export default function LoginScreen() {
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
+              <Text style={styles.label}>{t('login.email')}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={18} color={COLORS.textSec} />
                 <TextInput
                   testID="login-email-input"
                   style={styles.input}
-                  placeholder="tu@email.com"
+                  placeholder={t('login.email')}
                   placeholderTextColor={COLORS.textDim}
                   value={email}
                   onChangeText={setEmail}
@@ -77,13 +73,13 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>CONTRASEÑA</Text>
+              <Text style={styles.label}>{t('login.password')}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed-outline" size={18} color={COLORS.textSec} />
                 <TextInput
                   testID="login-password-input"
                   style={styles.input}
-                  placeholder="••••••••"
+                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
                   placeholderTextColor={COLORS.textDim}
                   value={password}
                   onChangeText={setPassword}
@@ -105,16 +101,16 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.buttonText}>ACCEDER AL CENTRO</Text>
+                <Text style={styles.buttonText}>{t('login.submit')}</Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity testID="go-to-register-btn" style={styles.linkBtn} onPress={() => router.push('/register')}>
-              <Text style={styles.linkText}>¿No tienes cuenta? <Text style={styles.linkAccent}>Regístrate</Text></Text>
+              <Text style={styles.linkText}>{t('login.register')}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.footer}>C.R.A.S.H. v1.0 · Encrypted</Text>
+          <Text style={styles.footer}>C.R.A.S.H. v2.0 \u00b7 Encrypted</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

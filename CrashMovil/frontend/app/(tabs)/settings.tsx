@@ -10,9 +10,11 @@ import { COLORS, RADIUS, SPACING, severityColor } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
+import { useI18n } from '../../src/i18n';
 import { settingsAPI } from '../../src/services/api';
 
 export default function SettingsScreen() {
+  const { t, locale, setLocale } = useI18n();
   const router = useRouter();
   const { token, logout } = useAuth();
   const { deviceName, setDeviceName, notifyAlertsConfigChanged } = useAppSettings();
@@ -148,6 +150,31 @@ export default function SettingsScreen() {
                   <Text style={styles.saveInlineBtnText}>GUARDAR</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+
+          {/* ─── Language ─── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {locale === 'es' ? (
+                <TouchableOpacity style={[styles.langBtn, styles.langBtnActive]}>
+                  <Text style={[styles.langBtnText, styles.langBtnTextActive]}>Espa\u00f1ol</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.langBtn} onPress={() => setLocale('es')}>
+                  <Text style={styles.langBtnText}>Espa\u00f1ol</Text>
+                </TouchableOpacity>
+              )}
+              {locale === 'en' ? (
+                <TouchableOpacity style={[styles.langBtn, styles.langBtnActive]}>
+                  <Text style={[styles.langBtnText, styles.langBtnTextActive]}>English</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.langBtn} onPress={() => setLocale('en')}>
+                  <Text style={styles.langBtnText}>English</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -303,6 +330,10 @@ const styles = StyleSheet.create({
   threshVal: { fontSize: 14, fontWeight: '900', marginTop: 2 },
   saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent, borderRadius: RADIUS.pill, height: 52, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
   saveBtnText: { color: '#0A0A0A', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  langBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', backgroundColor: COLORS.bg },
+  langBtnActive: { borderColor: COLORS.accent, backgroundColor: COLORS.accentSoft },
+  langBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.textSec },
+  langBtnTextActive: { color: COLORS.accent },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: 'rgba(255,59,48,0.08)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,59,48,0.25)', marginTop: 8 },
   logoutText: { fontSize: 14, color: COLORS.primary, fontWeight: '700' },
   version: { textAlign: 'center', color: COLORS.textDim, fontSize: 11, marginTop: 12 },

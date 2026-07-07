@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request
 
 from app.api.auth.schemas import LoginInput, MonitorLoginInput, RegisterInput
 from app.api.auth.service import (
@@ -28,9 +28,7 @@ async def monitor_login(body: MonitorLoginInput):
 
 
 @router.post("/monitor/logout")
-async def monitor_logout(response: Response, _: dict = Depends(get_current_monitor_user)):
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
+async def monitor_logout(_: dict = Depends(get_current_monitor_user)):
     return {"ok": True}
 
 

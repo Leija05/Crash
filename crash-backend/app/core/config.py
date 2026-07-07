@@ -1,3 +1,4 @@
+import re
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -13,6 +14,8 @@ class Settings:
     JWT_SECRET: str = os.environ["JWT_SECRET"]
     JWT_ALGORITHM: str = os.environ.get("JWT_ALGORITHM", "HS256")
     JWT_EXPIRE_MINUTES: int = int(os.environ.get("JWT_EXPIRE_MINUTES", "10080"))
+    JWT_ISSUER: str = "crash-api"
+    JWT_AUDIENCE: str = "crash-clients"
 
     GOOGLE_API_KEY: str = os.environ.get("GOOGLE_API_KEY", "")
     GEMINI_MODEL: str = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
@@ -38,6 +41,16 @@ class Settings:
     DEMO_MODE: bool = os.environ.get("DEMO_MODE", "false").lower() == "true"
 
     ALLOWED_ORIGINS: list[str] = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+
+    LOGIN_MAX_ATTEMPTS: int = int(os.environ.get("LOGIN_MAX_ATTEMPTS", "10"))
+    LOGIN_LOCKOUT_MINUTES: int = int(os.environ.get("LOGIN_LOCKOUT_MINUTES", "15"))
+    PASSWORD_MIN_LENGTH: int = int(os.environ.get("PASSWORD_MIN_LENGTH", "8"))
+
+    SMTP_HOST: str = os.environ.get("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_USER: str = os.environ.get("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
+    SMTP_FROM: str = os.environ.get("SMTP_FROM", "noreply@crash.io")
 
 
 settings = Settings()
