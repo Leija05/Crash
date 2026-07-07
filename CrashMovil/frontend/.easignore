@@ -1,0 +1,12 @@
+# Carpetas de desarrollo y artefactos innecesarios
+node_modules/
+.expo/
+dist/
+build/
+android/app/build/
+ios/build/
+*.log
+.git/
+.DS_Store
+android/
+ios/
