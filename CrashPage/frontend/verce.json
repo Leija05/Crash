@@ -1,0 +1,11 @@
+{
+  "buildCommand": "craco build",
+  "outputDirectory": "build",
+  "devCommand": "craco start",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
