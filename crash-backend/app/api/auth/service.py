@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 import uuid
-from fastapi import HTTPException, Response
+from fastapi import HTTPException
 from app.core.database import get_db
 from app.core.security import (
     create_access_token,
@@ -79,7 +79,7 @@ async def login_rider(email: str, password: str) -> dict:
     }
 
 
-async def login_monitor(email: str, password: str, response: Response) -> dict:
+async def login_monitor(email: str, password: str) -> dict:
     db = await get_db()
     email = email.lower()
     user = await db.monitor_operators.find_one({"email": email})
@@ -87,16 +87,6 @@ async def login_monitor(email: str, password: str, response: Response) -> dict:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
     access = create_access_token(user["id"], user["email"], user["role"])
-    refresh = create_refresh_token(user["id"])
-
-    response.set_cookie(
-        "access_token", access, httponly=True, secure=False,
-        samesite="lax", max_age=60 * 60 * 8, path="/",
-    )
-    response.set_cookie(
-        "refresh_token", refresh, httponly=True, secure=False,
-        samesite="lax", max_age=60 * 60 * 24 * 7, path="/",
-    )
     return {
         "id": user["id"], "email": user["email"], "name": user["name"],
         "role": user["role"], "access_token": access,

@@ -23,8 +23,8 @@ async def login(body: LoginInput):
 
 
 @router.post("/monitor/login")
-async def monitor_login(body: MonitorLoginInput, response: Response):
-    return await login_monitor(body.email, body.password, response)
+async def monitor_login(body: MonitorLoginInput):
+    return await login_monitor(body.email, body.password)
 
 
 @router.post("/monitor/logout")
