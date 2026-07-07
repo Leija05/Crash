@@ -6,7 +6,7 @@ export const API = `${API_BASE}/api`;
 export const api = axios.create({
   baseURL: API,
   withCredentials: true,
-  timeout: 15000,
+  timeout: 30000,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -24,6 +24,10 @@ api.interceptors.response.use(
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
+    }
+    if (err.code === "ECONNABORTED" && err.config && !err.config._retry) {
+      err.config._retry = true;
+      return api(err.config);
     }
     return Promise.reject(err);
   }

@@ -1,5 +1,5 @@
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const REQUEST_TIMEOUT = 15000;
+const REQUEST_TIMEOUT = 30000;
 
 type FetchOptions = {
   method?: string;
@@ -7,7 +7,7 @@ type FetchOptions = {
   token?: string | null;
 };
 
-async function apiRequest(path: string, options: FetchOptions = {}) {
+async function apiRequest(path: string, options: FetchOptions = {}, retries = 1) {
   const { method = 'GET', body, token } = options;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -32,6 +32,11 @@ async function apiRequest(path: string, options: FetchOptions = {}) {
       throw new Error(data.detail || data.message || 'Error en la solicitud');
     }
     return data;
+  } catch (e: any) {
+    if (retries > 0 && e.name === 'AbortError') {
+      return apiRequest(path, options, retries - 1);
+    }
+    throw e;
   } finally {
     clearTimeout(timeoutId);
   }
