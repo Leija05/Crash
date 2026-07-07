@@ -64,13 +64,17 @@ def create_refresh_token(sub: str, token_version: int = 1) -> str:
 
 
 def decode_token(token: str) -> dict:
-    return jwt.decode(
+    payload = jwt.decode(
         token,
         settings.JWT_SECRET,
         algorithms=[settings.JWT_ALGORITHM],
-        audience=settings.JWT_AUDIENCE,
-        issuer=settings.JWT_ISSUER,
+        options={"verify_aud": False, "verify_iss": False},
     )
+    if "iss" in payload and payload["iss"] != settings.JWT_ISSUER:
+        raise jwt.InvalidTokenError("Invalid issuer")
+    if "aud" in payload and payload["aud"] != settings.JWT_AUDIENCE:
+        raise jwt.InvalidTokenError("Invalid audience")
+    return payload
 
 
 def _extract_token(request: Request) -> Optional[str]:
