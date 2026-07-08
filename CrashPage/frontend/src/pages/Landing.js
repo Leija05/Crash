@@ -1,14 +1,13 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Shield, Activity, Gauge, Bell, MapPin, Brain, Check, X,
-  CreditCard, Building2, Users, Wifi, HardDrive, Zap, Settings, Smartphone,
+  CreditCard, Users, Wifi, HardDrive, Zap, Settings, Smartphone,
   Globe, Truck, Lock, ArrowRight, Menu, Star, Loader2, ShoppingCart,
-  Monitor, ExternalLink, Clock, AlertTriangle, Key, Mail, UserPlus,
+  Monitor, ExternalLink, Clock, AlertTriangle,
   Info, Cpu, Radio, Bluetooth, Battery, Layers, Microscope, TrendingUp,
 } from "lucide-react";
-import { useAuth } from "../auth/AuthContext";
-import { api, formatApiError } from "../lib/api";
+import { api } from "../lib/api";
 
 const DEMO_VIDEO_SRC = `${process.env.PUBLIC_URL}/videos/CrashVideo.mp4`;
 
@@ -94,166 +93,10 @@ function PlansModal({ onClose }) {
   );
 }
 
-function TokenGateModal({ onClose }) {
-  const navigate = useNavigate();
-  const { login, loginSuperAdmin, loginWithToken, error: authError } = useAuth();
-  const [token, setToken] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [tokenInfo, setTokenInfo] = useState(null);
-  const [step, setStep] = useState("token");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [saTokenEmail, setSaTokenEmail] = useState("");
-
-  const verifyToken = useCallback(async () => {
-    setBusy(true); setError("");
-    try {
-      const { data } = await api.post("/auth/verify-site-token", { token });
-      setTokenInfo(data);
-      localStorage.setItem("crash_site_token", token);
-      if (data.role === "superadmin") {
-        setSaTokenEmail(data.email);
-        setStep("salogin");
-      } else {
-        setStep("monitor-login");
-      }
-    } catch (err) { setError(formatApiError(err)); }
-    setBusy(false);
-  }, [token]);
-
-  const handleMonitorLogin = useCallback(async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    const ok = await login(email, password);
-    if (ok) navigate("/dashboard");
-    setBusy(false);
-  }, [email, password, login, navigate]);
-
-  const handleRegister = useCallback(async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    const ok = await loginWithToken(token, email, password, name);
-    if (ok) navigate("/dashboard");
-    setBusy(false);
-  }, [token, email, password, name, loginWithToken, navigate]);
-
-  const handleSaLogin = useCallback(async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    const ok = await loginSuperAdmin(saTokenEmail, password);
-    if (ok) window.location.href = "/admin";
-    setBusy(false);
-  }, [saTokenEmail, password, loginSuperAdmin]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
-        {step === "token" ? (
-          <>
-            <div className="mt-4 mb-5">
-              <input value={token} onChange={e => setToken(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm font-mono tracking-wider outline-none transition-all text-center" placeholder="Ingrese su código" autoComplete="off" spellCheck={false} />
-            </div>
-            {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-4">{error}</div>}
-            <button disabled={busy || token.length < 8} onClick={verifyToken} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {busy ? "..." : "Continuar"}
-            </button>
-          </>
-        ) : step === "salogin" ? (
-          <>
-            <div className="mb-4">
-              <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
-              <input type="email" value={saTokenEmail} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono outline-none cursor-not-allowed opacity-60" readOnly />
-            </div>
-            <form onSubmit={handleSaLogin} className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
-              </div>
-              {authError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{authError}</div>}
-              <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {busy ? "..." : "Acceder al panel"}
-              </button>
-            </form>
-          </>
-        ) : step === "monitor-login" ? (
-          <>
-            {tokenInfo && (
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-400" /></div>
-                <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Empresa</div><div className="font-bold">{tokenInfo.company_name}</div></div>
-              </div>
-            )}
-            <p className="text-sm text-neutral-400 mb-5">Inicia sesión como monitorista para acceder al monitoreo.</p>
-            <form onSubmit={handleMonitorLogin} className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" placeholder="monitorista@correo.com" required />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
-              </div>
-              {authError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{authError}</div>}
-              <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {busy ? "Accediendo..." : "Acceder al monitoreo"}
-              </button>
-            </form>
-            <div className="mt-5 text-center">
-              <button onClick={() => setStep("register")} className="text-xs text-neutral-500 hover:text-emerald-300 transition-colors">
-                ¿Eres nuevo? Crear cuenta de monitorista
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {tokenInfo && (
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-400" /></div>
-                <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Empresa</div><div className="font-bold">{tokenInfo.company_name}</div></div>
-              </div>
-            )}
-            <p className="text-sm text-neutral-400 mb-5">Completa tus datos para registrarte como monitorista.</p>
-            <form onSubmit={handleRegister} className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Nombre completo</label>
-                <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" placeholder="Tu nombre" required />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" placeholder="monitorista@correo.com" required />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
-              </div>
-              {authError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{authError}</div>}
-              <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {busy ? "Registrando..." : "Registrarse y acceder"}
-              </button>
-            </form>
-            <div className="mt-5 text-center">
-              <button onClick={() => setStep("monitor-login")} className="text-xs text-neutral-500 hover:text-emerald-300 transition-colors">
-                ¿Ya tienes cuenta? Iniciar sesión
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function Landing() {
   const navigate = useNavigate();
   const [showPlans, setShowPlans] = useState(false);
-  const [showTokenGate, setShowTokenGate] = useState(false);
   const [scroll, setScroll] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -292,14 +135,14 @@ function Landing() {
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-1.5 border border-white/20 hover:border-emerald-500/40 hover:text-emerald-300 text-sm rounded-xl px-4 py-2 transition-all"><CreditCard className="h-4 w-4" /><span className="hidden sm:inline">Planes</span></button>
-              <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.35)]"><Monitor className="h-4 w-4" /><span className="hidden sm:inline">Acceder a monitoreo</span><span className="sm:hidden">Acceder</span></button>
+              <button onClick={() => navigate("/login")} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.35)]"><Monitor className="h-4 w-4" /><span className="hidden sm:inline">Acceder a monitoreo</span><span className="sm:hidden">Acceder</span></button>
               <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden h-9 w-9 rounded-xl border border-white/10 flex items-center justify-center"><Menu className="h-5 w-5" /></button>
             </div>
           </div>
           {menuOpen && (
             <div className="lg:hidden border-t border-white/10 py-3 space-y-2">
               <button onClick={() => { setShowPlans(true); setMenuOpen(false); }} className="block w-full text-left text-sm text-neutral-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5">Planes</button>
-              <button onClick={() => { setShowTokenGate(true); setMenuOpen(false); }} className="block w-full text-left text-sm text-neutral-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5">Acceder a monitoreo</button>
+               <button onClick={() => { navigate("/login"); setMenuOpen(false); }} className="block w-full text-left text-sm text-neutral-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5">Acceder a monitoreo</button>
             </div>
           )}
         </div>
@@ -325,7 +168,7 @@ function Landing() {
                 la gravedad del impacto y envía alertas inmediatas con ubicación a contactos de emergencia.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl px-6 py-3 transition-all hover-lift shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] active:scale-[0.97]">Acceder a monitoreo<ArrowRight className="h-4 w-4" /></button>
+                 <button onClick={() => navigate("/login")} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl px-6 py-3 transition-all hover-lift shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] active:scale-[0.97]">Acceder a monitoreo<ArrowRight className="h-4 w-4" /></button>
                 <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white rounded-xl px-6 py-3 transition-all hover-lift active:scale-[0.97]">Ver planes<CreditCard className="h-4 w-4" /></button>
               </div>
               <div className="mt-10 flex flex-wrap gap-2">
@@ -528,7 +371,6 @@ function Landing() {
       </footer>
 
       {showPlans && <PlansModal onClose={() => setShowPlans(false)} />}
-      {showTokenGate && <TokenGateModal onClose={() => setShowTokenGate(false)} />}
     </div>
   );
 }

@@ -21,7 +21,7 @@ function CrashLogo() {
 
 function Login() {
   const { user, error, login, loginWithToken, loginSuperAdmin } = useAuth();
-  const [step, setStep] = useState(localStorage.getItem("crash_site_token") ? "login" : "token");
+  const [step, setStep] = useState("token");
   const [token, setToken] = useState("");
   const [tokenInfo, setTokenInfo] = useState(null);
   const [tokenBusy, setTokenBusy] = useState(false);
