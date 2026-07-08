@@ -96,7 +96,7 @@ function PlansModal({ onClose }) {
 
 function TokenGateModal({ onClose }) {
   const navigate = useNavigate();
-  const { loginSuperAdmin } = useAuth();
+  const { loginSuperAdmin, loginWithToken, error: authError } = useAuth();
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -125,18 +125,15 @@ function TokenGateModal({ onClose }) {
 
   const handleRegister = useCallback(async (e) => {
     e.preventDefault();
-    setBusy(true); setError("");
-    try {
-      const { data } = await api.post("/auth/register-monitor", { token, email, password, name });
-      if (data.access_token) localStorage.setItem("crash_token", data.access_token);
-      navigate("/dashboard");
-    } catch (err) { setError(formatApiError(err)); }
+    setBusy(true);
+    const ok = await loginWithToken(token, email, password, name);
+    if (ok) navigate("/dashboard");
     setBusy(false);
-  }, [token, email, password, name, navigate]);
+  }, [token, email, password, name, loginWithToken, navigate]);
 
   const handleSaLogin = useCallback(async (e) => {
     e.preventDefault();
-    setBusy(true); setError("");
+    setBusy(true);
     const ok = await loginSuperAdmin(saTokenEmail, password);
     if (ok) window.location.href = "/admin";
     setBusy(false);
@@ -168,7 +165,7 @@ function TokenGateModal({ onClose }) {
                 <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
               </div>
-              {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{error}</div>}
+              {authError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{authError}</div>}
               <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {busy ? "..." : "Acceder"}
@@ -197,7 +194,7 @@ function TokenGateModal({ onClose }) {
                 <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
               </div>
-              {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{error}</div>}
+              {authError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{authError}</div>}
               <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {busy ? "Registrando..." : "Registrarse y acceder"}
