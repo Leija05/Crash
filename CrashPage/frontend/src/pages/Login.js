@@ -1,7 +1,7 @@
 import { memo, useCallback, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { Lock, Mail, Loader2, Activity, Key, Shield, UserPlus, Building2, AlertCircle } from "lucide-react";
+import { Lock, Mail, Loader2, Activity, Key, Shield, UserPlus, AlertCircle } from "lucide-react";
 import { api, formatApiError } from "../lib/api";
 
 function CrashLogo() {
@@ -181,18 +181,30 @@ function Login() {
             </>
           ) : (
             <>
-              <div className="mb-6">
-                <div className="text-[11px] uppercase tracking-[0.35em] text-neutral-600 mb-2">Sistema de monitoreo</div>
-                <h2 className="text-2xl font-bold tracking-tight">C.R.A.S.H.</h2>
-              </div>
-              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-xl">
-                {registerMode && tokenInfo && (
-                  <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500 mb-4 flex items-center gap-2 pb-4 border-b border-white/[0.06]">
-                    <Building2 className="h-4 w-4 text-emerald-400" />
-                    {tokenInfo.company_name}
-                    {tokenInfo.plan_name && <span className="text-neutral-600">· {tokenInfo.plan_name}</span>}
+              {saTokenEmail ? (
+                <div className="mb-5 rounded-2xl border border-red-500/30 bg-red-500/[0.08] p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-xl bg-red-500/15 border border-red-500/40 flex items-center justify-center"><Shield className="h-5 w-5 text-red-400" /></div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.3em] text-red-300/80">Acceso SuperAdministrador</div>
+                      <div className="font-bold text-lg text-white">{saTokenEmail}</div>
+                    </div>
                   </div>
-                )}
+                  <p className="mt-3 text-sm text-neutral-300">Ingresa la <strong className="text-white">contraseña de tu cuenta SuperAdmin</strong> para entrar al panel de administración.</p>
+                </div>
+              ) : (
+                <div className="mb-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.08] p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Activity className="h-5 w-5 text-emerald-400" /></div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/80">Acceso de Monitorista</div>
+                      <div className="font-bold text-lg text-white">{tokenInfo ? tokenInfo.company_name : "Monitoreo en vivo"}</div>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm text-neutral-300">Ingresa con tu <strong className="text-white">cuenta de monitorista</strong> para acceder al monitoreo en tiempo real.</p>
+                </div>
+              )}
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-xl">
                 <form onSubmit={onSubmit} className="space-y-4">
                   {registerMode && !saTokenEmail && !monitorLoginMode && (
                     <div className="group">

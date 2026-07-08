@@ -19,7 +19,7 @@ api.interceptors.request.use((cfg) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err?.response?.status === 401) {
+    if (err?.response?.status === 401 && !err.config?.__authProbe) {
       localStorage.removeItem("crash_token");
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";

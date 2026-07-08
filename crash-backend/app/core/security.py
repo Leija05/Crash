@@ -151,6 +151,45 @@ def require_role(*roles):
     return checker
 
 
+async def get_current_admin(request: Request) -> dict:
+    """Allows SuperAdmin users or monitor operators with admin role to access admin endpoints."""
+    from app.core.database import get_db
+
+    db = await get_db()
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    try:
+        payload = decode_token(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+
+    # SuperAdmin (lives in the users collection)
+    try:
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+    except Exception:
+        user = None
+    if user and user.get("role") == "superadmin":
+        user["id"] = str(user["_id"])
+        user.pop("_id", None)
+        user.pop("password_hash", None)
+        user["token_version"] = payload.get("ver", 1)
+        return user
+
+    # Monitor operators (incl. those with admin role)
+    monitor = await db.monitor_operators.find_one({"id": payload["sub"]}, {"_id": 0, "password_hash": 0})
+    if monitor:
+        monitor["token_version"] = payload.get("ver", 1)
+        return monitor
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+
 async def get_current_superadmin(request: Request) -> dict:
     from app.core.database import get_db
 

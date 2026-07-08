@@ -11,11 +11,11 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem("crash_token");
     if (!token) { setUser(false); return; }
     try {
-      const { data } = await api.get("/auth/monitor/me");
+      const { data } = await api.get("/auth/monitor/me", { __authProbe: true });
       setUser(data);
     } catch {
       try {
-        const { data } = await api.get("/auth/me");
+        const { data } = await api.get("/auth/me", { __authProbe: true });
         if (data.role === "superadmin") {
           setUser({ ...data, is_superadmin: true });
         } else {
