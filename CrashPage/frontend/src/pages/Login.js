@@ -20,7 +20,7 @@ function CrashLogo() {
 }
 
 function Login() {
-  const { user, error, loginWithToken, loginSuperAdmin } = useAuth();
+  const { user, error, login, loginWithToken, loginSuperAdmin } = useAuth();
   const [step, setStep] = useState(localStorage.getItem("crash_site_token") ? "login" : "token");
   const [token, setToken] = useState("");
   const [tokenInfo, setTokenInfo] = useState(null);
@@ -32,6 +32,7 @@ function Login() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
+  const [monitorLoginMode, setMonitorLoginMode] = useState(false);
   const [saTokenEmail, setSaTokenEmail] = useState("");
 
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ function Login() {
         setStep("login");
       } else {
         setRegisterMode(true);
+        setMonitorLoginMode(true);
         setStep("login");
       }
     } catch (err) {
@@ -59,7 +61,10 @@ function Login() {
   const onSubmit = useCallback(async (e) => {
     e.preventDefault();
     setBusy(true);
-    if (registerMode && tokenInfo) {
+    if (monitorLoginMode) {
+      const ok = await login(email, password);
+      if (ok) navigate("/dashboard");
+    } else if (registerMode && tokenInfo) {
       const ok = await loginWithToken(token, email, password, name);
       if (ok) navigate("/dashboard");
     } else if (saTokenEmail) {
@@ -67,12 +72,13 @@ function Login() {
       if (ok) window.location.href = "/admin";
     }
     setBusy(false);
-  }, [email, password, name, registerMode, token, tokenInfo, loginWithToken, navigate, saTokenEmail]);
+  }, [email, password, name, registerMode, token, tokenInfo, loginWithToken, login, navigate, saTokenEmail, monitorLoginMode]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("crash_site_token");
     setTokenInfo(null);
     setRegisterMode(false);
+    setMonitorLoginMode(false);
     setSaTokenEmail("");
     setStep("token");
   }, []);
@@ -188,7 +194,7 @@ function Login() {
                   </div>
                 )}
                 <form onSubmit={onSubmit} className="space-y-4">
-                  {registerMode && !saTokenEmail && (
+                  {registerMode && !saTokenEmail && !monitorLoginMode && (
                     <div className="group">
                       <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Nombre completo</label>
                       <div className="relative">
@@ -233,12 +239,19 @@ function Login() {
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
                     ) : null}
-                    {busy ? "Procesando..." : registerMode ? "Crear cuenta y acceder" : "Acceder"}
+                    {busy ? "Procesando..." : monitorLoginMode ? "Acceder al monitoreo" : registerMode ? "Crear cuenta y acceder" : "Acceder"}
                   </button>
                 </form>
 
                 {registerMode && !saTokenEmail && (
-                  <div className="mt-5 text-center">
+                  <div className="mt-5 flex items-center justify-center gap-4">
+                    <button
+                      onClick={() => setMonitorLoginMode(m => !m)}
+                      className="text-xs text-neutral-500 hover:text-emerald-300 transition-colors"
+                    >
+                      {monitorLoginMode ? "¿Eres nuevo? Crear cuenta" : "¿Ya tienes cuenta? Iniciar sesión"}
+                    </button>
+                    <span className="text-neutral-700">|</span>
                     <button onClick={handleLogout} className="text-xs text-neutral-600 hover:text-neutral-400 transition-colors">
                       Usar otro código
                     </button>

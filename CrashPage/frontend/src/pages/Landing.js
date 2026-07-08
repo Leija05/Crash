@@ -96,7 +96,7 @@ function PlansModal({ onClose }) {
 
 function TokenGateModal({ onClose }) {
   const navigate = useNavigate();
-  const { loginSuperAdmin, loginWithToken, error: authError } = useAuth();
+  const { login, loginSuperAdmin, loginWithToken, error: authError } = useAuth();
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -117,11 +117,19 @@ function TokenGateModal({ onClose }) {
         setSaTokenEmail(data.email);
         setStep("salogin");
       } else {
-        setStep("register");
+        setStep("monitor-login");
       }
     } catch (err) { setError(formatApiError(err)); }
     setBusy(false);
   }, [token]);
+
+  const handleMonitorLogin = useCallback(async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    const ok = await login(email, password);
+    if (ok) navigate("/dashboard");
+    setBusy(false);
+  }, [email, password, login, navigate]);
 
   const handleRegister = useCallback(async (e) => {
     e.preventDefault();
@@ -168,9 +176,39 @@ function TokenGateModal({ onClose }) {
               {authError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{authError}</div>}
               <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {busy ? "..." : "Acceder"}
+                {busy ? "..." : "Acceder al panel"}
               </button>
             </form>
+          </>
+        ) : step === "monitor-login" ? (
+          <>
+            {tokenInfo && (
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-400" /></div>
+                <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Empresa</div><div className="font-bold">{tokenInfo.company_name}</div></div>
+              </div>
+            )}
+            <p className="text-sm text-neutral-400 mb-5">Inicia sesión como monitorista para acceder al monitoreo.</p>
+            <form onSubmit={handleMonitorLogin} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" placeholder="monitorista@correo.com" required />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
+              </div>
+              {authError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{authError}</div>}
+              <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {busy ? "Accediendo..." : "Acceder al monitoreo"}
+              </button>
+            </form>
+            <div className="mt-5 text-center">
+              <button onClick={() => setStep("register")} className="text-xs text-neutral-500 hover:text-emerald-300 transition-colors">
+                ¿Eres nuevo? Crear cuenta de monitorista
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -200,6 +238,11 @@ function TokenGateModal({ onClose }) {
                 {busy ? "Registrando..." : "Registrarse y acceder"}
               </button>
             </form>
+            <div className="mt-5 text-center">
+              <button onClick={() => setStep("monitor-login")} className="text-xs text-neutral-500 hover:text-emerald-300 transition-colors">
+                ¿Ya tienes cuenta? Iniciar sesión
+              </button>
+            </div>
           </>
         )}
       </div>
