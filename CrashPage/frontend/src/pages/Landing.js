@@ -1,12 +1,15 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Shield, Activity, Gauge, Bell, MapPin, Brain, ChevronRight, Check, X,
+  Shield, Activity, Gauge, Bell, MapPin, Brain, Check, X,
   CreditCard, Building2, Users, Wifi, HardDrive, Zap, Settings, Smartphone,
   Globe, Truck, Lock, ArrowRight, Menu, Star, Loader2, ShoppingCart,
-  Info, Monitor, ExternalLink, Clock, AlertTriangle, Key, Mail, UserPlus,
+  Monitor, ExternalLink, Clock, AlertTriangle, Key, Mail, UserPlus,
+  Info, Cpu, Radio, Bluetooth, Battery, Layers, Microscope,
 } from "lucide-react";
 import { api, formatApiError } from "../lib/api";
+
+const DEMO_VIDEO_SRC = `${process.env.PUBLIC_URL}/videos/CrashVideo.mp4`;
 
 function CrashLogo({ className = "h-9 w-9" }) {
   return (
@@ -31,10 +34,8 @@ function PlansModal({ onClose }) {
 
   useEffect(() => {
     (async () => {
-      try {
-        const { data } = await api.get("/plans");
-        setPlans(data);
-      } catch { setPlans([]); }
+      try { const { data } = await api.get("/plans"); setPlans(data); }
+      catch { setPlans([]); }
       setLoading(false);
     })();
   }, []);
@@ -54,29 +55,19 @@ function PlansModal({ onClose }) {
           <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><CreditCard className="h-5 w-5 text-emerald-400" /></div>
           <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Planes y precios</div><div className="font-bold text-lg">Elige tu plan</div></div>
         </div>
-
         {showComingSoon ? (
           <div className="text-center py-12">
-            <div className="h-16 w-16 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mx-auto mb-4">
-              <Clock className="h-8 w-8 text-amber-400" />
-            </div>
+            <div className="h-16 w-16 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mx-auto mb-4"><Clock className="h-8 w-8 text-amber-400" /></div>
             <h3 className="text-xl font-bold mb-2">Próximamente</h3>
-            <p className="text-neutral-400 max-w-sm mx-auto mb-6">
-              El sistema de compras en línea está en desarrollo. Mientras tanto, contacta al SuperAdmin para activar tu plan.
-            </p>
+            <p className="text-neutral-400 max-w-sm mx-auto mb-6">El sistema de compras en línea está en desarrollo. Mientras tanto, contacta al SuperAdmin para activar tu plan.</p>
             <button onClick={onClose} className="border border-white/20 hover:border-white/40 rounded-xl px-6 py-2.5 text-sm transition-all">Cerrar</button>
           </div>
         ) : selectedPlan ? (
           <div className="text-center py-8">
-            <div className="h-16 w-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto mb-4">
-              <Check className="h-8 w-8 text-emerald-400" />
-            </div>
+            <div className="h-16 w-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto mb-4"><Check className="h-8 w-8 text-emerald-400" /></div>
             <h3 className="text-xl font-bold mb-2">{selectedPlan.name} seleccionado</h3>
             <p className="text-neutral-400 mb-4">${selectedPlan.price}/mes — {selectedPlan.max_drivers} conductores</p>
-            <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-sm text-amber-300 max-w-md mx-auto mb-6">
-              <Clock className="h-4 w-4 inline-block mr-2" />
-              El proceso de pago está en desarrollo. Pronto podrás completar la compra.
-            </div>
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-sm text-amber-300 max-w-md mx-auto mb-6"><Clock className="h-4 w-4 inline-block mr-2" />El proceso de pago está en desarrollo. Pronto podrás completar la compra.</div>
             <button onClick={() => setSelectedPlan(null)} className="border border-white/20 hover:border-white/40 rounded-xl px-6 py-2.5 text-sm transition-all">Volver a planes</button>
           </div>
         ) : loading ? (
@@ -84,34 +75,17 @@ function PlansModal({ onClose }) {
         ) : (
           <>
             <div className="grid md:grid-cols-3 gap-4">
-              {display.map((plan) => (
+              {display.map(plan => (
                 <div key={plan.name} className={`relative rounded-2xl border p-5 transition-all hover-lift ${plan.popular ? "border-emerald-500/40 bg-emerald-500/[0.04] shadow-[0_0_40px_rgba(16,185,129,0.1)]" : "border-white/10 bg-white/[0.03]"}`}>
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full">Más popular</div>
-                  )}
+                  {plan.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full">Más popular</div>}
                   <div className="text-sm uppercase tracking-[0.2em] text-neutral-400 mb-1">{plan.name}</div>
-                  <div className="flex items-baseline gap-1 mb-3">
-                    <span className="text-3xl font-bold">${plan.price}</span>
-                    <span className="text-neutral-500 text-sm">/mes</span>
-                  </div>
+                  <div className="flex items-baseline gap-1 mb-3"><span className="text-3xl font-bold">${plan.price}</span><span className="text-neutral-500 text-sm">/mes</span></div>
                   <div className="text-xs text-neutral-400 mb-4">Hasta {plan.max_drivers} conductores</div>
-                  <ul className="space-y-2 mb-6">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-xs text-neutral-300">
-                        <Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button onClick={() => setSelectedPlan(plan)} className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${plan.popular ? "bg-emerald-500 hover:bg-emerald-400 text-black" : "border border-white/20 hover:border-white/40 text-white"}`}>
-                    Seleccionar
-                  </button>
+                  <ul className="space-y-2 mb-6">{plan.features.map(f => <li key={f} className="flex items-start gap-2 text-xs text-neutral-300"><Check className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />{f}</li>)}</ul>
+                  <button onClick={() => setSelectedPlan(plan)} className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${plan.popular ? "bg-emerald-500 hover:bg-emerald-400 text-black" : "border border-white/20 hover:border-white/40 text-white"}`}>Seleccionar</button>
                 </div>
               ))}
             </div>
-            <p className="text-center text-xs text-neutral-500 mt-6">
-              ¿Necesitas más conductores? <button onClick={() => setShowComingSoon(true)} className="text-emerald-400 hover:underline">Contacta a ventas</button>
-            </p>
           </>
         )}
       </div>
@@ -125,49 +99,38 @@ function TokenGateModal({ onClose }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [tokenInfo, setTokenInfo] = useState(null);
-  const [step, setStep] = useState("token"); // token | register | login
+  const [step, setStep] = useState("token");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
   const verifyToken = useCallback(async () => {
-    setBusy(true);
-    setError("");
+    setBusy(true); setError("");
     try {
       const { data } = await api.post("/auth/verify-site-token", { token });
       setTokenInfo(data);
       localStorage.setItem("crash_site_token", token);
       setStep("register");
-    } catch (err) {
-      setError(formatApiError(err));
-    }
+    } catch (err) { setError(formatApiError(err)); }
     setBusy(false);
   }, [token]);
 
   const handleRegister = useCallback(async (e) => {
     e.preventDefault();
-    setBusy(true);
-    setError("");
+    setBusy(true); setError("");
     try {
       const { data } = await api.post("/auth/register-monitor", { token, email, password, name });
       if (data.access_token) localStorage.setItem("crash_token", data.access_token);
       navigate("/dashboard");
-    } catch (err) {
-      setError(formatApiError(err));
-    }
+    } catch (err) { setError(formatApiError(err)); }
     setBusy(false);
   }, [token, email, password, name, navigate]);
-
-  const handleDirectLogin = useCallback(() => {
-    navigate("/login");
-  }, [navigate]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
-
-        {step === "token" && (
+        {step === "token" ? (
           <>
             <div className="flex items-center gap-3 mb-6">
               <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Key className="h-5 w-5 text-emerald-400" /></div>
@@ -180,54 +143,23 @@ function TokenGateModal({ onClose }) {
             </div>
             {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-4">{error}</div>}
             <button disabled={busy || token.length < 8} onClick={verifyToken} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2 mb-3">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {busy ? "Verificando..." : "Verificar token"}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{busy ? "Verificando..." : "Verificar token"}
             </button>
-            <div className="text-center">
-              <button onClick={handleDirectLogin} className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">¿Ya tienes cuenta? Inicia sesión</button>
-            </div>
+            <div className="text-center"><button onClick={() => navigate("/login")} className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">¿Ya tienes cuenta? Inicia sesión</button></div>
           </>
-        )}
-
-        {step === "register" && (
+        ) : (
           <>
             <div className="flex items-center gap-3 mb-6">
               <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><UserPlus className="h-5 w-5 text-emerald-400" /></div>
               <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Registro</div><div className="font-bold">Crear cuenta</div></div>
             </div>
-            {tokenInfo && (
-              <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300 flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                {tokenInfo.company_name} · Plan {tokenInfo.plan_name}
-              </div>
-            )}
+            {tokenInfo && <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300 flex items-center gap-2"><Building2 className="h-4 w-4" />{tokenInfo.company_name} · Plan {tokenInfo.plan_name}</div>}
             <form onSubmit={handleRegister} className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Nombre</label>
-                <div className="relative">
-                  <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                  <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" placeholder="Tu nombre" required />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" placeholder="monitorista@correo.com" required />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Contraseña</label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" required />
-                </div>
-              </div>
+              <div><label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Nombre</label><div className="relative"><UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" /><input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" placeholder="Tu nombre" required /></div></div>
+              <div><label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Email</label><div className="relative"><Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" /><input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" placeholder="monitorista@correo.com" required /></div></div>
+              <div><label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Contraseña</label><div className="relative"><Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" /><input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" required /></div></div>
               {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{error}</div>}
-              <button disabled={busy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {busy ? "Creando cuenta..." : "Crear cuenta y acceder"}
-              </button>
+              <button disabled={busy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{busy ? "Creando cuenta..." : "Crear cuenta y acceder"}</button>
             </form>
           </>
         )}
@@ -242,6 +174,9 @@ function Landing() {
   const [showTokenGate, setShowTokenGate] = useState(false);
   const [scroll, setScroll] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef(null);
+  const videoSectionRef = useRef(null);
 
   useEffect(() => {
     const handler = () => setScroll(window.scrollY);
@@ -249,34 +184,34 @@ function Landing() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
+  useEffect(() => {
+    const section = videoSectionRef.current;
+    const video = videoRef.current;
+    if (!section || !video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) { video.currentTime = 0; video.play().catch(() => {}); }
+        else { video.pause(); video.currentTime = 0; }
+      },
+      { threshold: 0.65 }
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
-      {/* ── Navbar ── */}
       <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${scroll > 20 ? "bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-white/10" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-red-500/15 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.28)]">
-                <CrashLogo className="h-6 w-6" />
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.4em] text-neutral-500 leading-tight">Critical Response</div>
-                <div className="text-lg font-bold tracking-tight leading-tight">C.R.A.S.H.</div>
-              </div>
+              <div className="h-9 w-9 rounded-xl bg-red-500/15 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.28)]"><CrashLogo className="h-6 w-6" /></div>
+              <div><div className="text-[10px] uppercase tracking-[0.4em] text-neutral-500 leading-tight">Critical Response</div><div className="text-lg font-bold tracking-tight leading-tight">C.R.A.S.H.</div></div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-1.5 border border-white/20 hover:border-emerald-500/40 hover:text-emerald-300 text-sm rounded-xl px-4 py-2 transition-all">
-                <CreditCard className="h-4 w-4" />
-                <span className="hidden sm:inline">Planes</span>
-              </button>
-              <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                <Monitor className="h-4 w-4" />
-                <span className="hidden sm:inline">Acceder a monitoreo</span>
-                <span className="sm:hidden">Acceder</span>
-              </button>
-              <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden h-9 w-9 rounded-xl border border-white/10 flex items-center justify-center">
-                <Menu className="h-5 w-5" />
-              </button>
+              <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-1.5 border border-white/20 hover:border-emerald-500/40 hover:text-emerald-300 text-sm rounded-xl px-4 py-2 transition-all"><CreditCard className="h-4 w-4" /><span className="hidden sm:inline">Planes</span></button>
+              <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)]"><Monitor className="h-4 w-4" /><span className="hidden sm:inline">Acceder a monitoreo</span><span className="sm:hidden">Acceder</span></button>
+              <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden h-9 w-9 rounded-xl border border-white/10 flex items-center justify-center"><Menu className="h-5 w-5" /></button>
             </div>
           </div>
           {menuOpen && (
@@ -288,7 +223,7 @@ function Landing() {
         </div>
       </nav>
 
-      {/* ── Hero / Project Info ── */}
+      {/* ── Hero ── */}
       <section className="min-h-screen flex items-center relative overflow-hidden pt-20">
         <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 via-transparent to-transparent" />
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-[120px]" />
@@ -296,46 +231,22 @@ function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="animate-fade-in-up">
-              <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-1.5 text-xs text-red-300 mb-6">
-                <Activity className="h-3.5 w-3.5" />
-                Monitoreo de cascos inteligentes en tiempo real
-              </div>
+              <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-1.5 text-xs text-red-300 mb-6"><Activity className="h-3.5 w-3.5" />Proyecto InnovaTec 2026</div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight">
-                Seguridad vial con
-                <span className="gradient-text-red block mt-2">inteligencia artificial</span>
+                C.R.A.S.H.
+                <span className="gradient-text-red block mt-2">Sistema de alerta de respuesta crítica para cascos</span>
               </h1>
               <p className="mt-6 text-lg text-neutral-400 max-w-xl leading-relaxed">
-                C.R.A.S.H. — <strong>Critical Response Alert System for Helmets</strong>. 
-                Detecta impactos en tiempo real, alerta a emergencias y proporciona 
-                diagnóstico con IA para una respuesta inmediata. Diseñado para empresas 
-                de mensajería, delivery y flotillas de motociclistas.
+                <strong>Critical Response Alert System for Helmets</strong>. Dispositivo que se instala en cascos 
+                o vehículos y detecta accidentes automáticamente. Utiliza inteligencia artificial para analizar 
+                la gravedad del impacto y envía alertas inmediatas con ubicación a contactos de emergencia.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl px-6 py-3 transition-all hover-lift shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                  Acceder a monitoreo
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white rounded-xl px-6 py-3 transition-all hover-lift">
-                  Ver planes
-                  <CreditCard className="h-4 w-4" />
-                </button>
+                <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl px-6 py-3 transition-all hover-lift shadow-[0_0_30px_rgba(16,185,129,0.3)]">Acceder a monitoreo<ArrowRight className="h-4 w-4" /></button>
+                <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white rounded-xl px-6 py-3 transition-all hover-lift">Ver planes<CreditCard className="h-4 w-4" /></button>
               </div>
-              <div className="mt-8 grid grid-cols-3 gap-3 max-w-sm">
-                {[
-                  { v: "8+", l: "Conductores simulados", c: "text-emerald-400" },
-                  { v: "<2s", l: "Latencia en alertas", c: "text-emerald-400" },
-                  { v: "24/7", l: "Monitoreo continuo", c: "text-red-400" },
-                ].map(s => (
-                  <div key={s.l} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center hover-lift">
-                    <div className={`font-mono text-xl font-bold ${s.c}`}>{s.v}</div>
-                    <div className="text-[9px] uppercase tracking-[0.2em] text-neutral-500 mt-1">{s.l}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* ── Tech stack badges ── */}
-              <div className="mt-8 flex flex-wrap gap-2">
-                {["React", "FastAPI", "MongoDB", "WebSocket", "Gemini IA", "React Native", "WhatsApp API"].map(t => (
+              <div className="mt-10 flex flex-wrap gap-2">
+                {["React", "FastAPI", "MongoDB", "WebSocket", "Gemini IA", "React Native", "Bluetooth", "IoT"].map(t => (
                   <span key={t} className="text-[10px] bg-white/5 border border-white/10 rounded-full px-2.5 py-1 text-neutral-400">{t}</span>
                 ))}
               </div>
@@ -344,29 +255,15 @@ function Landing() {
               <div className="relative w-full max-w-lg">
                 <div className="aspect-square rounded-3xl border border-white/10 bg-gradient-to-br from-red-500/10 via-transparent to-emerald-500/10 p-8 backdrop-blur-sm">
                   <div className="h-full rounded-2xl border border-white/10 bg-white/[0.03] p-6 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs text-neutral-400"><Activity className="h-4 w-4 text-emerald-400" /> Panel de monitoreo</div>
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    </div>
-                    {[
-                      { label: "Conductores en vivo", value: "08", color: "text-emerald-400" },
-                      { label: "Alertas activas", value: "03", color: "text-red-400" },
-                      { label: "Tiempo real", value: "WebSocket", color: "text-emerald-400" },
-                    ].map(s => (
-                      <div key={s.label} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3">
-                        <span className="text-xs text-neutral-500">{s.label}</span>
-                        <span className={`font-mono text-lg font-bold ${s.color}`}>{s.value}</span>
-                      </div>
-                    ))}
-                    <ul className="space-y-2 text-xs text-neutral-400 mt-2">
-                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Detección de impacto G-Force</li>
-                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Notificaciones WhatsApp</li>
-                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Diagnóstico con IA</li>
-                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Mapa interactivo en vivo</li>
+                    <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-xs text-neutral-400"><Activity className="h-4 w-4 text-emerald-400" /> Telemetría de Impacto (IMU)</div><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /></div>
+                    <div className="text-center py-4"><div className="text-5xl font-bold font-mono gradient-text-red">1.0<span className="text-2xl text-neutral-500">G</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mt-1">Fuerza G en reposo</div></div>
+                    <ul className="space-y-2 text-xs text-neutral-400">
+                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Sensor MPU-6050 con muestreo de 1 kHz</li>
+                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Acelerómetro calibrado en ±16g</li>
+                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Bluetooth HC-05 + App React Native</li>
+                      <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-emerald-400" /> Diagnóstico con Gemini AI</li>
                     </ul>
-                    <div className="mt-auto rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-xs text-emerald-300 flex items-center gap-2">
-                      <Shield className="h-3.5 w-3.5" /> Sistema operando · 99.9% uptime
-                    </div>
+                    <div className="mt-auto rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-xs text-emerald-300 flex items-center gap-2"><Shield className="h-3.5 w-3.5" /> Sistema operando · 99.9% uptime</div>
                   </div>
                 </div>
                 <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-red-500/20 blur-[60px]" />
@@ -377,26 +274,76 @@ function Landing() {
         </div>
       </section>
 
-      {/* ── Features grid ── */}
+      {/* ── Problemática ── */}
       <section className="py-20 relative border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Todo lo que necesitas para monitorear</h2>
-            <p className="mt-3 text-neutral-400">Detección de impacto, geolocalización, alertas automáticas y diagnóstico con IA en un solo sistema.</p>
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-1.5 text-xs text-red-300 mb-4">Identificación del Problema</div>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">En México, los accidentes de motocicleta <span className="gradient-text-red">presentan un crecimiento crítico.</span></h2>
+            <p className="mt-4 text-neutral-400 max-w-2xl mx-auto">El factor determinante entre la vida y la muerte es el tiempo de respuesta inicial. La automatización de la alerta puede reducir el tiempo de auxilio en un 40%.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5 mb-12">
+            {[
+              { icon: TrendingUp, label: "Aumento Anual", value: "+20%", desc: "de accidentes de moto por año", color: "text-red-400" },
+              { icon: Zap, label: "Transmisión", value: "~4s", desc: "de detección a alerta emitida", color: "text-emerald-400" },
+              { icon: Shield, label: "Respuesta", value: "-40%", desc: "reducción en tiempo de auxilio", color: "text-emerald-400" },
+            ].map(s => (
+              <div key={s.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center hover-lift">
+                <s.icon className={`h-8 w-8 ${s.color} mx-auto mb-3`} />
+                <div className={`text-3xl font-bold font-mono ${s.color}`}>{s.value}</div>
+                <div className="text-sm font-medium text-neutral-300 mt-1">{s.label}</div>
+                <div className="text-xs text-neutral-500 mt-1">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid lg:grid-cols-2 gap-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <h3 className="font-bold text-lg mb-3">Problema que resuelve</h3>
+              <p className="text-neutral-400 text-sm leading-relaxed mb-3">Existe una alta cantidad de accidentes de tránsito, especialmente en motociclistas. Un gran porcentaje de las víctimas no recibe atención a tiempo.</p>
+              <ul className="space-y-1.5 text-sm text-neutral-300">
+                {["No hay testigos", "El accidentado queda inconsciente", "No se reporta el incidente", "No hay información técnica para servicios de emergencia"].map(item => (
+                  <li key={item} className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <h3 className="font-bold text-lg mb-3">Solución</h3>
+              <ul className="space-y-3">
+                {[
+                  { icon: Gauge, text: "Detecta impactos mediante sensores" },
+                  { icon: Brain, text: "Analiza la gravedad usando inteligencia artificial" },
+                  { icon: MapPin, text: "Envía alertas inmediatas con ubicación GPS" },
+                  { icon: Bell, text: "Notifica a contactos de emergencia y sistemas de control" },
+                ].map(item => (
+                  <li key={item.text} className="flex items-start gap-2 text-sm text-neutral-300">
+                    <item.icon className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />{item.text}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-neutral-500 mt-3 italic">No requiere intervención del usuario.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Características ── */}
+      <section className="py-20 relative border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Características del sistema</h2>
+            <p className="mt-3 text-neutral-400">Hardware y software diseñados para máxima confiabilidad en escenarios críticos.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
-              { icon: Activity, title: "Detección de Impactos", desc: "Sensor G-Force con umbrales configurables. Detecta colisiones en milisegundos." },
-              { icon: MapPin, title: "Geolocalización en Vivo", desc: "Mapa interactivo con posición exacta. Historial de rutas y replay de accidentes." },
-              { icon: Bell, title: "Alertas Inmediatas", desc: "Notificaciones en tiempo real vía WebSocket. Alertas a contactos por WhatsApp." },
-              { icon: Brain, title: "Diagnóstico con IA", desc: "Análisis automático usando inteligencia artificial. Reportes detallados de severidad." },
-              { icon: Gauge, title: "Telemetría Completa", desc: "Velocidad, aceleración, giroscopio y batería del casco en tiempo real." },
-              { icon: Smartphone, title: "App Móvil Integrada", desc: "App para conductores con detección automática y telemetría en vivo." },
-            ].map((f, i) => (
+              { icon: Cpu, title: "MCU Brain", desc: "Arduino Nano (ATmega328P). Controlador de bajo consumo que integra la lógica de detección y gestión." },
+              { icon: Activity, title: "Sensor MPU-6050", desc: "Acelerómetro de 3 ejes + Giroscopio. Mide la aceleración inercial para detectar el impacto exacto en milisegundos." },
+              { icon: Bluetooth, title: "Radio HC-05", desc: "Protocolo UART Bluetooth. Enlace estable para el envío de señales críticas al dispositivo de respuesta." },
+              { icon: Shield, title: "Case PETG", desc: "Carcasa protectora resistente a la tracción, vibraciones y temperaturas extremas del entorno vial." },
+              { icon: Smartphone, title: "App Móvil", desc: "Interfaz de respuesta rápida. Gestiona geolocalización, contacto de emergencia y telemetría en vivo." },
+              { icon: Battery, title: "Power Unit", desc: "Gestión de energía Li-Po con protección contra cortocircuitos y más de 48 horas de autonomía." },
+            ].map(f => (
               <div key={f.title} className="rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] p-5 transition-all hover-lift">
-                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3">
-                  <f.icon className="h-4.5 w-4.5 text-emerald-400" />
-                </div>
+                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3"><f.icon className="h-4.5 w-4.5 text-emerald-400" /></div>
                 <h3 className="font-bold text-base mb-1.5">{f.title}</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed">{f.desc}</p>
               </div>
@@ -405,24 +352,69 @@ function Landing() {
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section className="py-20 relative bg-white/[0.01] border-t border-white/5">
+      {/* ── Video Demostrativo ── */}
+      <section ref={videoSectionRef} className="py-20 relative border-t border-white/5">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Video demostrativo</h2>
+            <p className="mt-3 text-neutral-400">Mira cómo funciona C.R.A.S.H. en acción.</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden">
+            <video ref={videoRef} className="w-full aspect-video" autoPlay muted playsInline preload="metadata" loop onError={() => setVideoError(true)}>
+              <source src={DEMO_VIDEO_SRC} type="video/mp4" />
+            </video>
+            {videoError && <div className="text-center py-8 text-neutral-500 text-sm">El video no está disponible momentáneamente.</div>}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Proyecto info ── */}
+      <section className="py-20 relative border-t border-white/5 bg-white/[0.01]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Empieza en minutos</h2>
-            <p className="mt-3 text-neutral-400">Configuración simple, resultados inmediatos. No necesitas hardware especial.</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Sobre el proyecto</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-5 mb-8">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <h3 className="font-bold text-lg mb-3">Mercado objetivo</h3>
+              <p className="text-neutral-400 text-sm leading-relaxed">Usuarios principales: motociclistas, repartidores (Uber Eats, DiDi, Rappi) y personas que usan motocicleta diariamente.</p>
+              <p className="text-neutral-400 text-sm mt-2">Cliente potencial: repartidor independiente con largas jornadas, alto riesgo y dependencia de su salud para generar ingresos.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <h3 className="font-bold text-lg mb-3">Modelo de negocio</h3>
+              <p className="text-neutral-200 text-sm">B2C: dispositivo $1,499 MXN + suscripción $49 MXN/mes.</p>
+              <p className="text-neutral-200 text-sm mt-1">B2B: dispositivo $1,999 MXN + suscripción $150 MXN/usuario/mes.</p>
+              <p className="text-neutral-400 text-sm mt-2">Incluye monitoreo, análisis de datos y prevención de riesgos.</p>
+            </div>
+          </div>
+          <div className="grid lg:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><h3 className="font-bold text-white mb-2">Costos</h3><p className="text-neutral-400 text-sm">Producción por unidad: ~$800 MXN.</p><p className="text-neutral-400 text-sm">Gastos operativos mensuales: ~$1,300 MXN.</p></div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><h3 className="font-bold text-white mb-2">Modelo de ingresos</h3><ul className="list-disc list-inside text-neutral-400 text-sm space-y-1"><li>Venta del dispositivo</li><li>Suscripciones mensuales</li><li>Servicios adicionales para empresas</li><li>Integraciones personalizadas</li></ul></div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><h3 className="font-bold text-white mb-2">Oportunidad de negocio</h3><ul className="list-disc list-inside text-neutral-400 text-sm space-y-1"><li>Crecimiento del uso de motocicletas</li><li>Alta demanda del sector reparto</li><li>Necesidad de reducir accidentes</li><li>Mercado amplio y en expansión</li></ul></div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-5 mt-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><h3 className="font-bold text-white mb-2">Normatividad</h3><p className="text-neutral-400 text-sm">Cumple con normas de seguridad en cascos, dispositivos electrónicos, seguridad laboral y protección de datos personales.</p></div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"><h3 className="font-bold text-white mb-2">Desarrollo</h3><p className="text-neutral-400 text-sm">Metodología Scrum: análisis, diseño, desarrollo e implementación con pruebas funcionales. C.R.A.S.H. automatiza la detección de accidentes y la solicitud de ayuda.</p></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Cómo funciona ── */}
+      <section className="py-20 relative border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Arquitectura del sistema</h2>
+            <p className="mt-3 text-neutral-400">Protocolos de comunicación y algoritmo de detección.</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { icon: Building2, title: "1. Registra tu empresa", desc: "El SuperAdmin crea tu empresa y te asigna un token de acceso único." },
-              { icon: Users, title: "2. Invita a tu equipo", desc: "Comparte el token con tus monitoristas. Ellos crean su cuenta y acceden al panel." },
-              { icon: Smartphone, title: "3. Conecta conductores", desc: "Los conductores descargan la app y se registran. Seleccionan tu empresa." },
-              { icon: Activity, title: "4. Monitorea", desc: "Mapa en vivo, alertas instantáneas, telemetría y diagnóstico con IA." },
+              { icon: Layers, title: "1. Bus I2C", desc: "Síncrono — Lectura de registros del sensor MPU a través de SDA y SCL con manejo de colisiones." },
+              { icon: Radio, title: "2. UART Serial", desc: "Asíncrono — Transmisión TX/RX para Bluetooth a 9600 bps." },
+              { icon: Microscope, title: "3. Algoritmo de Detección", desc: "Cálculo de magnitud vectorial (G) en Arduino Nano para clasificar impactos." },
+              { icon: Brain, title: "4. IA Generativa", desc: "Gemini AI analiza la telemetría y genera reporte predictivo de lesiones." },
             ].map(s => (
               <div key={s.title} className="text-center p-5">
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-red-500/20 to-emerald-500/10 border border-white/10 flex items-center justify-center mx-auto mb-3">
-                  <s.icon className="h-6 w-6 text-red-400" />
-                </div>
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-red-500/20 to-emerald-500/10 border border-white/10 flex items-center justify-center mx-auto mb-3"><s.icon className="h-6 w-6 text-red-400" /></div>
                 <h3 className="font-bold text-base mb-1.5">{s.title}</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed">{s.desc}</p>
               </div>
@@ -437,21 +429,17 @@ function Landing() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <CrashLogo className="h-7 w-7" />
-              <div>
-                <div className="text-sm font-bold">C.R.A.S.H.</div>
-                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Critical Response Alert System for Helmets</div>
-              </div>
+              <div><div className="text-sm font-bold">C.R.A.S.H.</div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Critical Response Alert System for Helmets</div></div>
             </div>
             <div className="flex items-center gap-6 text-xs text-neutral-500">
               <span>© 2026 C.R.A.S.H.</span>
-              <span>Todos los derechos reservados</span>
+              <span>InnovaTec 2026</span>
               <span>Hecho en México</span>
             </div>
           </div>
         </div>
       </footer>
 
-      {/* ── Modals ── */}
       {showPlans && <PlansModal onClose={() => setShowPlans(false)} />}
       {showTokenGate && <TokenGateModal onClose={() => setShowTokenGate(false)} />}
     </div>

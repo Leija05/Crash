@@ -1,3 +1,4 @@
+from bson import ObjectId
 from fastapi import APIRouter, Depends, Request
 
 from app.api.auth.schemas import LoginInput, MonitorLoginInput, RegisterInput
@@ -70,6 +71,25 @@ async def list_monitors(user: dict = Depends(get_current_monitor_user)):
 @router.get("/superadmin/check")
 async def superadmin_check(_=Depends(get_current_superadmin)):
     return {"superadmin": True}
+
+@router.post("/assign-driver-token")
+async def assign_driver_token(body: dict, user: dict = Depends(get_current_rider)):
+    from app.api.auth.service import assign_driver_company
+    return await assign_driver_company(user["id"], body.get("token", ""))
+
+@router.post("/remove-driver-token")
+async def remove_driver_token(user: dict = Depends(get_current_rider)):
+    from app.api.auth.service import remove_driver_company
+    return await remove_driver_company(user["id"])
+
+@router.get("/driver-company")
+async def get_driver_company(user: dict = Depends(get_current_rider)):
+    from app.core.database import get_db
+    db = await get_db()
+    rider = await db.users.find_one({"_id": ObjectId(user["id"])}, {"company_id": 1, "company_name": 1})
+    if rider and rider.get("company_id"):
+        return {"company_id": rider["company_id"], "company_name": rider["company_name"]}
+    return {"company_id": None, "company_name": None}
 
 @router.post("/refresh")
 async def refresh(request: Request):

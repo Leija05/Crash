@@ -183,6 +183,42 @@ async def register_monitor_with_token(token: str, email: str, password: str, nam
         "user": {"id": monitor_doc["id"], "email": email, "name": name.strip(), "role": "monitor", "company_id": company_id, "company_name": company_name},
     }
 
+async def assign_driver_company(user_id: str, token: str) -> dict:
+    db = await get_db()
+    token = token.strip().upper()
+    doc = await db.driver_tokens.find_one({"token": token, "active": True})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Token de conductor inválido o expirado")
+    if doc.get("used") and doc.get("used_by") != user_id:
+        raise HTTPException(status_code=400, detail="Este token ya fue usado por otro conductor")
+    company_id = doc["company_id"]
+    company = await db.companies.find_one({"_id": ObjectId(company_id)})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    company_name = company.get("name", "")
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"company_id": company_id, "company_name": company_name}}
+    )
+    await db.driver_tokens.update_one(
+        {"token": token},
+        {"$set": {"used": True, "used_by": user_id, "used_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"company_id": company_id, "company_name": company_name, "message": f"Vinculado a {company_name}"}
+
+
+async def remove_driver_company(user_id: str) -> dict:
+    db = await get_db()
+    rider = await db.users.find_one({"_id": ObjectId(user_id)}, {"company_id": 1})
+    if rider and rider.get("company_id"):
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$unset": {"company_id": "", "company_name": ""}}
+        )
+        return {"message": "Vinculación con empresa eliminada"}
+    return {"message": "No había empresa vinculada"}
+
+
 async def refresh_rider_token(refresh_token: str) -> dict:
     from app.core.security import decode_token
     from bson import ObjectId
