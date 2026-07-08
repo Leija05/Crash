@@ -321,9 +321,10 @@ async def websocket_endpoint(websocket: WebSocket):
 async def _seed_superadmin() -> None:
     db = await get_db()
     email = settings.SUPERADMIN_EMAIL.lower()
-    site_token = uuid.uuid4().hex[:12].upper()
     existing = await db.users.find_one({"email": email})
+
     if not existing:
+        site_token = uuid.uuid4().hex[:12].upper()
         await db.users.insert_one({
             "email": email,
             "name": "SuperAdmin",
@@ -335,18 +336,20 @@ async def _seed_superadmin() -> None:
         })
         logger.info("SuperAdmin seeded: %s", email)
     elif existing.get("role") != "superadmin":
+        site_token = uuid.uuid4().hex[:12].upper()
         await db.users.update_one(
             {"email": email},
             {"$set": {"role": "superadmin", "password_hash": hash_password(settings.SUPERADMIN_PASSWORD),
-                       "site_token": site_token}},
+                       "site_token": site_token, "updated_at": datetime.now(timezone.utc).isoformat()}},
         )
         logger.info("SuperAdmin role updated for %s", email)
     else:
-        # refresh site_token on every restart so it's always available
         await db.users.update_one(
             {"email": email},
-            {"$set": {"site_token": site_token, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            {"$set": {"password_hash": hash_password(settings.SUPERADMIN_PASSWORD),
+                       "updated_at": datetime.now(timezone.utc).isoformat()}},
         )
+        site_token = existing.get("site_token", "")
 
     logger.info("=" * 50)
     logger.info("SUPERADMIN CREDENTIALS")
