@@ -5,8 +5,9 @@ import {
   CreditCard, Building2, Users, Wifi, HardDrive, Zap, Settings, Smartphone,
   Globe, Truck, Lock, ArrowRight, Menu, Star, Loader2, ShoppingCart,
   Monitor, ExternalLink, Clock, AlertTriangle, Key, Mail, UserPlus,
-  Info, Cpu, Radio, Bluetooth, Battery, Layers, Microscope,
+  Info, Cpu, Radio, Bluetooth, Battery, Layers, Microscope, TrendingUp,
 } from "lucide-react";
+import { useAuth } from "../auth/AuthContext";
 import { api, formatApiError } from "../lib/api";
 
 const DEMO_VIDEO_SRC = `${process.env.PUBLIC_URL}/videos/CrashVideo.mp4`;
@@ -95,6 +96,7 @@ function PlansModal({ onClose }) {
 
 function TokenGateModal({ onClose }) {
   const navigate = useNavigate();
+  const { loginSuperAdmin } = useAuth();
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -103,6 +105,7 @@ function TokenGateModal({ onClose }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [saTokenEmail, setSaTokenEmail] = useState("");
 
   const verifyToken = useCallback(async () => {
     setBusy(true); setError("");
@@ -110,7 +113,12 @@ function TokenGateModal({ onClose }) {
       const { data } = await api.post("/auth/verify-site-token", { token });
       setTokenInfo(data);
       localStorage.setItem("crash_site_token", token);
-      setStep("register");
+      if (data.role === "superadmin") {
+        setSaTokenEmail(data.email);
+        setStep("salogin");
+      } else {
+        setStep("register");
+      }
     } catch (err) { setError(formatApiError(err)); }
     setBusy(false);
   }, [token]);
@@ -126,40 +134,74 @@ function TokenGateModal({ onClose }) {
     setBusy(false);
   }, [token, email, password, name, navigate]);
 
+  const handleSaLogin = useCallback(async (e) => {
+    e.preventDefault();
+    setBusy(true); setError("");
+    const ok = await loginSuperAdmin(saTokenEmail, password);
+    if (ok) window.location.href = "/admin";
+    setBusy(false);
+  }, [saTokenEmail, password, loginSuperAdmin]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
         {step === "token" ? (
           <>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Key className="h-5 w-5 text-emerald-400" /></div>
-              <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Acceso monitoristas</div><div className="font-bold">Token de empresa</div></div>
-            </div>
-            <p className="text-sm text-neutral-400 mb-5">Ingresa el token único que tu empresa te proporcionó.</p>
-            <div className="relative mb-4">
-              <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-              <input value={token} onChange={e => setToken(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-3 text-sm font-mono tracking-wider outline-none transition-all" placeholder="XXXX-XXXX-XXXX" autoComplete="off" spellCheck={false} />
+            <div className="mt-4 mb-5">
+              <input value={token} onChange={e => setToken(e.target.value.toUpperCase())} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm font-mono tracking-wider outline-none transition-all text-center" placeholder="Ingrese su código" autoComplete="off" spellCheck={false} />
             </div>
             {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-4">{error}</div>}
-            <button disabled={busy || token.length < 8} onClick={verifyToken} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2 mb-3">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{busy ? "Verificando..." : "Verificar token"}
+            <button disabled={busy || token.length < 8} onClick={verifyToken} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {busy ? "..." : "Continuar"}
             </button>
-            <div className="text-center"><button onClick={() => navigate("/login")} className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">¿Ya tienes cuenta? Inicia sesión</button></div>
+          </>
+        ) : step === "salogin" ? (
+          <>
+            <div className="mb-4">
+              <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
+              <input type="email" value={saTokenEmail} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono outline-none cursor-not-allowed opacity-60" readOnly />
+            </div>
+            <form onSubmit={handleSaLogin} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
+              </div>
+              {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{error}</div>}
+              <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {busy ? "..." : "Acceder"}
+              </button>
+            </form>
           </>
         ) : (
           <>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><UserPlus className="h-5 w-5 text-emerald-400" /></div>
-              <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Registro</div><div className="font-bold">Crear cuenta</div></div>
-            </div>
-            {tokenInfo && <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300 flex items-center gap-2"><Building2 className="h-4 w-4" />{tokenInfo.company_name} · Plan {tokenInfo.plan_name}</div>}
+            {tokenInfo && (
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-400" /></div>
+                <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Empresa</div><div className="font-bold">{tokenInfo.company_name}</div></div>
+              </div>
+            )}
+            <p className="text-sm text-neutral-400 mb-5">Completa tus datos para registrarte como monitorista.</p>
             <form onSubmit={handleRegister} className="space-y-4">
-              <div><label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Nombre</label><div className="relative"><UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" /><input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" placeholder="Tu nombre" required /></div></div>
-              <div><label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Email</label><div className="relative"><Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" /><input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" placeholder="monitorista@correo.com" required /></div></div>
-              <div><label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Contraseña</label><div className="relative"><Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" /><input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-2.5 text-sm outline-none transition-all" required /></div></div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Nombre completo</label>
+                <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" placeholder="Tu nombre" required />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" placeholder="monitorista@correo.com" required />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-4 py-3 text-sm outline-none transition-all" required />
+              </div>
               {error && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{error}</div>}
-              <button disabled={busy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{busy ? "Creando cuenta..." : "Crear cuenta y acceder"}</button>
+              <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {busy ? "Registrando..." : "Registrarse y acceder"}
+              </button>
             </form>
           </>
         )}
@@ -201,7 +243,7 @@ function Landing() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${scroll > 20 ? "bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-white/10" : "bg-transparent"}`}>
+      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-500 ${scroll > 20 ? "bg-[#0A0A0A]/80 backdrop-blur-2xl border-b border-white/[0.06]" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <div className="flex items-center gap-3">
@@ -210,7 +252,7 @@ function Landing() {
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-1.5 border border-white/20 hover:border-emerald-500/40 hover:text-emerald-300 text-sm rounded-xl px-4 py-2 transition-all"><CreditCard className="h-4 w-4" /><span className="hidden sm:inline">Planes</span></button>
-              <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)]"><Monitor className="h-4 w-4" /><span className="hidden sm:inline">Acceder a monitoreo</span><span className="sm:hidden">Acceder</span></button>
+              <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-semibold rounded-xl px-4 py-2 transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.35)]"><Monitor className="h-4 w-4" /><span className="hidden sm:inline">Acceder a monitoreo</span><span className="sm:hidden">Acceder</span></button>
               <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden h-9 w-9 rounded-xl border border-white/10 flex items-center justify-center"><Menu className="h-5 w-5" /></button>
             </div>
           </div>
@@ -226,8 +268,9 @@ function Landing() {
       {/* ── Hero ── */}
       <section className="min-h-screen flex items-center relative overflow-hidden pt-20">
         <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 via-transparent to-transparent" />
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.03)_0%,transparent_70%)]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="animate-fade-in-up">
@@ -242,18 +285,18 @@ function Landing() {
                 la gravedad del impacto y envía alertas inmediatas con ubicación a contactos de emergencia.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl px-6 py-3 transition-all hover-lift shadow-[0_0_30px_rgba(16,185,129,0.3)]">Acceder a monitoreo<ArrowRight className="h-4 w-4" /></button>
-                <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white rounded-xl px-6 py-3 transition-all hover-lift">Ver planes<CreditCard className="h-4 w-4" /></button>
+                <button onClick={() => setShowTokenGate(true)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-xl px-6 py-3 transition-all hover-lift shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_50px_rgba(16,185,129,0.4)] active:scale-[0.97]">Acceder a monitoreo<ArrowRight className="h-4 w-4" /></button>
+                <button onClick={() => setShowPlans(true)} className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white rounded-xl px-6 py-3 transition-all hover-lift active:scale-[0.97]">Ver planes<CreditCard className="h-4 w-4" /></button>
               </div>
               <div className="mt-10 flex flex-wrap gap-2">
                 {["React", "FastAPI", "MongoDB", "WebSocket", "Gemini IA", "React Native", "Bluetooth", "IoT"].map(t => (
-                  <span key={t} className="text-[10px] bg-white/5 border border-white/10 rounded-full px-2.5 py-1 text-neutral-400">{t}</span>
+                  <span key={t} className="text-[10px] bg-white/5 border border-white/10 rounded-full px-2.5 py-1 text-neutral-400 hover:border-emerald-500/30 hover:text-emerald-300 transition-all">{t}</span>
                 ))}
               </div>
             </div>
             <div className="hidden lg:flex justify-center animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
               <div className="relative w-full max-w-lg">
-                <div className="aspect-square rounded-3xl border border-white/10 bg-gradient-to-br from-red-500/10 via-transparent to-emerald-500/10 p-8 backdrop-blur-sm">
+                <div className="aspect-square rounded-3xl border border-white/10 bg-gradient-to-br from-red-500/10 via-transparent to-emerald-500/10 p-8 backdrop-blur-sm hover:border-white/20 transition-all duration-500">
                   <div className="h-full rounded-2xl border border-white/10 bg-white/[0.03] p-6 flex flex-col gap-4">
                     <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-xs text-neutral-400"><Activity className="h-4 w-4 text-emerald-400" /> Telemetría de Impacto (IMU)</div><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /></div>
                     <div className="text-center py-4"><div className="text-5xl font-bold font-mono gradient-text-red">1.0<span className="text-2xl text-neutral-500">G</span></div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mt-1">Fuerza G en reposo</div></div>
@@ -266,18 +309,22 @@ function Landing() {
                     <div className="mt-auto rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-xs text-emerald-300 flex items-center gap-2"><Shield className="h-3.5 w-3.5" /> Sistema operando · 99.9% uptime</div>
                   </div>
                 </div>
-                <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-red-500/20 blur-[60px]" />
+                <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-red-500/20 blur-[60px] animate-pulse" />
                 <div className="absolute -bottom-4 -left-4 h-20 w-20 rounded-full bg-emerald-500/15 blur-[50px]" />
               </div>
             </div>
           </div>
+        </div>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-neutral-600 animate-bounce">
+          <span className="text-[10px] uppercase tracking-[0.3em]">Desplázate</span>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
         </div>
       </section>
 
       {/* ── Problemática ── */}
       <section className="py-20 relative border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
+          <div className="text-center mb-14 animate-fade-in-up">
             <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-1.5 text-xs text-red-300 mb-4">Identificación del Problema</div>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">En México, los accidentes de motocicleta <span className="gradient-text-red">presentan un crecimiento crítico.</span></h2>
             <p className="mt-4 text-neutral-400 max-w-2xl mx-auto">El factor determinante entre la vida y la muerte es el tiempo de respuesta inicial. La automatización de la alerta puede reducir el tiempo de auxilio en un 40%.</p>
@@ -288,8 +335,8 @@ function Landing() {
               { icon: Zap, label: "Transmisión", value: "~4s", desc: "de detección a alerta emitida", color: "text-emerald-400" },
               { icon: Shield, label: "Respuesta", value: "-40%", desc: "reducción en tiempo de auxilio", color: "text-emerald-400" },
             ].map(s => (
-              <div key={s.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center hover-lift">
-                <s.icon className={`h-8 w-8 ${s.color} mx-auto mb-3`} />
+              <div key={s.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center hover-lift group transition-all duration-300 hover:border-white/20 hover:bg-white/[0.05]">
+                <s.icon className={`h-8 w-8 ${s.color} mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`} />
                 <div className={`text-3xl font-bold font-mono ${s.color}`}>{s.value}</div>
                 <div className="text-sm font-medium text-neutral-300 mt-1">{s.label}</div>
                 <div className="text-xs text-neutral-500 mt-1">{s.desc}</div>
@@ -329,7 +376,7 @@ function Landing() {
       {/* ── Características ── */}
       <section className="py-20 relative border-t border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
+          <div className="text-center mb-14 animate-fade-in-up">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Características del sistema</h2>
             <p className="mt-3 text-neutral-400">Hardware y software diseñados para máxima confiabilidad en escenarios críticos.</p>
           </div>
@@ -342,8 +389,8 @@ function Landing() {
               { icon: Smartphone, title: "App Móvil", desc: "Interfaz de respuesta rápida. Gestiona geolocalización, contacto de emergencia y telemetría en vivo." },
               { icon: Battery, title: "Power Unit", desc: "Gestión de energía Li-Po con protección contra cortocircuitos y más de 48 horas de autonomía." },
             ].map(f => (
-              <div key={f.title} className="rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] p-5 transition-all hover-lift">
-                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3"><f.icon className="h-4.5 w-4.5 text-emerald-400" /></div>
+              <div key={f.title} className="rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] p-5 transition-all duration-300 hover-lift hover:border-white/20 group">
+                <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/50 transition-all duration-300"><f.icon className="h-4.5 w-4.5 text-emerald-400 group-hover:scale-110 transition-transform duration-300" /></div>
                 <h3 className="font-bold text-base mb-1.5">{f.title}</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed">{f.desc}</p>
               </div>
@@ -355,7 +402,7 @@ function Landing() {
       {/* ── Video Demostrativo ── */}
       <section ref={videoSectionRef} className="py-20 relative border-t border-white/5">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
+          <div className="text-center mb-10 animate-fade-in-up">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Video demostrativo</h2>
             <p className="mt-3 text-neutral-400">Mira cómo funciona C.R.A.S.H. en acción.</p>
           </div>
@@ -413,8 +460,8 @@ function Landing() {
               { icon: Microscope, title: "3. Algoritmo de Detección", desc: "Cálculo de magnitud vectorial (G) en Arduino Nano para clasificar impactos." },
               { icon: Brain, title: "4. IA Generativa", desc: "Gemini AI analiza la telemetría y genera reporte predictivo de lesiones." },
             ].map(s => (
-              <div key={s.title} className="text-center p-5">
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-red-500/20 to-emerald-500/10 border border-white/10 flex items-center justify-center mx-auto mb-3"><s.icon className="h-6 w-6 text-red-400" /></div>
+              <div key={s.title} className="text-center p-5 group transition-all duration-300">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-red-500/20 to-emerald-500/10 border border-white/10 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 group-hover:border-red-500/30 transition-all duration-300"><s.icon className="h-6 w-6 text-red-400 group-hover:text-red-300 transition-colors duration-300" /></div>
                 <h3 className="font-bold text-base mb-1.5">{s.title}</h3>
                 <p className="text-sm text-neutral-400 leading-relaxed">{s.desc}</p>
               </div>

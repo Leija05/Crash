@@ -1,7 +1,7 @@
 import { memo, useCallback, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { Lock, Mail, Loader2, Shield, Activity, Key, UserPlus, Building2, Check, X, AlertCircle } from "lucide-react";
+import { Lock, Mail, Loader2, Activity, Key, Shield, UserPlus, Building2, AlertCircle } from "lucide-react";
 import { api, formatApiError } from "../lib/api";
 
 function CrashLogo() {
@@ -20,7 +20,7 @@ function CrashLogo() {
 }
 
 function Login() {
-  const { user, login, error, loginWithToken } = useAuth();
+  const { user, error, loginWithToken, loginSuperAdmin } = useAuth();
   const [step, setStep] = useState(localStorage.getItem("crash_site_token") ? "login" : "token");
   const [token, setToken] = useState("");
   const [tokenInfo, setTokenInfo] = useState(null);
@@ -32,6 +32,7 @@ function Login() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
+  const [saTokenEmail, setSaTokenEmail] = useState("");
 
   const navigate = useNavigate();
 
@@ -42,20 +43,18 @@ function Login() {
       const { data } = await api.post("/auth/verify-site-token", { token });
       setTokenInfo(data);
       localStorage.setItem("crash_site_token", token);
-      setRegisterMode(true);
-      setStep("login");
+      if (data.role === "superadmin") {
+        setSaTokenEmail(data.email);
+        setStep("login");
+      } else {
+        setRegisterMode(true);
+        setStep("login");
+      }
     } catch (err) {
       setTokenError(formatApiError(err));
     }
     setTokenBusy(false);
   }, [token]);
-
-  const handleSkipToken = useCallback(() => {
-    setRegisterMode(false);
-    setStep("login");
-  }, []);
-
-  const [superAdminMode, setSuperAdminMode] = useState(false);
 
   const onSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -63,32 +62,18 @@ function Login() {
     if (registerMode && tokenInfo) {
       const ok = await loginWithToken(token, email, password, name);
       if (ok) navigate("/dashboard");
-    } else if (superAdminMode) {
-      const { default: axios } = await import("axios");
-      const { API } = await import("../lib/api");
-      try {
-        const { data } = await axios.post(`${API}/auth/login`, { email, password });
-        if (data.access_token) localStorage.setItem("crash_token", data.access_token);
-        if (data.user.role === "superadmin") {
-          window.location.href = "/admin";
-        } else {
-          setError("No tienes permisos de SuperAdmin");
-          localStorage.removeItem("crash_token");
-        }
-      } catch (err) {
-        setError(err?.response?.data?.detail || "Credenciales inválidas");
-      }
-    } else {
-      const ok = await login(email, password);
-      if (ok) navigate("/dashboard");
+    } else if (saTokenEmail) {
+      const ok = await loginSuperAdmin(saTokenEmail, password);
+      if (ok) window.location.href = "/admin";
     }
     setBusy(false);
-  }, [email, password, name, registerMode, token, tokenInfo, login, loginWithToken, navigate, superAdminMode]);
+  }, [email, password, name, registerMode, token, tokenInfo, loginWithToken, navigate, saTokenEmail]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("crash_site_token");
     setTokenInfo(null);
     setRegisterMode(false);
+    setSaTokenEmail("");
     setStep("token");
   }, []);
 
@@ -151,145 +136,115 @@ function Login() {
 
           {step === "token" ? (
             <>
-              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500 mb-3 flex items-center gap-2">
-                <Key className="h-3.5 w-3.5" />
-                Token de acceso
+              <div className="mb-8">
+                <div className="text-[11px] uppercase tracking-[0.35em] text-neutral-600 mb-2">Sistema de monitoreo</div>
+                <h2 className="text-2xl font-bold tracking-tight">C.R.A.S.H.</h2>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight mb-2">Acceso monitoristas</h2>
-              <p className="text-neutral-400 text-sm mb-6">
-                Ingresa el token único que tu empresa te proporcionó para acceder al panel de monitoreo.
-              </p>
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Token de empresa</label>
-                <div className="relative">
-                  <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-xl">
+                <div className="relative group">
+                  <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-emerald-400 transition-colors" />
                   <input
                     value={token}
                     onChange={e => setToken(e.target.value.toUpperCase())}
-                    className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 focus:bg-white/10 focus:ring-1 focus:ring-emerald-500/20 outline-none rounded-xl pl-10 pr-3 py-3 text-sm font-mono tracking-wider transition-all"
-                    placeholder="XXXX-XXXX-XXXX"
+                    className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-emerald-500/15 outline-none rounded-xl pl-10 pr-3 py-3.5 text-sm font-mono tracking-wider transition-all"
+                    placeholder="Código de acceso"
                     autoComplete="off"
                     spellCheck={false}
                   />
                 </div>
-              </div>
-              {tokenError ? (
-                <div className="mt-4 text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  {tokenError}
-                </div>
-              ) : null}
-              <button
-                disabled={tokenBusy || token.length < 8}
-                onClick={verifyToken}
-                className="w-full mt-5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(16,185,129,0.25)]"
-              >
-                {tokenBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {tokenBusy ? "Verificando token..." : "Verificar token"}
-              </button>
-              <div className="mt-6 text-center">
-                <button onClick={handleSkipToken} className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
-                  ¿Ya tienes cuenta? Inicia sesión directamente
+                {tokenError ? (
+                  <div className="mt-4 text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-start gap-2 animate-fadeIn">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    {tokenError}
+                  </div>
+                ) : null}
+                <button
+                  disabled={tokenBusy || token.length < 8}
+                  onClick={verifyToken}
+                  className="w-full mt-5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3.5 transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_40px_rgba(16,185,129,0.35)] active:scale-[0.98]"
+                >
+                  {tokenBusy ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : null}
+                  {tokenBusy ? "Verificando..." : "Continuar"}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500 mb-3 flex items-center gap-2">
-                <Shield className="h-3.5 w-3.5" />
-                {registerMode ? "Registro de monitorista" : "Acceso de operador"}
+              <div className="mb-6">
+                <div className="text-[11px] uppercase tracking-[0.35em] text-neutral-600 mb-2">Sistema de monitoreo</div>
+                <h2 className="text-2xl font-bold tracking-tight">C.R.A.S.H.</h2>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight mb-2">
-                {registerMode ? "Crear cuenta" : "Iniciar sesión"}
-              </h2>
-              {registerMode && tokenInfo ? (
-                <div className="mb-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300 flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  {tokenInfo.company_name} · Plan {tokenInfo.plan_name}
-                </div>
-              ) : null}
-              {registerMode ? (
-                <p className="text-neutral-400 text-sm mb-6">Completa tu registro para acceder al panel de monitoreo de tu empresa.</p>
-              ) : (
-                <p className="text-neutral-400 text-sm mb-6">Ingresa con tus credenciales de administrador o monitorista.</p>
-              )}
-
-              <form onSubmit={onSubmit} className="space-y-4">
-                {registerMode && (
-                  <div>
-                    <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Nombre completo</label>
-                    <div className="relative">
-                      <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                      <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl pl-10 pr-3 py-3 text-sm outline-none transition-all" placeholder="Tu nombre" required />
-                    </div>
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-xl">
+                {registerMode && tokenInfo && (
+                  <div className="text-[11px] uppercase tracking-[0.3em] text-neutral-500 mb-4 flex items-center gap-2 pb-4 border-b border-white/[0.06]">
+                    <Building2 className="h-4 w-4 text-emerald-400" />
+                    {tokenInfo.company_name}
+                    {tokenInfo.plan_name && <span className="text-neutral-600">· {tokenInfo.plan_name}</span>}
                   </div>
                 )}
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 focus:bg-white/10 focus:ring-1 focus:ring-emerald-500/20 outline-none rounded-xl pl-10 pr-3 py-3 text-sm transition-all" placeholder={registerMode ? "monitorista@correo.com" : "operador@crash.io"} autoComplete="email" required />
+                <form onSubmit={onSubmit} className="space-y-4">
+                  {registerMode && !saTokenEmail && (
+                    <div className="group">
+                      <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Nombre completo</label>
+                      <div className="relative">
+                        <UserPlus className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-emerald-400 transition-colors" />
+                        <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-emerald-500/15 outline-none rounded-xl pl-10 pr-3 py-3.5 text-sm transition-all" placeholder="Tu nombre" required />
+                      </div>
+                    </div>
+                  )}
+                  {saTokenEmail ? (
+                    <div>
+                      <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                        <input type="email" value={saTokenEmail} className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-3 py-3.5 text-sm font-mono outline-none cursor-not-allowed opacity-60" readOnly />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group">
+                      <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Correo electrónico</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-emerald-400 transition-colors" />
+                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-emerald-500/15 outline-none rounded-xl pl-10 pr-3 py-3.5 text-sm transition-all" placeholder={registerMode ? "monitorista@correo.com" : "usuario@correo.com"} autoComplete="email" required />
+                      </div>
+                    </div>
+                  )}
+                  <div className="group">
+                    <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 group-focus-within:text-emerald-400 transition-colors" />
+                      <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-emerald-500/15 outline-none rounded-xl pl-10 pr-3 py-3.5 text-sm transition-all" autoComplete="current-password" required />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Contraseña</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 focus:bg-white/10 focus:ring-1 focus:ring-emerald-500/20 outline-none rounded-xl pl-10 pr-3 py-3 text-sm transition-all" autoComplete="current-password" required />
-                  </div>
-                </div>
 
-                {error ? (
-                  <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">{error}</div>
-                ) : null}
+                  {error ? (
+                    <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 animate-fadeIn">{error}</div>
+                  ) : null}
 
-                <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_40px_rgba(16,185,129,0.35)] hover-lift">
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {busy ? "Procesando..." : registerMode ? "Crear cuenta y acceder" : "Acceder al Centro de Mando"}
-                </button>
-              </form>
-
-              {registerMode && (
-                <div className="mt-4 text-center">
-                  <button onClick={handleLogout} className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
-                    Usar otro token
+                  <button disabled={busy} type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-semibold rounded-xl px-4 py-3.5 transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(16,185,129,0.25)] hover:shadow-[0_0_40px_rgba(16,185,129,0.35)] active:scale-[0.98]">
+                    {busy ? (
+                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    ) : null}
+                    {busy ? "Procesando..." : registerMode ? "Crear cuenta y acceder" : "Acceder"}
                   </button>
-                </div>
-              )}
+                </form>
 
-              {!registerMode && (
-                <div className="mt-6 text-center">
-                  <button onClick={() => { localStorage.removeItem("crash_site_token"); setStep("token"); setTokenInfo(null); }} className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
-                    ¿Tienes un token? Accede aquí
-                  </button>
-                </div>
-              )}
-
-              {!registerMode && superAdminMode && (
-                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 font-mono text-[11px] mt-4">
-                  <div className="uppercase tracking-[0.2em] text-red-400 text-[9px] mb-1">SuperAdmin</div>
-                  superadmin@crash.io<br />SuperAdmin2024!
-                </div>
-              )}
-              {!registerMode && (
-                <div className="mt-4 text-center">
-                  <button type="button" onClick={() => setSuperAdminMode(!superAdminMode)} className={`text-xs transition-colors ${superAdminMode ? "text-red-400" : "text-neutral-500 hover:text-neutral-300"}`}>
-                    {superAdminMode ? "Modo operador" : "Acceso SuperAdmin"}
-                  </button>
-                </div>
-              )}
-              {!registerMode && !superAdminMode && (
-                <div className="mt-4 grid grid-cols-2 gap-3 text-[11px]">
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-3 font-mono">
-                    <div className="uppercase tracking-[0.2em] text-neutral-500 text-[9px] mb-1">Admin</div>
-                    admin@crash.io<br />admin123
+                {registerMode && !saTokenEmail && (
+                  <div className="mt-5 text-center">
+                    <button onClick={handleLogout} className="text-xs text-neutral-600 hover:text-neutral-400 transition-colors">
+                      Usar otro código
+                    </button>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-3 font-mono">
-                    <div className="uppercase tracking-[0.2em] text-neutral-500 text-[9px] mb-1">Monitor</div>
-                    monitor@crash.io<br />monitor123
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
         </div>

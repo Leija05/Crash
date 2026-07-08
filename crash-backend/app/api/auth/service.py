@@ -140,8 +140,20 @@ async def login_monitor(email: str, password: str) -> dict:
 
 
 async def verify_site_token(token: str) -> dict:
-    from app.api.companies.service import verify_site_token as _verify
-    return await _verify(token)
+    # First check company tokens (monitoristas)
+    from app.api.companies.service import verify_site_token as _verify_company
+    try:
+        return await _verify_company(token)
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+
+    # Then check superadmin tokens
+    db = await get_db()
+    user = await db.users.find_one({"site_token": token.upper(), "role": "superadmin"})
+    if not user:
+        raise HTTPException(404, "Token inválido")
+    return {"role": "superadmin", "email": user["email"]}
 
 async def register_monitor_with_token(token: str, email: str, password: str, name: str) -> dict:
     from app.api.companies.service import verify_site_token as _verify
