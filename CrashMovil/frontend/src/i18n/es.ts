@@ -15,6 +15,7 @@ const es = {
     helmet: "Casco",
     profile: "Perfil",
     settings: "Ajustes",
+    contacts: "Contactos",
   },
   login: {
     title: "Iniciar sesión",

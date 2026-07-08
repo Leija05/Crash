@@ -15,7 +15,7 @@ export default function SettingsModal({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
         className="relative w-full max-w-md rounded-2xl border border-white/10 glass-card p-6 space-y-5"
@@ -34,18 +34,18 @@ export default function SettingsModal({ open, onClose }) {
               <Sun className="h-3 w-3" /> {t("settings.theme")}
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {["dark", "light"].map((t) => (
+              {["dark", "light"].map((mode) => (
                 <button
-                  key={t}
-                  onClick={() => setTheme(t)}
+                  key={mode}
+                  onClick={() => setTheme(mode)}
                   className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${
-                    theme === t
+                    theme === mode
                       ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
                       : "border-white/10 bg-white/5 text-neutral-400 hover:border-white/20"
                   }`}
                 >
-                  {t === "dark" ? <Moon className="h-3.5 w-3.5 inline mr-1.5" /> : <Sun className="h-3.5 w-3.5 inline mr-1.5" />}
-                  {t === "dark" ? t("settings.dark") : t("settings.light")}
+                  {mode === "dark" ? <Moon className="h-3.5 w-3.5 inline mr-1.5" /> : <Sun className="h-3.5 w-3.5 inline mr-1.5" />}
+                  {mode === "dark" ? t("settings.dark") : t("settings.light")}
                 </button>
               ))}
             </div>
@@ -66,7 +66,7 @@ export default function SettingsModal({ open, onClose }) {
                       : "border-white/10 bg-white/5 text-neutral-400 hover:border-white/20"
                   }`}
                 >
-                  {l.label}
+                  {l.native || l.label}
                 </button>
               ))}
             </div>

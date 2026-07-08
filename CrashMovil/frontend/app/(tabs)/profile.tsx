@@ -6,15 +6,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { COLORS, RADIUS, SPACING } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { profileAPI } from '../../src/services/api';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function ProfileScreen() {
-  const { user } = useAuth();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,13 +62,14 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.ambientGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -83,7 +83,7 @@ export default function ProfileScreen() {
 
           <View style={styles.userCard}>
             <View style={styles.userAvatar}>
-              <Ionicons name="person" size={28} color={COLORS.accent} />
+              <Ionicons name="person" size={26} color={COLORS.accent} />
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{user?.name}</Text>
@@ -91,7 +91,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Personal */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>DATOS PERSONALES</Text>
             <View style={styles.inputGroup}>
@@ -110,7 +109,6 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Medical */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>INFORMACIÓN MÉDICA</Text>
             <View style={styles.inputGroup}>
@@ -132,9 +130,9 @@ export default function ProfileScreen() {
           </View>
 
           <TouchableOpacity testID="save-profile-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveProfile} disabled={saving}>
-            {saving ? <ActivityIndicator color="#0A0A0A" /> : (
+            {saving ? <ActivityIndicator color="#000" /> : (
               <>
-                <Ionicons name="save" size={16} color="#0A0A0A" />
+                <Ionicons name="save" size={16} color="#000" />
                 <Text style={styles.saveBtnText}>GUARDAR PERFIL</Text>
               </>
             )}
@@ -147,27 +145,52 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl },
+  ambientGlow: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 200,
+    backgroundColor: 'rgba(204,255,0,0.01)',
+    borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
+  },
+  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: SPACING.md },
   title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
   subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 4 },
-  userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.md },
-  userAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  userCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
+    padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
+    marginBottom: SPACING.md, ...SHADOWS.sm,
+  },
+  userAvatar: { width: 48, height: 48, borderRadius: RADIUS.md, backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)' },
   userInfo: { flex: 1 },
   userName: { fontSize: 17, fontWeight: '700', color: COLORS.text },
   userEmail: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
-  section: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.md },
+  section: {
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
+    padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
+    marginBottom: SPACING.md, ...SHADOWS.sm,
+  },
   sectionTitle: { fontSize: 10, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.md },
   inputGroup: { marginBottom: SPACING.md },
-  label: { fontSize: 10, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6 },
-  input: { backgroundColor: COLORS.bg, borderRadius: RADIUS.md, paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: 15, borderWidth: 1, borderColor: COLORS.border },
+  label: { fontSize: 10, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
+  input: {
+    backgroundColor: COLORS.bg, borderRadius: RADIUS.md,
+    paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: 15,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+  },
   textArea: { height: 90, paddingTop: 12 },
   bloodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  bloodBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.md, backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.border },
-  bloodBtnActive: { backgroundColor: COLORS.primarySoft, borderColor: COLORS.primary },
+  bloodBtn: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.md,
+    backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.glassBorder,
+  },
+  bloodBtnActive: { backgroundColor: COLORS.accentSoft, borderColor: COLORS.accent },
   bloodText: { fontSize: 14, fontWeight: '700', color: COLORS.textSec },
-  bloodTextActive: { color: COLORS.primary },
-  saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent, borderRadius: RADIUS.pill, height: 54, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  saveBtnText: { color: '#0A0A0A', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
+  bloodTextActive: { color: COLORS.accent },
+  saveBtn: {
+    flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.md, height: 50, alignItems: 'center', justifyContent: 'center',
+    marginTop: 4, ...SHADOWS.glow(COLORS.accent),
+  },
+  saveBtnText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
 });

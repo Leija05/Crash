@@ -427,6 +427,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.ambientGlow} pointerEvents="none" />
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
         contentContainerStyle={styles.scroll}
@@ -437,14 +438,8 @@ export default function DashboardScreen() {
             <Text style={styles.appName}>C.R.A.S.H.</Text>
           </View>
           <View style={styles.modePill}>
-            <Ionicons
-              name={'shield-checkmark'}
-              size={12}
-              color={COLORS.success}
-            />
-            <Text style={[styles.modeText, { color: COLORS.success }]}>
-              REAL
-            </Text>
+            <Ionicons name="shield-checkmark" size={12} color={COLORS.success} />
+            <Text style={[styles.modeText, { color: COLORS.success }]}>REAL</Text>
           </View>
         </View>
 
@@ -478,17 +473,17 @@ export default function DashboardScreen() {
 
         <View style={styles.coordsCard}>
           <Text style={styles.coordsTitle}>COORDENADAS / ACELERACIÓN (m/s²)</Text>
-        <View style={styles.coordsGrid}>
-          <CoordItem label="X" value={telemetryForDisplay?.acceleration_x} live={liveData} />
-          <CoordItem label="Y" value={telemetryForDisplay?.acceleration_y} live={liveData} />
-          <CoordItem label="Z" value={telemetryForDisplay?.acceleration_z} live={liveData} />
+          <View style={styles.coordsGrid}>
+            <CoordItem label="X" value={telemetryForDisplay?.acceleration_x} live={liveData} />
+            <CoordItem label="Y" value={telemetryForDisplay?.acceleration_y} live={liveData} />
+            <CoordItem label="Z" value={telemetryForDisplay?.acceleration_z} live={liveData} />
+          </View>
+          <Text style={styles.coordsGeo}>
+            {locationTrackingEnabled && telemetryForDisplay
+              ? `Lat: ${telemetryForDisplay.latitude?.toFixed(5) ?? '--'} · Lon: ${telemetryForDisplay.longitude?.toFixed(5) ?? '--'}`
+              : 'Ubicación no disponible'}
+          </Text>
         </View>
-        <Text style={styles.coordsGeo}>
-          {locationTrackingEnabled && telemetryForDisplay
-            ? `Lat: ${telemetryForDisplay.latitude?.toFixed(5) ?? '--'} · Lon: ${telemetryForDisplay.longitude?.toFixed(5) ?? '--'}`
-            : 'Ubicación no disponible'}
-        </Text>
-      </View>
 
         <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>TELEMETRÍA DEL CIRCUITO</Text>
@@ -550,12 +545,14 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         )}
       </ScrollView>
+
       <Modal visible={countdown !== null} transparent animationType="fade">
         <View style={styles.overlay}>
           <View style={styles.dialog}>
             <View style={styles.countdownIconWrap}>
-              <Ionicons name="warning" size={24} color="#0A0A0A" />
+              <Ionicons name="warning" size={22} color="#0A0A0A" />
             </View>
+            <View style={styles.countdownGlow} pointerEvents="none" />
             <Text style={styles.dialogTitle}>Impacto alto detectado</Text>
             <Text style={styles.dialogText}>Se enviarán alertas a tus contactos de emergencia.</Text>
             <Text style={styles.countdownLabel}>Tiempo restante</Text>
@@ -569,15 +566,23 @@ export default function DashboardScreen() {
                 disabled={sending}
                 onPress={() => { setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
               >
-                <Text style={styles.cancelText}>Enviar ahora</Text>
+                {sending ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.cancelText}>Enviar ahora</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
       <Modal visible={!!alertResult} transparent animationType="fade">
         <View style={styles.overlay}>
           <View style={styles.dialog}>
+            <View style={[styles.countdownIconWrap, { backgroundColor: alertResult?.alerts_sent ? COLORS.success : COLORS.textDim }]}>
+              <Ionicons name={alertResult?.alerts_sent ? 'checkmark-circle' : 'alert-circle'} size={22} color="#FFF" />
+            </View>
             <Text style={styles.dialogTitle}>{alertResult?.alerts_sent ? 'Mensajes enviados' : 'No se enviaron mensajes'}</Text>
             <Text style={styles.dialogText}>
               {alertResult?.alerts_sent
@@ -587,8 +592,8 @@ export default function DashboardScreen() {
             {(alertResult?.alerted_contacts || []).map((c: any) => (
               <Text key={c.id} style={styles.contactSent}>{`• ${c.name} (${c.phone})`}</Text>
             ))}
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setAlertResult(null)}>
-              <Text style={styles.cancelText}>Aceptar</Text>
+            <TouchableOpacity style={styles.okBtn} onPress={() => setAlertResult(null)}>
+              <Text style={styles.okBtnText}>Aceptar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -661,6 +666,11 @@ function MetricCard({ label, value, unit, color, live }: {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  ambientGlow: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 300,
+    backgroundColor: 'rgba(204,255,0,0.015)',
+    borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
+  },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 20 },
 
   header: {
@@ -672,56 +682,47 @@ const styles = StyleSheet.create({
   modePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(52,211,153,0.10)',
-    borderWidth: 1, borderColor: 'rgba(52,211,153,0.15)',
+    backgroundColor: 'rgba(52,211,153,0.08)',
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.12)',
   },
   modeText: { fontSize: 10, fontWeight: '900', letterSpacing: 1 },
 
   statusBar: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
-    borderRadius: RADIUS.lg, padding: 14, marginBottom: SPACING.md,
-    ...SHADOWS.sm,
+    backgroundColor: 'rgba(13,13,18,0.88)',
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+    borderRadius: RADIUS.md, padding: 14, marginBottom: SPACING.md,
+    ...SHADOWS.md,
   },
-  statusBarConnected: { borderColor: 'rgba(52,211,153,0.25)', backgroundColor: 'rgba(52,211,153,0.04)' },
-  statusDot: { width: 10, height: 10, borderRadius: 5 },
+  statusBarConnected: { borderColor: 'rgba(52,211,153,0.25)' },
+  statusDot: { width: 10, height: 10, borderRadius: 5, ...SHADOWS.glow('#fff') },
   statusLabel: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
   statusDetail: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
 
   ringCard: {
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.cardBg,
+    borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: COLORS.glassBg,
     alignItems: 'center',
     paddingVertical: 20,
     marginBottom: SPACING.md,
-    ...SHADOWS.md,
+    ...SHADOWS.lg,
   },
   ringWrap: { alignItems: 'center' },
   ringTrack: {
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 280, height: 280, borderRadius: 140,
+    alignItems: 'center', justifyContent: 'center',
     position: 'relative',
   },
   segment: {
-    width: 4,
-    height: 18,
-    borderRadius: 999,
-    position: 'absolute',
+    width: 4, height: 18, borderRadius: 999, position: 'absolute',
   },
   ringInner: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(8,8,24,0.9)',
+    width: 190, height: 190, borderRadius: 95,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(5,5,6,0.95)',
   },
   gValue: { fontSize: 66, fontWeight: '900', color: COLORS.text, lineHeight: 72 },
   gTitle: { color: COLORS.textSec, letterSpacing: 3, fontSize: 12, fontWeight: '700' },
@@ -731,54 +732,43 @@ const styles = StyleSheet.create({
   severityText: { marginTop: 6, fontSize: 10, letterSpacing: 1.5, color: COLORS.textSec, fontWeight: '700' },
   ms2: { color: COLORS.textDim, marginTop: 8, fontSize: 13, letterSpacing: 3 },
   peakRow: {
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.md,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: RADIUS.pill, backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
   peakLabel: { color: COLORS.textDim, fontSize: 10, fontWeight: '700', letterSpacing: 2 },
   peakValue: { color: COLORS.text, fontSize: 13, fontWeight: '900' },
 
   coordsCard: {
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    padding: 14,
+    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: COLORS.glassBg, padding: 14,
     marginBottom: SPACING.md,
     ...SHADOWS.sm,
   },
   coordsTitle: { color: COLORS.textSec, fontSize: 9, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
   coordsGrid: { flexDirection: 'row', gap: 10 },
-  coordsGeo: { color: COLORS.textDim, marginTop: 10, fontSize: 12, textAlign: 'center' },
+  coordsGeo: { color: COLORS.textDim, marginTop: 10, fontSize: 12, textAlign: 'center', letterSpacing: 0.5 },
   coordCell: {
-    flex: 1,
-    borderRadius: RADIUS.md,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingVertical: 12,
-    alignItems: 'center',
+    flex: 1, borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: COLORS.glassBorder,
+    paddingVertical: 12, alignItems: 'center',
   },
   coordLabel: { color: COLORS.textDim, fontSize: 11, fontWeight: '900', marginBottom: 4 },
   coordValue: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
 
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2 },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255,255,255,0.04)' },
-  liveBadgeOn: { backgroundColor: 'rgba(52,211,153,0.08)' },
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255,255,255,0.03)' },
+  liveBadgeOn: { backgroundColor: 'rgba(52,211,153,0.06)' },
   liveDot: { width: 6, height: 6, borderRadius: 3 },
   liveText: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: SPACING.md },
   metric: {
-    width: '48%', flexGrow: 1, backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md, padding: 14, borderWidth: 1, borderColor: COLORS.border,
+    width: '48%', flexGrow: 1,
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, padding: 14,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
     ...SHADOWS.sm,
   },
   metricLabel: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6 },
@@ -787,43 +777,58 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: COLORS.accent, borderRadius: RADIUS.pill, height: 54,
+    backgroundColor: COLORS.accent, borderRadius: RADIUS.md, height: 54,
     marginBottom: SPACING.md,
-    ...SHADOWS.md,
+    ...SHADOWS.glow(COLORS.accent),
   },
-  primaryBtnDanger: { backgroundColor: COLORS.primary },
+  primaryBtnDanger: {
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.glow(COLORS.primary),
+  },
   primaryBtnText: { color: '#FFF', fontSize: 14, fontWeight: '900', letterSpacing: 2 },
 
   infoBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.surface, padding: 12, borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.border, marginTop: 4,
+    backgroundColor: COLORS.glassBg, padding: 12, borderRadius: RADIUS.md,
+    borderWidth: 1, borderColor: COLORS.glassBorder, marginTop: 4,
   },
   infoText: { fontSize: 11, color: COLORS.textSec, flex: 1 },
   warningCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(251,191,36,0.06)', borderColor: 'rgba(251,191,36,0.25)', borderWidth: 1,
-    borderRadius: RADIUS.md, padding: 12, marginTop: 4,
+    backgroundColor: 'rgba(251,191,36,0.05)', borderColor: 'rgba(251,191,36,0.2)',
+    borderWidth: 1, borderRadius: RADIUS.md, padding: 14, marginTop: 4,
   },
   warningTitle: { color: COLORS.warning, fontWeight: '800', fontSize: 13, marginBottom: 2 },
   warningText: { color: COLORS.textSec, fontSize: 11 },
 
-  overlay: { flex: 1, backgroundColor: COLORS.overlay, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   dialog: {
     width: '100%', maxWidth: 360,
-    backgroundColor: COLORS.surfaceAlt, borderWidth: 1, borderColor: COLORS.borderStrong,
-    borderRadius: RADIUS.lg, padding: 20,
+    backgroundColor: 'rgba(20,20,28,0.96)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: RADIUS.xl, padding: 24,
     ...SHADOWS.lg,
+    alignItems: 'center',
   },
-  countdownIconWrap: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.warning, marginBottom: 12 },
-  dialogTitle: { color: COLORS.text, fontSize: 20, fontWeight: '900', marginBottom: 8 },
-  dialogText: { color: COLORS.textSec, fontSize: 14, marginBottom: 8, lineHeight: 20 },
-  countdownLabel: { color: COLORS.textDim, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 4 },
-  countdownValue: { color: COLORS.warning, fontSize: 52, fontWeight: '900', marginTop: 4, marginBottom: 16 },
-  dialogActions: { flexDirection: 'row', gap: 10 },
-  cancelBtnSoft: { flex: 1, backgroundColor: COLORS.elevated, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center' },
+  countdownGlow: {
+    position: 'absolute', top: -40, width: 160, height: 160,
+    borderRadius: 80, backgroundColor: 'rgba(251,191,36,0.04)',
+  },
+  countdownIconWrap: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.warning, marginBottom: 12,
+  },
+  dialogTitle: { color: COLORS.text, fontSize: 20, fontWeight: '900', marginBottom: 8, textAlign: 'center' },
+  dialogText: { color: COLORS.textSec, fontSize: 14, marginBottom: 8, lineHeight: 20, textAlign: 'center' },
+  countdownLabel: { color: COLORS.textDim, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 8 },
+  countdownValue: { color: COLORS.warning, fontSize: 64, fontWeight: '900', marginTop: 4, marginBottom: 20, ...SHADOWS.glow(COLORS.warning) },
+  dialogActions: { flexDirection: 'row', gap: 10, width: '100%' },
+  cancelBtnSoft: { flex: 1, backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, paddingVertical: 14, alignItems: 'center' },
   cancelSoftText: { color: COLORS.text, fontWeight: '800', letterSpacing: 0.7 },
-  cancelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center' },
+  cancelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center' },
   cancelText: { color: '#FFF', fontWeight: '900', letterSpacing: 1 },
-  contactSent: { color: COLORS.textSec, fontSize: 13, marginBottom: 4 },
+  okBtn: { backgroundColor: COLORS.accent, borderRadius: RADIUS.md, paddingVertical: 14, paddingHorizontal: 48, marginTop: 12 },
+  okBtnText: { color: '#000', fontWeight: '900', letterSpacing: 1, fontSize: 14 },
+  contactSent: { color: COLORS.textSec, fontSize: 13, marginBottom: 4, textAlign: 'center' },
 });

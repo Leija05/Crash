@@ -306,23 +306,23 @@ export default function ReplayScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 20 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  loadingText: { color: COLORS.textSec, fontSize: 14, marginTop: 16 },
-  errorText: { color: COLORS.textSec, fontSize: 15, marginTop: 16, textAlign: 'center' },
-  noDataText: { color: COLORS.textSec, fontSize: 15, marginTop: 16, lineHeight: 22, textAlign: 'center' },
-  backBtn: { marginTop: 20, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: COLORS.surface, borderRadius: RADIUS.md },
+  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12 },
+  loadingText: { color: COLORS.textSec, fontSize: 14, marginTop: 8 },
+  errorText: { color: COLORS.textSec, fontSize: 15, textAlign: 'center' },
+  noDataText: { color: COLORS.textSec, fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  backBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder },
   backBtnText: { color: COLORS.accent, fontWeight: '700' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm,
   },
-  backBtnSmall: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center' },
+  backBtnSmall: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
   headerTitle: { fontSize: 14, fontWeight: '800', color: COLORS.accent, letterSpacing: 2 },
 
   replayCard: {
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
     padding: SPACING.md, marginBottom: SPACING.md,
     ...SHADOWS.md,
   },
@@ -333,11 +333,12 @@ const styles = StyleSheet.create({
   sliderContainer: { marginBottom: SPACING.md },
   trackOuter: { height: 40, justifyContent: 'center', position: 'relative' },
   trackBg: {
-    height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3,
+    height: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3,
     position: 'relative', overflow: 'hidden',
   },
   trackFill: {
     height: '100%', backgroundColor: COLORS.accent, borderRadius: 3,
+    ...SHADOWS.glow(COLORS.accent),
   },
   impactMarker: {
     position: 'absolute', top: -4, width: 3, height: 14,
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
   thumb: {
     position: 'absolute', top: 12, width: 20, height: 20,
     borderRadius: 10, backgroundColor: COLORS.accent,
-    marginLeft: -10, ...SHADOWS.sm,
+    marginLeft: -10, ...SHADOWS.md,
   },
   trackTouchArea: { height: 40, justifyContent: 'center' },
 
@@ -354,8 +355,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', gap: 8, marginBottom: SPACING.sm,
   },
   metaItem: {
-    flex: 1, backgroundColor: COLORS.bg, borderRadius: RADIUS.md,
-    padding: 12, borderWidth: 1, borderColor: COLORS.border,
+    flex: 1, backgroundColor: COLORS.bg, borderRadius: RADIUS.sm,
+    padding: 12, borderWidth: 1, borderColor: COLORS.glassBorder,
   },
   metaLabel: { fontSize: 8, fontWeight: '900', color: COLORS.textDim, letterSpacing: 1.5, marginBottom: 4 },
   metaValue: { fontSize: 18, fontWeight: '900', color: COLORS.text },
@@ -365,46 +366,48 @@ const styles = StyleSheet.create({
   impactDot: {
     position: 'absolute', top: 6, width: 12, height: 12,
     borderRadius: 6, backgroundColor: COLORS.primary,
-    marginLeft: -6, zIndex: 2,
+    marginLeft: -6, zIndex: 2, ...SHADOWS.glow(COLORS.primary),
   },
   impactBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,59,48,0.12)', borderRadius: RADIUS.sm,
+    backgroundColor: 'rgba(255,59,48,0.1)', borderRadius: RADIUS.sm,
+    borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)',
     paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
   },
   impactBadgeText: { fontSize: 10, color: COLORS.primary, fontWeight: '700' },
 
   controls: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 20, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: COLORS.border,
+    gap: 20, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: COLORS.glassBorder,
   },
   controlBtn: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.elevated, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: COLORS.glassBorder,
   },
   playBtn: {
     width: 56, height: 56, borderRadius: 28,
     backgroundColor: COLORS.accent, alignItems: 'center', justifyContent: 'center',
     ...SHADOWS.md,
   },
-  playBtnActive: { backgroundColor: COLORS.primary },
+  playBtnActive: { backgroundColor: COLORS.primary, ...SHADOWS.glow(COLORS.primary) },
 
   impactInfoCard: {
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
     padding: SPACING.md,
     ...SHADOWS.sm,
   },
   infoTitle: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.sm },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder },
   infoLabel: { fontSize: 12, color: COLORS.textSec },
   infoValue: { fontSize: 13, fontWeight: '700', color: COLORS.text },
-  infoValueMono: { fontSize: 12, color: COLORS.text, fontFamily: 'monospace' },
+  infoValueMono: { fontSize: 12, color: COLORS.text, fontFamily: 'monospace' as any },
   alertsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 10, backgroundColor: 'rgba(204,255,0,0.08)',
+    marginTop: 10, backgroundColor: COLORS.accentSoft,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.sm,
+    borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)',
   },
   alertsBadgeText: { fontSize: 11, color: COLORS.accent, fontWeight: '700' },
-
 });

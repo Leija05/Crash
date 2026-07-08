@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/context/AuthContext';
 import { AppSettingsProvider } from '../src/context/AppSettingsContext';
 import { BluetoothProvider } from '../src/context/BluetoothContext';
 import { I18nProvider } from '../src/i18n';
+import { COLORS } from '../src/theme';
 
 export default function RootLayout() {
   return (
@@ -14,10 +16,11 @@ export default function RootLayout() {
           <AuthProvider>
             <BluetoothProvider>
               <StatusBar style="light" translucent />
+              <View style={styles.ambientGlow} pointerEvents="none" />
               <Stack
                 screenOptions={{
                   headerShown: false,
-                  contentStyle: { backgroundColor: '#050506' },
+                  contentStyle: { backgroundColor: COLORS.bg },
                   animation: 'slide_from_right',
                 }}
               />
@@ -28,3 +31,12 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  ambientGlow: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 300,
+    backgroundColor: 'rgba(204,255,0,0.015)',
+    borderBottomLeftRadius: 150, borderBottomRightRadius: 150,
+    zIndex: 0,
+  },
+});

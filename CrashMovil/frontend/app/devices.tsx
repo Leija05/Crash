@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { COLORS, RADIUS, SPACING } from '../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS } from '../src/theme';
 import { useBluetooth } from '../src/context/BluetoothContext';
 import type { ScanDevice } from '../src/services/bluetooth';
 
@@ -35,15 +35,16 @@ export default function DevicesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.header}>
         <Text style={styles.title}>BUSCAR CASCO</Text>
-        <TouchableOpacity onPress={scan} disabled={scanning}>
-          {scanning ? <ActivityIndicator color={COLORS.accent} /> : <Ionicons name="refresh" size={24} color={COLORS.accent} />}
+        <TouchableOpacity onPress={scan} disabled={scanning} style={styles.refreshBtn}>
+          {scanning ? <ActivityIndicator color={COLORS.accent} size="small" /> : <Ionicons name="refresh" size={20} color={COLORS.accent} />}
         </TouchableOpacity>
       </View>
 
-      <View style={styles.nameBox}>
-        <Text style={styles.nameLabel}>Nombre personalizado del circuito</Text>
+      <View style={styles.nameCard}>
+        <Text style={styles.nameLabel}>Nombre personalizado</Text>
         <TextInput value={customName} onChangeText={setCustomName} placeholder="Mi casco CRASH" placeholderTextColor={COLORS.textDim} style={styles.nameInput} />
       </View>
 
@@ -51,16 +52,24 @@ export default function DevicesScreen() {
         data={devices}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} onPress={() => handleConnect(item.id)}>
-            <Ionicons name="bluetooth" size={20} color={COLORS.accent} />
-            <View style={{flex: 1}}>
+          <TouchableOpacity style={styles.card} onPress={() => handleConnect(item.id)} activeOpacity={0.7}>
+            <View style={styles.bluetoothIcon}>
+              <Ionicons name="bluetooth" size={20} color={COLORS.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.deviceName}>{item.name}</Text>
               <Text style={styles.deviceAddr}>{item.id}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.textDim} />
+            <Ionicons name="chevron-forward" size={16} color={COLORS.textDim} />
           </TouchableOpacity>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No se encontraron dispositivos BLE...</Text>}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Ionicons name="bluetooth-outline" size={40} color={COLORS.textDim} />
+            <Text style={styles.emptyText}>No se encontraron dispositivos BLE...</Text>
+          </View>
+        }
       />
       <Text style={styles.footer}>Estado: {statusDetail || status}</Text>
     </SafeAreaView>
@@ -69,14 +78,40 @@ export default function DevicesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, padding: SPACING.md },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  ambientGlow: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 200,
+    backgroundColor: 'rgba(204,255,0,0.012)',
+    borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
+  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md, paddingTop: SPACING.sm },
   title: { color: COLORS.text, fontSize: 18, fontWeight: '900', letterSpacing: 2 },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, padding: 15, borderRadius: RADIUS.md, marginBottom: 10, gap: 15 },
-  deviceName: { color: COLORS.text, fontWeight: '700' },
-  deviceAddr: { color: COLORS.textDim, fontSize: 10 },
-  empty: { color: COLORS.textDim, textAlign: 'center', marginTop: 50 },
-  footer: { color: COLORS.textDim, fontSize: 10, textAlign: 'center', marginTop: 20 },
-  nameBox: { marginBottom: 12 },
-  nameLabel: { color: COLORS.textSec, fontSize: 12, marginBottom: 6 },
-  nameInput: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: '#222', color: COLORS.text, borderRadius: RADIUS.md, paddingHorizontal: 12, paddingVertical: 10 }
+  refreshBtn: { width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
+  nameCard: {
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
+    padding: 14, borderWidth: 1, borderColor: COLORS.glassBorder,
+    marginBottom: SPACING.md, ...SHADOWS.sm,
+  },
+  nameLabel: { color: COLORS.textSec, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8, textTransform: 'uppercase' },
+  nameInput: {
+    backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.glassBorder,
+    color: COLORS.text, borderRadius: RADIUS.md, paddingHorizontal: 12,
+    paddingVertical: 12, fontSize: 15,
+  },
+  listContent: { paddingBottom: 20 },
+  card: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.glassBg, padding: 14, borderRadius: RADIUS.md,
+    marginBottom: 8, gap: 12, borderWidth: 1, borderColor: COLORS.glassBorder,
+    ...SHADOWS.sm,
+  },
+  bluetoothIcon: {
+    width: 38, height: 38, borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)',
+  },
+  deviceName: { color: COLORS.text, fontWeight: '700', fontSize: 15 },
+  deviceAddr: { color: COLORS.textDim, fontSize: 11, marginTop: 2, fontFamily: 'monospace' as any },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyText: { color: COLORS.textDim, textAlign: 'center', fontSize: 14 },
+  footer: { color: COLORS.textDim, fontSize: 10, textAlign: 'center', marginTop: 8 },
 });

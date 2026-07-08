@@ -80,7 +80,7 @@ export default function DriverDetailSheet({
     setError("");
     setData(null);
     api
-      .get(`/drivers/${driverId}`)
+      .get(`/monitor/drivers/${driverId}`)
       .then((r) => setData(r.data))
       .catch((e) => setError(e?.response?.data?.detail || "No se pudo cargar"))
       .finally(() => setLoading(false));

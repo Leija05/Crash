@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from '../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS } from '../src/theme';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -34,18 +34,19 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.ambientGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Ionicons name="shield-checkmark" size={42} color={COLORS.primary} />
+            <View style={styles.logoOuter}>
+              <Ionicons name="shield-checkmark" size={40} color={COLORS.primary} />
             </View>
             <Text style={styles.title}>C.R.A.S.H.</Text>
             <Text style={styles.subtitle}>Crea tu cuenta</Text>
           </View>
 
-          <View style={styles.form}>
-            <Text style={styles.formTitle}>Registro</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Registro</Text>
 
             {error ? (
               <View style={styles.errorBox}>
@@ -56,35 +57,42 @@ export default function RegisterScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>NOMBRE</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="person-outline" size={18} color={COLORS.textSec} />
+              <View style={styles.inputRow}>
+                <Ionicons name="person-outline" size={16} color={COLORS.textSec} />
                 <TextInput testID="register-name-input" style={styles.input} placeholder="Tu nombre completo" placeholderTextColor={COLORS.textDim} value={name} onChangeText={setName} />
               </View>
             </View>
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>EMAIL</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={18} color={COLORS.textSec} />
+              <View style={styles.inputRow}>
+                <Ionicons name="mail-outline" size={16} color={COLORS.textSec} />
                 <TextInput testID="register-email-input" style={styles.input} placeholder="tu@email.com" placeholderTextColor={COLORS.textDim} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
               </View>
             </View>
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>CONTRASEÑA</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={18} color={COLORS.textSec} />
+              <View style={styles.inputRow}>
+                <Ionicons name="lock-closed-outline" size={16} color={COLORS.textSec} />
                 <TextInput testID="register-password-input" style={styles.input} placeholder="Mínimo 6 caracteres" placeholderTextColor={COLORS.textDim} value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
                 <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                  <Ionicons name={showPass ? 'eye-off' : 'eye'} size={20} color={COLORS.textSec} />
+                  <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color={COLORS.textSec} />
                 </TouchableOpacity>
               </View>
             </View>
 
             <TouchableOpacity testID="register-submit-btn" style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
-              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>CREAR CUENTA</Text>}
+              {loading ? <ActivityIndicator color="#FFF" /> : (
+                <>
+                  <Text style={styles.buttonText}>CREAR CUENTA</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#FFF" style={{ marginLeft: 8 }} />
+                </>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity testID="go-to-login-btn" style={styles.linkBtn} onPress={() => router.back()}>
-              <Text style={styles.linkText}>¿Ya tienes cuenta? <Text style={styles.linkAccent}>Inicia sesión</Text></Text>
+              <Text style={styles.linkText}>¿Ya tienes cuenta? <Text style={styles.linkAccent}>Inicia sesión →</Text></Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -95,23 +103,55 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  ambientGlow: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 400,
+    backgroundColor: 'rgba(204,255,0,0.015)',
+    borderBottomLeftRadius: 180, borderBottomRightRadius: 180,
+  },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: SPACING.lg },
-  header: { alignItems: 'center', marginBottom: SPACING.xl },
-  logoContainer: { width: 80, height: 80, borderRadius: RADIUS.xl, backgroundColor: COLORS.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.md },
-  title: { fontSize: 36, fontWeight: '900', color: COLORS.text, letterSpacing: 4 },
-  subtitle: { fontSize: 13, color: COLORS.textSec, marginTop: 4 },
-  form: { backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, padding: SPACING.lg, borderWidth: 1, borderColor: COLORS.border },
-  formTitle: { fontSize: 22, fontWeight: '700', color: COLORS.text, marginBottom: SPACING.md },
-  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.primarySoft, padding: 12, borderRadius: RADIUS.md, marginBottom: SPACING.md },
+  header: { alignItems: 'center', marginBottom: 32 },
+  logoOuter: {
+    width: 76, height: 76, borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.primarySoft,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)',
+    marginBottom: SPACING.md,
+    ...SHADOWS.glow(COLORS.primary),
+  },
+  title: { fontSize: 32, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
+  subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 4, letterSpacing: 1 },
+  card: {
+    backgroundColor: 'rgba(13,13,18,0.92)',
+    borderRadius: RADIUS.xl, padding: SPACING.lg,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    ...SHADOWS.lg,
+  },
+  cardTitle: { fontSize: 20, fontWeight: '800', color: COLORS.text, marginBottom: SPACING.md },
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(255,59,48,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)',
+    padding: 12, borderRadius: RADIUS.md, marginBottom: SPACING.md,
+  },
   errorText: { color: COLORS.primary, fontSize: 13, flex: 1 },
   inputGroup: { marginBottom: SPACING.md },
-  label: { fontSize: 11, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 8 },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bg, borderRadius: RADIUS.md, paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.border, gap: 10 },
-  input: { flex: 1, height: 48, color: COLORS.text, fontSize: 15 },
-  button: { backgroundColor: COLORS.primary, borderRadius: RADIUS.pill, height: 54, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900', letterSpacing: 2 },
-  linkBtn: { alignItems: 'center', marginTop: SPACING.md },
-  linkText: { color: COLORS.textSec, fontSize: 13 },
+  label: { fontSize: 10, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.bg, borderRadius: RADIUS.md,
+    paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.border,
+    gap: 10, height: 50,
+  },
+  input: { flex: 1, color: COLORS.text, fontSize: 15, height: '100%' },
+  button: {
+    backgroundColor: COLORS.accent, borderRadius: RADIUS.md,
+    height: 50, alignItems: 'center', justifyContent: 'center',
+    marginTop: 6, flexDirection: 'row',
+    ...SHADOWS.glow(COLORS.accent),
+  },
+  buttonDisabled: { opacity: 0.5 },
+  buttonText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  linkBtn: { alignItems: 'center', marginTop: SPACING.md, paddingVertical: 4 },
+  linkText: { color: COLORS.textDim, fontSize: 13 },
   linkAccent: { color: COLORS.accent, fontWeight: '700' },
 });

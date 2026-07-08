@@ -15,6 +15,7 @@ const en = {
     helmet: "Helmet",
     profile: "Profile",
     settings: "Settings",
+    contacts: "Contacts",
   },
   login: {
     title: "Sign In",
