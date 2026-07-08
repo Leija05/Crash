@@ -72,7 +72,7 @@ function Login() {
       if (ok) window.location.href = "/admin";
     }
     setBusy(false);
-  }, [email, password, name, registerMode, token, tokenInfo, loginWithToken, login, navigate, saTokenEmail, monitorLoginMode]);
+  }, [email, password, name, registerMode, token, tokenInfo, loginWithToken, login, loginSuperAdmin, navigate, saTokenEmail, monitorLoginMode]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("crash_site_token");
