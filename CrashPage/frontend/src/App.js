@@ -6,9 +6,11 @@ import { I18nProvider } from "./i18n";
 import { SettingsProvider } from "./context/SettingsContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 
+const Landing = lazy(() => import("./pages/Landing"));
 const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const History = lazy(() => import("./pages/History"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const ProtectedRoute = lazy(() => import("./auth/ProtectedRoute"));
 
 function LoadingFallback() {
@@ -29,13 +31,13 @@ function LoadingFallback() {
 
 function AnimatedRoutes() {
   const location = useLocation();
-
   return (
     <div className="min-h-screen">
       <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
@@ -47,6 +49,14 @@ function AnimatedRoutes() {
           element={
             <ProtectedRoute>
               <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute role="superadmin">
+              <AdminPanel />
             </ProtectedRoute>
           }
         />
@@ -78,7 +88,6 @@ export default function App() {
     const saved = localStorage.getItem("crash-theme") || "dark";
     document.body.dataset.theme = saved;
   }, []);
-
   return (
     <ErrorBoundary>
       <AppContent />

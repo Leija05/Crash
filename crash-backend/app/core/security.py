@@ -1,3 +1,4 @@
+import asyncio
 import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -148,3 +149,32 @@ def require_role(*roles):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return user
     return checker
+
+
+async def get_current_superadmin(request: Request) -> dict:
+    from app.core.database import get_db
+
+    db = await get_db()
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    try:
+        payload = decode_token(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+
+    [user, company] = await asyncio.gather(
+        db.users.find_one({"_id": ObjectId(payload["sub"])}),
+        db.companies.find_one({"superadmin_id": payload["sub"]}),
+    )
+    if not user or user.get("role") not in ("superadmin",):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="SuperAdmin access required")
+    user["id"] = str(user["_id"])
+    user.pop("_id", None)
+    user.pop("password_hash", None)
+    return user

@@ -2,6 +2,7 @@ import time
 from datetime import datetime, timezone
 
 import uuid
+from bson import ObjectId
 from fastapi import HTTPException
 from app.core.database import get_db
 from app.core.config import settings
@@ -34,18 +35,33 @@ def _reset_bruteforce(identifier: str) -> None:
     _login_attempts.pop(identifier, None)
 
 
-async def register_rider(email: str, password: str, name: str) -> dict:
+async def register_rider(email: str, password: str, name: str, company_id: str = "") -> dict:
     db = await get_db()
     email = email.strip().lower()
     existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
+    company_name = ""
+    if company_id:
+        try:
+            company = await db.companies.find_one({"_id": ObjectId(company_id)})
+            if company:
+                company_name = company.get("name", "")
+                await db.companies.update_one(
+                    {"_id": ObjectId(company_id)},
+                    {"$inc": {"driver_count": 1}},
+                )
+        except:
+            company_id = ""
+
     user_doc = {
         "email": email,
         "name": name.strip(),
         "password_hash": hash_password(password),
         "role": "user",
+        "company_id": company_id,
+        "company_name": company_name,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -118,8 +134,54 @@ async def login_monitor(email: str, password: str) -> dict:
     return {
         "id": user["id"], "email": user["email"], "name": user["name"],
         "role": user["role"], "access_token": access,
+        "company_id": user.get("company_id", ""),
+        "company_name": user.get("company_name", ""),
     }
 
+
+async def verify_site_token(token: str) -> dict:
+    from app.api.companies.service import verify_site_token as _verify
+    return await _verify(token)
+
+async def register_monitor_with_token(token: str, email: str, password: str, name: str) -> dict:
+    from app.api.companies.service import verify_site_token as _verify
+
+    db = await get_db()
+    result = await _verify(token)
+    company_id = result["company_id"]
+    company_name = result["company_name"]
+
+    email = email.strip().lower()
+    existing = await db.monitor_operators.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=400, detail="El email ya está registrado como monitorista")
+
+    from app.core.security import hash_password, create_access_token
+    import uuid
+
+    now = datetime.now(timezone.utc).isoformat()
+    monitor_doc = {
+        "id": f"mon-{uuid.uuid4().hex[:10]}",
+        "email": email,
+        "password_hash": hash_password(password),
+        "name": name.strip(),
+        "role": "monitor",
+        "company_id": company_id,
+        "company_name": company_name,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.monitor_operators.insert_one(monitor_doc)
+    await db.companies.update_one(
+        {"_id": ObjectId(company_id) if company_id else None},
+        {"$inc": {"monitor_count": 1}},
+    )
+
+    access = create_access_token(monitor_doc["id"], email, "monitor")
+    return {
+        "access_token": access,
+        "user": {"id": monitor_doc["id"], "email": email, "name": name.strip(), "role": "monitor", "company_id": company_id, "company_name": company_name},
+    }
 
 async def refresh_rider_token(refresh_token: str) -> dict:
     from app.core.security import decode_token

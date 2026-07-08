@@ -15,6 +15,8 @@ from fastapi.openapi.docs import get_swagger_ui_html
 
 from app.api.admin.router import router as admin_router
 from app.api.auth.router import router as auth_router
+from app.api.companies.router import router as companies_router
+from app.api.plans.router import router as plans_router
 from app.api.impacts.router import router as impacts_router
 from app.api.monitor.router import router as monitor_router
 from app.api.monitor.websockets import manager
@@ -175,6 +177,8 @@ app.add_middleware(RateLimitMiddleware, max_requests=200, window_seconds=60)
 
 app.include_router(admin_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(companies_router, prefix="/api")
+app.include_router(plans_router, prefix="/api")
 app.include_router(impacts_router, prefix="/api")
 app.include_router(telemetry_router, prefix="/api")
 app.include_router(riders_router, prefix="/api")
@@ -314,6 +318,28 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error("WS: error: %s", exc)
 
 
+async def _seed_superadmin() -> None:
+    db = await get_db()
+    email = settings.SUPERADMIN_EMAIL.lower()
+    existing = await db.users.find_one({"email": email})
+    if not existing:
+        await db.users.insert_one({
+            "email": email,
+            "name": "SuperAdmin",
+            "password_hash": hash_password(settings.SUPERADMIN_PASSWORD),
+            "role": "superadmin",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        })
+        logger.info("SuperAdmin seeded: %s", email)
+    elif existing.get("role") != "superadmin":
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {"role": "superadmin", "password_hash": hash_password(settings.SUPERADMIN_PASSWORD)}},
+        )
+        logger.info("SuperAdmin role updated for %s", email)
+
+
 async def _seed_operators() -> None:
     db = await get_db()
     seeds = [
@@ -387,7 +413,10 @@ async def on_startup() -> None:
         await db.events.create_index([("driver_id", 1), ("ts", -1)])
         await db.telemetry.create_index([("driver_id", 1), ("ts", -1)])
 
+    await _seed_superadmin()
     await _seed_operators()
+    from app.api.plans.service import seed_plans
+    await seed_plans()
 
     if settings.DEMO_MODE:
         from app.infrastructure.simulator import simulator

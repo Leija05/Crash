@@ -17,6 +17,9 @@ export default function ProtectedRoute({ children, role }) {
     );
   }
   if (user === false) return <Navigate to="/login" replace />;
-  if (role && user.role !== role) return <Navigate to="/" replace />;
+  if (role && user.role !== role) {
+    if (user.role === "superadmin") return <Navigate to="/admin" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
   return children;
 }

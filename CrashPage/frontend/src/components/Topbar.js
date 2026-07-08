@@ -88,7 +88,7 @@ function Topbar({ status, alertCount, onOpenHistory }) {
             <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
               <div className="text-right leading-tight hidden md:block">
                 <div className="text-xs font-medium leading-tight">{user.name}</div>
-                <div className="text-[8px] uppercase tracking-[0.2em] text-neutral-500 leading-tight">{user.role}</div>
+                <div className="text-[8px] uppercase tracking-[0.2em] text-neutral-500 leading-tight">{user.role}{user.company_name ? <span className="text-emerald-400"> · {user.company_name}</span> : null}</div>
               </div>
               <button data-testid="logout-btn" onClick={logout} className="h-7 w-7 rounded-lg border border-white/10 hover:border-red-500/50 hover:bg-red-500/10 flex items-center justify-center transition-all group" title={t("nav.logout")}>
                 <LogOut className="h-3 w-3 text-neutral-400 group-hover:text-red-400" />

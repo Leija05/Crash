@@ -31,6 +31,8 @@ class Settings:
     WHATSAPP_TEMPLATE_LANGUAGE: str = os.environ.get("WHATSAPP_TEMPLATE_LANGUAGE", "es_MX")
     WHATSAPP_TEMPLATE_FALLBACK_ON_24H: bool = os.environ.get("WHATSAPP_TEMPLATE_FALLBACK_ON_24H", "true").lower() == "true"
 
+    SUPERADMIN_EMAIL: str = os.environ.get("SUPERADMIN_EMAIL", "superadmin@crash.io")
+    SUPERADMIN_PASSWORD: str = os.environ.get("SUPERADMIN_PASSWORD", "SuperAdmin2024!")
     ADMIN_EMAIL: str = os.environ.get("ADMIN_EMAIL", "admin@crash.io")
     ADMIN_PASSWORD: str = os.environ.get("ADMIN_PASSWORD", "admin123")
     MONITOR_EMAIL: str = os.environ.get("MONITOR_EMAIL", "monitor@crash.io")

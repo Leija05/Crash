@@ -7,6 +7,7 @@ class RegisterInput(BaseModel):
     email: str
     password: str
     name: str
+    company_id: Optional[str] = ""
 
     @field_validator("password")
     @classmethod
