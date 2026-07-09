@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Building2, CreditCard, Users, Key, LogOut,
   Plus, Trash2, Edit3, Copy, RefreshCw, Loader2, Check, X,
   ChevronDown, ChevronRight, Shield, Activity, Mail, Phone,
-  AlertCircle, Settings, BarChart3, Clock, Eye, Package,
+  AlertCircle, Settings, BarChart3, Clock, Eye, Package, TrendingUp,
 } from "lucide-react";
 
 function StatsCard({ icon: Icon, label, value, accent }) {
@@ -486,7 +486,174 @@ const TABS = [
   { id: "overview", label: "Resumen", icon: LayoutDashboard, Tab: OverviewTab },
   { id: "companies", label: "Empresas", icon: Building2, Tab: CompaniesTab },
   { id: "plans", label: "Planes", icon: CreditCard, Tab: PlansTab },
+  { id: "logistics", label: "Logística de Ventas", icon: TrendingUp, Tab: SalesLogisticsTab },
 ];
+
+function SalesLogisticsTab() {
+  const [drivers, setDrivers] = useState(50);
+  const [price, setPrice] = useState(150);
+  const [fixed, setFixed] = useState(1300);
+  const [margin, setMargin] = useState(35);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api.get("/sales/logistics", { params: { drivers, b2b_price_per_driver: price, fixed_monthly: fixed, target_margin: margin / 100 } })
+      .then((r) => { if (!cancelled) { setData(r.data); setError(""); } })
+      .catch((e) => { if (!cancelled) setError(formatApiError(e)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [drivers, price, fixed, margin]);
+
+  const mxn = (n) => `$${Number(Math.round(n || 0)).toLocaleString("es-MX")} MXN`;
+  const b2b = data?.b2b;
+  const b2c = data?.b2c;
+  const scenario = b2b?.scenario;
+
+  const NumberField = ({ label, value, onChange, suffix, step = 1 }) => (
+    <label className="block">
+      <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500 block mb-1.5">{label}</span>
+      <div className="relative">
+        <input
+          type="number"
+          value={value}
+          min={0}
+          step={step}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="w-full bg-white/[0.03] border border-white/10 focus:border-emerald-400/50 rounded-xl px-3 py-2.5 text-white text-sm outline-none transition-all font-mono"
+        />
+        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs pointer-events-none">{suffix}</span>}
+      </div>
+    </label>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-bold font-mono text-2xl tracking-tight">Logística de Ventas</h2>
+        <p className="text-neutral-400 text-sm mt-1 max-w-3xl">
+          Calcula cuántos conductores puedes ofrecer a empresas a un buen precio sin perder rentabilidad.
+          Modelo basado en costos del proyecto: dispositivo ${mxn(800)} por unidad y ${mxn(1300)} de gastos fijos mensuales.
+        </p>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-5">
+        <div className="card-premium p-6 space-y-4" style={{ borderRadius: 20 }}>
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono">Simulador</div>
+          <NumberField label="Conductores (repartidores)" value={drivers} onChange={setDrivers} />
+          <NumberField label="Precio B2B por repartidor" value={price} onChange={setPrice} suffix="MXN/mes" />
+          <NumberField label="Gastos fijos mensuales" value={fixed} onChange={setFixed} suffix="MXN" />
+          <NumberField label="Margen objetivo" value={margin} onChange={setMargin} suffix="%" />
+        </div>
+
+        <div className="lg:col-span-2 space-y-5">
+          {loading && <div className="card-premium p-10 flex items-center justify-center text-neutral-500"><Loader2 className="animate-spin" /></div>}
+          {error && <div className="border border-red-500/30 bg-red-500/10 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
+          {!loading && scenario && (
+            <>
+              <div className={`card-premium p-6 relative overflow-hidden ${scenario.meets_target_margin ? "" : "ring-1 ring-amber-500/30"}`} style={{ borderRadius: 20 }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp size={18} className="text-emerald-400" />
+                  <span className="font-bold font-mono">Escenario para {drivers} conductores</span>
+                  {scenario.meets_target_margin ? (
+                    <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">Rentable</span>
+                  ) : (
+                    <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full">Bajo margen</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">Ingreso/mes</div>
+                    <div className="font-mono font-bold text-lg mt-1">{mxn(scenario.monthly_revenue)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">Utilidad/mes</div>
+                    <div className="font-mono font-bold text-lg mt-1 text-emerald-400">{mxn(scenario.monthly_profit)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">Margen</div>
+                    <div className="font-mono font-bold text-lg mt-1">{scenario.margin_pct}%</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">ROI hardware</div>
+                    <div className="font-mono font-bold text-lg mt-1">{scenario.roi_months != null ? `${scenario.roi_months} meses` : "—"}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-premium p-6" style={{ borderRadius: 20 }}>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Capacidad ofrecible a empresas</div>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="rounded-xl border border-white/10 p-4">
+                    <div className="text-neutral-500 text-xs">Punto de equilibrio</div>
+                    <div className="font-mono font-bold text-xl mt-1">{b2b.breakeven_drivers} <span className="text-sm text-neutral-500 font-normal">conductores</span></div>
+                    <div className="text-[11px] text-neutral-500 mt-1">Para cubrir gastos fijos.</div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 p-4">
+                    <div className="text-neutral-500 text-xs">Margen objetivo ({margin}%)</div>
+                    <div className="font-mono font-bold text-xl mt-1">{b2b.min_drivers_for_target_margin} <span className="text-sm text-neutral-500 font-normal">conductores</span></div>
+                    <div className="text-[11px] text-neutral-500 mt-1">Mínimo para tu margen.</div>
+                  </div>
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                    <div className="text-neutral-500 text-xs">Oferta recomendada</div>
+                    <div className="font-mono font-bold text-xl mt-1 text-emerald-400">Desde {b2b.recommended_min_drivers}</div>
+                    <div className="text-[11px] text-neutral-500 mt-1">Conductores a buen precio.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-premium p-6" style={{ borderRadius: 20 }}>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Escenarios de referencia</div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-neutral-500 text-left border-b border-white/10">
+                        <th className="py-2 pr-4 font-medium">Conductores</th>
+                        <th className="py-2 pr-4 font-medium">Ingreso/mes</th>
+                        <th className="py-2 pr-4 font-medium">Utilidad/mes</th>
+                        <th className="py-2 pr-4 font-medium">Margen</th>
+                        <th className="py-2 font-medium">ROI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {b2b.scenarios.map((s) => (
+                        <tr key={s.drivers} className="border-b border-white/5">
+                          <td className="py-2 pr-4 font-mono">{s.drivers}</td>
+                          <td className="py-2 pr-4 font-mono">{mxn(s.monthly_revenue)}</td>
+                          <td className="py-2 pr-4 font-mono text-emerald-400">{mxn(s.monthly_profit)}</td>
+                          <td className="py-2 pr-4 font-mono">{s.margin_pct}%</td>
+                          <td className="py-2 font-mono">{s.roi_months != null ? `${s.roi_months} m` : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {b2c && (
+                <div className="card-premium p-6" style={{ borderRadius: 20 }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users size={16} className="text-emerald-400" />
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono">Lado B2C (usuario final)</span>
+                  </div>
+                  <div className="grid sm:grid-cols-3 gap-4 text-sm">
+                    <div><div className="text-neutral-500 text-xs">Suscripción/mes</div><div className="font-mono font-bold mt-1">{mxn(b2c.subscription)}</div></div>
+                    <div><div className="text-neutral-500 text-xs">Dispositivo</div><div className="font-mono font-bold mt-1">{mxn(b2c.device_price)}</div></div>
+                    <div><div className="text-neutral-500 text-xs">Margen dispositivo</div><div className="font-mono font-bold mt-1 text-emerald-400">{b2c.device_margin_pct}%</div></div>
+                  </div>
+                  <p className="text-[11px] text-neutral-500 mt-3">El precio B2C es menor porque no incluye instalación ni dashboard corporativo.</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AdminPanel() {
   const { user, logout } = useAuth();

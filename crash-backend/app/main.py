@@ -23,6 +23,7 @@ from app.api.monitor.router import router as monitor_router
 from app.api.monitor.websockets import manager
 from app.api.riders.router import router as riders_router
 from app.api.telemetry.router import router as telemetry_router
+from app.api.sales.router import router as sales_router
 from app.core.config import settings
 from app.core.database import get_db, close_db
 from app.core.security import decode_token, hash_password, verify_password
@@ -185,6 +186,7 @@ app.include_router(impacts_router, prefix="/api")
 app.include_router(telemetry_router, prefix="/api")
 app.include_router(riders_router, prefix="/api")
 app.include_router(monitor_router, prefix="/api")
+app.include_router(sales_router, prefix="/api")
 
 
 @app.get("/api/")

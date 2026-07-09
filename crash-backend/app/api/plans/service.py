@@ -3,10 +3,29 @@ from fastapi import HTTPException
 from bson import ObjectId
 from app.core.database import get_db
 
+# Precios basados en el modelo de negocio del proyecto C.R.A.S.H. (MXN).
+# B2B: SaaS $150 MXN por repartidor/mes + dispositivo $1,999 MXN (instalación y soporte).
+# B2C: Suscripción $49 MXN/mes + dispositivo $1,499 MXN (margen 46%, costo $800).
+# "price" se mantiene como el cargo mensual B2B del plan (= sub_b2b * max_drivers) por compatibilidad.
 PLANS_SEED = [
-    {"name": "Basic", "price": 5, "max_drivers": 3, "max_monitors": 1, "features": ["Monitoreo en vivo", "Alertas de impacto", "Historial básico (7 días)", "Soporte por correo"], "popular": False, "created_at": datetime.now(timezone.utc).isoformat()},
-    {"name": "Advanced", "price": 15, "max_drivers": 10, "max_monitors": 5, "features": ["Todo lo de Basic", "Historial completo (30 días)", "Diagnóstico con IA", "Reportes exportables", "Soporte prioritario"], "popular": True, "created_at": datetime.now(timezone.utc).isoformat()},
-    {"name": "Enterprise", "price": 25, "max_drivers": 30, "max_monitors": 15, "features": ["Todo lo de Advanced", "Historial ilimitado", "Webhook personalizado", "API de integración", "Soporte 24/7 dedicado", "Onboarding asistido"], "popular": False, "created_at": datetime.now(timezone.utc).isoformat()},
+    {
+        "name": "Basic", "price": 450, "max_drivers": 3, "max_monitors": 1,
+        "currency": "MXN", "sub_b2b": 150, "sub_b2c": 49, "device_b2b": 1999, "device_b2c": 1499,
+        "features": ["Monitoreo en vivo", "Alertas de impacto", "Historial básico (7 días)", "Soporte por correo", "Hasta 3 repartidores"],
+        "popular": False, "created_at": datetime.now(timezone.utc).isoformat(),
+    },
+    {
+        "name": "Advanced", "price": 1500, "max_drivers": 10, "max_monitors": 5,
+        "currency": "MXN", "sub_b2b": 150, "sub_b2c": 49, "device_b2b": 1999, "device_b2c": 1499,
+        "features": ["Todo lo de Basic", "Historial completo (30 días)", "Diagnóstico con IA", "Reportes exportables", "Soporte prioritario", "Hasta 10 repartidores"],
+        "popular": True, "created_at": datetime.now(timezone.utc).isoformat(),
+    },
+    {
+        "name": "Enterprise", "price": 4500, "max_drivers": 30, "max_monitors": 15,
+        "currency": "MXN", "sub_b2b": 150, "sub_b2c": 49, "device_b2b": 1999, "device_b2c": 1499,
+        "features": ["Todo lo de Advanced", "Historial ilimitado", "Webhook personalizado", "API de integración", "Soporte 24/7 dedicado", "Onboarding asistido", "Hasta 30 repartidores"],
+        "popular": False, "created_at": datetime.now(timezone.utc).isoformat(),
+    },
 ]
 
 async def seed_plans():
@@ -19,8 +38,21 @@ async def list_plans():
     db = await get_db()
     cursor = db.plans.find({})
     docs = await cursor.to_list(100)
+    defaults = {
+        "currency": "MXN",
+        "sub_b2b": 150,
+        "sub_b2c": 49,
+        "device_b2b": 1999,
+        "device_b2c": 1499,
+    }
     for d in docs:
         d["id"] = str(d.pop("_id"))
+        for k, v in defaults.items():
+            if k not in d:
+                d[k] = v
+        # El precio mensual B2B del plan debe coincidir con la suscripcion por conductor.
+        if "price" not in d or not d["price"]:
+            d["price"] = (d.get("sub_b2b", 150) or 150) * (d.get("max_drivers", 1) or 1)
     return docs
 
 async def get_plan(plan_id: str) -> dict:

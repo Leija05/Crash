@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { api, formatApiError } from "../lib/api";
@@ -41,6 +41,8 @@ function TokenGate({ onVerified }) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden">
         <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-red-500/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
         <div className="w-full max-w-md relative fade-up">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
@@ -87,7 +89,7 @@ function TokenGate({ onVerified }) {
 
             <div className="flex items-center gap-2 pt-2">
               {role !== "empresa" && (
-                <button onClick={() => onVerified(role)} className="flex-1 bg-white text-black font-bold py-2.5 rounded-xl hover:bg-zinc-200 transition-all text-sm">
+                <button onClick={() => onVerified(role, tokenInfo)} className="flex-1 bg-white text-black font-bold py-2.5 rounded-xl hover:bg-zinc-200 transition-all text-sm">
                   Continuar al inicio de sesion
                 </button>
               )}
@@ -104,8 +106,8 @@ function TokenGate({ onVerified }) {
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
-      <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-red-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-red-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
       <Link to="/" className="absolute top-6 left-6 text-zinc-500 hover:text-white flex items-center gap-2 text-sm transition-colors group">
         <div className="w-7 h-7 rounded-lg border border-white/10 flex items-center justify-center group-hover:border-white/30 transition-all">
           <ArrowLeft size={14} />
@@ -178,10 +180,10 @@ function TokenGate({ onVerified }) {
   );
 }
 
-function LoginForm({ token, role }) {
+function LoginForm({ token, role, initialEmail = "" }) {
   const { login, loginWithToken, loginSuperAdmin } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail || "");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -214,8 +216,8 @@ function LoginForm({ token, role }) {
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
-      <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-red-500/5 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-red-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
       <Link to="/" className="absolute top-6 left-6 text-zinc-500 hover:text-white flex items-center gap-2 text-sm transition-colors group">
         <div className="w-7 h-7 rounded-lg border border-white/10 flex items-center justify-center group-hover:border-white/30 transition-all">
           <ArrowLeft size={14} />
@@ -267,6 +269,11 @@ function LoginForm({ token, role }) {
                   className={`w-full bg-[#0d0d0d] border border-white/10 focus:border-white/30 rounded-xl pl-9 pr-3 py-2.5 text-white text-sm outline-none transition-all font-mono ${role === "superadmin" ? "opacity-70 cursor-not-allowed" : ""}`}
                 />
               </div>
+              {role === "superadmin" && email && (
+                <p className="text-[11px] text-emerald-400/80 mt-1.5 flex items-center gap-1.5">
+                  <CheckCircle2 size={12} /> Correo autocompletado desde tu token. Solo escribe tu contrasena.
+                </p>
+              )}
             </div>
             <div>
               <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">Contrasena</label>
@@ -336,17 +343,53 @@ function LoginForm({ token, role }) {
 function Login() {
   const { user } = useAuth();
   const [gate, setGate] = useState(null);
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("crash_site_token");
+    if (!saved) return;
+    let cancelled = false;
+    setChecking(true);
+    (async () => {
+      try {
+        const { data } = await api.post("/auth/verify-site-token", { token: saved });
+        if (cancelled) return;
+        // El token de empresa es para la app movil, no para el panel web.
+        if (data.role === "empresa") {
+          localStorage.removeItem("crash_site_token");
+          return;
+        }
+        setGate({ role: data.role, email: data.email || "" });
+      } catch {
+        if (!cancelled) localStorage.removeItem("crash_site_token");
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   if (user) {
     if (user.role === "superadmin") return <Link to="/admin" />;
     return <Link to="/dashboard" />;
   }
 
-  if (!gate) {
-    return <TokenGate onVerified={(role) => setGate({ role })} />;
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <span className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <span className="text-zinc-500 text-sm font-mono">Restaurando acceso...</span>
+        </div>
+      </div>
+    );
   }
 
-  return <LoginForm token={localStorage.getItem("crash_site_token") || ""} role={gate.role} />;
+  if (!gate) {
+    return <TokenGate onVerified={(role, info) => setGate({ role, email: info?.email || "" })} />;
+  }
+
+  return <LoginForm token={localStorage.getItem("crash_site_token") || ""} role={gate.role} initialEmail={gate.email} />;
 }
 
 export default memo(Login);
