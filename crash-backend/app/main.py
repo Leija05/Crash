@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -154,6 +155,27 @@ app = FastAPI(
 )
 
 app.add_exception_handler(AppException, app_exception_handler)
+
+
+FIELD_MESSAGES = {
+    "password": "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.",
+    "name": "El nombre es obligatorio.",
+    "email": "El correo electrónico no es válido.",
+}
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    messages = []
+    for err in exc.errors():
+        loc = err.get("loc", [])
+        field = str(loc[-1]) if loc else ""
+        if field in FIELD_MESSAGES:
+            messages.append(FIELD_MESSAGES[field])
+        else:
+            messages.append(err.get("msg", "Dato inválido"))
+    text = "; ".join(dict.fromkeys(messages)) or "Datos inválidos."
+    return JSONResponse(status_code=422, content={"detail": text, "message": text})
 
 allowed = settings.ALLOWED_ORIGINS
 if allowed == ["*"]:

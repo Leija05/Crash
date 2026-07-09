@@ -120,3 +120,24 @@ async def buy_package(company_id: str, plan_id: str, cycle: str = "Mensual") -> 
 
 async def get_company_tokens(company_id: str) -> list:
     return await tokens_service.list_company_tokens(company_id)
+
+
+async def get_company_drivers(company_id: str) -> list:
+    db = await get_db()
+    try:
+        company_query = {"_id": ObjectId(company_id)}
+    except Exception:
+        company_query = {"id": company_id}
+    company = await db.companies.find_one(company_query)
+    if not company:
+        raise HTTPException(404, "Empresa no encontrada")
+    cid = str(company.get("_id", ""))
+    cursor = db.users.find(
+        {"company_id": cid},
+        {"_id": 0, "password_hash": 0},
+    ).sort("created_at", -1)
+    docs = await cursor.to_list(200)
+    for d in docs:
+        d["id"] = str(d.get("_id", "")) if d.get("_id") else d.get("id")
+        d.pop("_id", None)
+    return docs

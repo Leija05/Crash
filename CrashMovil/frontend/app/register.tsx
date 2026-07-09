@@ -19,9 +19,20 @@ export default function RegisterScreen() {
   const { register } = useAuth();
   const router = useRouter();
 
+  const passwordRules = [
+    { label: 'Mínimo 8 caracteres', test: (p: string) => p.length >= 8 },
+    { label: 'Una mayúscula', test: (p: string) => /[A-Z]/.test(p) },
+    { label: 'Una minúscula', test: (p: string) => /[a-z]/.test(p) },
+    { label: 'Un número', test: (p: string) => /\d/.test(p) },
+  ];
+  const failedRules = passwordRules.filter((r) => !r.test(password));
+
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) { setError('Completa todos los campos'); return; }
-    if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (failedRules.length > 0) {
+      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -75,10 +86,21 @@ export default function RegisterScreen() {
               <Text style={styles.label}>CONTRASEÑA</Text>
               <View style={styles.inputRow}>
                 <Ionicons name="lock-closed-outline" size={16} color={COLORS.textSec} />
-                <TextInput testID="register-password-input" style={styles.input} placeholder="Mínimo 6 caracteres" placeholderTextColor={COLORS.textDim} value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
+                <TextInput testID="register-password-input" style={styles.input} placeholder="Mínimo 8 caracteres" placeholderTextColor={COLORS.textDim} value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
                 <TouchableOpacity onPress={() => setShowPass(!showPass)}>
                   <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color={COLORS.textSec} />
                 </TouchableOpacity>
+              </View>
+              <View style={styles.rules}>
+                {passwordRules.map((r) => {
+                  const ok = password.length === 0 || r.test(password);
+                  return (
+                    <View key={r.label} style={styles.ruleItem}>
+                      <Ionicons name={ok ? 'checkmark-circle' : 'ellipse-outline'} size={12} color={ok ? COLORS.primary : COLORS.textDim} />
+                      <Text style={[styles.ruleText, ok && styles.ruleTextOk]}>{r.label}</Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
 
@@ -154,4 +176,8 @@ const styles = StyleSheet.create({
   linkBtn: { alignItems: 'center', marginTop: SPACING.md, paddingVertical: 4 },
   linkText: { color: COLORS.textDim, fontSize: 13 },
   linkAccent: { color: COLORS.accent, fontWeight: '700' },
+  rules: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
+  ruleItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ruleText: { color: COLORS.textDim, fontSize: 11 },
+  ruleTextOk: { color: COLORS.primary, fontWeight: '700' },
 });

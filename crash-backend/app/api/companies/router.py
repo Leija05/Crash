@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from app.api.companies.service import (
     create_company, list_companies, get_company, update_company, delete_company,
-    buy_package, get_company_tokens,
+    buy_package, get_company_tokens, get_company_drivers,
 )
 from app.core.security import get_current_superadmin, get_current_monitor_user, get_current_admin
 
@@ -63,3 +63,8 @@ async def company_monitors(company_id: str, _=Depends(get_current_admin)):
     db = await get_db()
     cursor = db.monitor_operators.find({"company_id": company_id}, {"_id": 0, "password_hash": 0})
     return await cursor.to_list(100)
+
+
+@router.get("/{company_id}/drivers")
+async def company_drivers(company_id: str, _=Depends(get_current_admin)):
+    return await get_company_drivers(company_id)

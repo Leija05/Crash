@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, useEffect } from "react";
 import Topbar from "../components/Topbar";
 import LiveMap from "../components/LiveMap";
 import DriverList from "../components/DriverList";
@@ -8,9 +8,44 @@ import DriverDetailSheet from "../components/DriverDetailSheet";
 import CrashHistoryModal from "../components/CrashHistoryModal";
 import SystemHealthPanel from "../components/SystemHealthPanel";
 import { useCrashSocket } from "../lib/ws";
+import { useAuth } from "../auth/AuthContext";
+import { api } from "../lib/api";
+
+function CompanyDriversPanel({ companyId }) {
+  const [drivers, setDrivers] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!companyId) { setDrivers([]); return; }
+    api.get(`/companies/${companyId}/drivers`)
+      .then((r) => { if (!cancelled) setDrivers(r.data || []); })
+      .catch(() => { if (!cancelled) setDrivers([]); });
+    return () => { cancelled = true; };
+  }, [companyId]);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">Conductores de mi empresa</h4>
+      {drivers === null ? (
+        <div className="text-xs text-neutral-500">Cargando...</div>
+      ) : drivers.length > 0 ? (
+        <div className="space-y-2">
+          {drivers.map((d) => (
+            <div key={d.id || d.email} className="flex items-center gap-3 text-sm">
+              <div className="h-8 w-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xs text-emerald-300 font-bold">{d.name?.[0] || "?"}</div>
+              <div><div className="font-medium">{d.name}</div><div className="text-xs text-neutral-500">{d.email}</div></div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-xs text-neutral-500">Ningún conductor ha vinculado su cuenta a esta empresa todavía.</div>
+      )}
+    </div>
+  );
+}
 
 function Dashboard() {
   const { drivers, alerts, setAlerts, status, lastImpactId } = useCrashSocket();
+  const { user } = useAuth();
   const [selectedId, setSelectedId] = useState(null);
   const [detailId, setDetailId] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -51,6 +86,10 @@ function Dashboard() {
         alertCount={activeAlertCount}
         onOpenHistory={handleOpenHistory}
       />
+
+      {user?.role === "monitor" && user?.company_id ? (
+        <CompanyDriversPanel companyId={user.company_id} />
+      ) : null}
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 min-h-0">
         <aside className="lg:col-span-3 rounded-2xl border border-white/10 glass-card backdrop-premium p-4 min-h-0 flex flex-col">

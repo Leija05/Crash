@@ -241,6 +241,7 @@ function CompaniesTab() {
 
   const [tokens, setTokens] = useState({});
   const [buyOpen, setBuyOpen] = useState(null);
+  const [drivers, setDrivers] = useState({});
 
   const loadMonitors = useCallback(async (companyId) => {
     try {
@@ -256,14 +257,22 @@ function CompaniesTab() {
     } catch { }
   }, []);
 
+  const loadDrivers = useCallback(async (companyId) => {
+    try {
+      const { data } = await api.get(`/companies/${companyId}/drivers`);
+      setDrivers(prev => ({ ...prev, [companyId]: data }));
+    } catch { }
+  }, []);
+
   const toggleExpand = useCallback((id) => {
     const isNow = !expanded[id];
     setExpanded(prev => ({ ...prev, [id]: isNow }));
     if (isNow) {
       if (!monitors[id]) loadMonitors(id);
       if (!tokens[id]) loadTokens(id);
+      if (!drivers[id]) loadDrivers(id);
     }
-  }, [expanded, monitors, tokens, loadMonitors, loadTokens]);
+  }, [expanded, monitors, tokens, drivers, loadMonitors, loadTokens, loadDrivers]);
 
   const handleDelete = useCallback(async (id) => {
     if (!confirm("¿Eliminar empresa y todos sus monitoristas?")) return;
@@ -398,6 +407,19 @@ function CompaniesTab() {
                     <div className="text-xs text-neutral-500">Sin monitoristas asignados todavía.</div>
                   )}
                 </div>
+                <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mt-5 mb-3">Conductores vinculados</h4>
+                {drivers[c.id || c._id]?.length > 0 ? (
+                  <div className="space-y-2">
+                    {drivers[c.id || c._id].map(d => (
+                      <div key={d.id || d.email} className="flex items-center gap-3 text-sm">
+                        <div className="h-8 w-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xs text-emerald-300 font-bold">{d.name?.[0] || "?"}</div>
+                        <div><div className="font-medium">{d.name}</div><div className="text-xs text-neutral-500">{d.email}{d.created_at ? ` · desde ${new Date(d.created_at).toLocaleDateString()}` : ""}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-neutral-500">Ningún conductor ha vinculado su cuenta a esta empresa todavía.</div>
+                )}
               )}
             </div>
           ))}
