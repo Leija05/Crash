@@ -145,8 +145,12 @@ async def regenerate_tokens(company_id: str, plan: dict, cycle: str = "Mensual")
     monitor_token = await create_monitor_token(company, plan, cycle)
     db = await get_db()
     limits = _plan_limits(plan)
+    try:
+        company_query = {"_id": ObjectId(company_id)}
+    except Exception:
+        company_query = {"id": company_id}
     await db.companies.update_one(
-        {"id": company_id},
+        company_query,
         {"$set": {
             "has_token": True,
             "plan_id": limits["plan_id"],

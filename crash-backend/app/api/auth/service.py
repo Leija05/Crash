@@ -194,8 +194,12 @@ async def register_monitor_with_token(token: str, email: str, password: str, nam
         "updated_at": now,
     }
     await db.monitor_operators.insert_one(monitor_doc)
+    try:
+        company_query = {"_id": ObjectId(company_id)}
+    except Exception:
+        company_query = {"id": company_id}
     await db.companies.update_one(
-        {"id": company_id},
+        company_query,
         {"$inc": {"monitor_count": 1}},
     )
     await consume_token(token)
@@ -215,7 +219,10 @@ async def link_driver_company(user_id: str, token: str) -> dict:
 
     db = await get_db()
     company_id = tok["company_id"]
-    company = await db.companies.find_one({"id": company_id})
+    try:
+        company = await db.companies.find_one({"_id": ObjectId(company_id)})
+    except Exception:
+        company = await db.companies.find_one({"id": company_id})
     if not company:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
     company_name = company.get("name", "")

@@ -56,6 +56,7 @@ async def create_company(name: str, email: str, phone: str = "", plan_id: str = 
         )
         doc["has_token"] = True
         doc["cycle"] = cycle
+    doc.pop("_id", None)
     return doc
 
 

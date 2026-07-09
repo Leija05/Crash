@@ -5,7 +5,7 @@ from app.api.companies.service import (
     create_company, list_companies, get_company, update_company, delete_company,
     buy_package, get_company_tokens,
 )
-from app.core.security import get_current_superadmin, get_current_monitor_user
+from app.core.security import get_current_superadmin, get_current_monitor_user, get_current_admin
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -24,7 +24,7 @@ async def list_public_companies():
     return docs
 
 @router.get("/{company_id}")
-async def get_company_detail(company_id: str, _=Depends(get_current_monitor_user)):
+async def get_company_detail(company_id: str, _=Depends(get_current_admin)):
     return await get_company(company_id)
 
 @router.post("")
@@ -58,7 +58,7 @@ async def tokens(company_id: str, _=Depends(get_current_superadmin)):
     return await get_company_tokens(company_id)
 
 @router.get("/{company_id}/monitors")
-async def company_monitors(company_id: str, _=Depends(get_current_monitor_user)):
+async def company_monitors(company_id: str, _=Depends(get_current_admin)):
     from app.core.database import get_db
     db = await get_db()
     cursor = db.monitor_operators.find({"company_id": company_id}, {"_id": 0, "password_hash": 0})
