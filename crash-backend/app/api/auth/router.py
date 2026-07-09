@@ -9,6 +9,7 @@ from app.api.auth.service import (
     register_rider,
     verify_site_token,
     register_monitor_with_token,
+    link_driver_company,
 )
 from app.core.security import get_current_monitor_user, get_current_rider, get_current_superadmin
 
@@ -74,8 +75,12 @@ async def superadmin_check(_=Depends(get_current_superadmin)):
 
 @router.post("/assign-driver-token")
 async def assign_driver_token(body: dict, user: dict = Depends(get_current_rider)):
-    from app.api.auth.service import assign_driver_company
-    return await assign_driver_company(user["id"], body.get("token", ""))
+    return await link_driver_company(user["id"], body.get("token", ""))
+
+
+@router.post("/link-company")
+async def link_company(body: dict, user: dict = Depends(get_current_rider)):
+    return await link_driver_company(user["id"], body.get("token", ""))
 
 @router.post("/remove-driver-token")
 async def remove_driver_token(user: dict = Depends(get_current_rider)):

@@ -16,6 +16,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from app.api.admin.router import router as admin_router
 from app.api.auth.router import router as auth_router
 from app.api.companies.router import router as companies_router
+from app.api.tokens.router import router as tokens_router
 from app.api.plans.router import router as plans_router
 from app.api.impacts.router import router as impacts_router
 from app.api.monitor.router import router as monitor_router
@@ -178,6 +179,7 @@ app.add_middleware(RateLimitMiddleware, max_requests=200, window_seconds=60)
 app.include_router(admin_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(companies_router, prefix="/api")
+app.include_router(tokens_router, prefix="/api")
 app.include_router(plans_router, prefix="/api")
 app.include_router(impacts_router, prefix="/api")
 app.include_router(telemetry_router, prefix="/api")
@@ -416,6 +418,7 @@ async def on_startup() -> None:
     await db.monitor_acks.create_index("impact_id", unique=True)
     await db.monitor_incident_logs.create_index([("incident_id", 1), ("created_at", -1)])
     await db.users.create_index("email", unique=True)
+    await db.site_tokens.create_index("token", unique=True)
     await db.emergency_contacts.create_index("user_id")
     await db.impact_events.create_index("user_id")
     await db.impact_events.create_index([("user_id", 1), ("created_at", -1)])

@@ -11,7 +11,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useI18n } from '../../src/i18n';
-import { settingsAPI } from '../../src/services/api';
+import { settingsAPI, authAPI } from '../../src/services/api';
 import SectionHeader from '../../src/components/SectionHeader';
 import GlassCard from '../../src/components/GlassCard';
 
@@ -31,7 +31,19 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [company, setCompany] = useState<{ company_id: string | null; company_name: string | null }>({ company_id: null, company_name: null });
+  const [companyTokenInput, setCompanyTokenInput] = useState('');
+  const [linking, setLinking] = useState(false);
+
   useEffect(() => { setDeviceInput(deviceName); }, [deviceName]);
+
+  const fetchCompany = useCallback(async () => {
+    if (!token) return;
+    try {
+      const c = await authAPI.driverCompany(token);
+      setCompany({ company_id: c.company_id ?? null, company_name: c.company_name ?? null });
+    } catch (e) { console.error(e); }
+  }, [token]);
 
   const fetchData = useCallback(async () => {
     if (!token) return;
@@ -46,7 +58,38 @@ export default function SettingsScreen() {
     finally { setLoading(false); }
   }, [token]);
 
-  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
+  useFocusEffect(useCallback(() => { fetchData(); fetchCompany(); }, [fetchData, fetchCompany]));
+
+  const linkCompany = async () => {
+    if (!token) return;
+    const raw = companyTokenInput.trim().toUpperCase();
+    if (!raw) { Alert.alert('Error', 'Ingresa el token de empresa.'); return; }
+    setLinking(true);
+    try {
+      const r = await authAPI.linkCompany(token, raw);
+      setCompany({ company_id: r.company_id ?? null, company_name: r.company_name ?? null });
+      setCompanyTokenInput('');
+      Alert.alert('Vinculado', `Tu cuenta ahora está asociada a "${r.company_name}".`);
+    } catch (e: any) {
+      Alert.alert('Error al vincular', e?.message || 'Token inválido, agotado o expirado.');
+    } finally { setLinking(false); }
+  };
+
+  const unlinkCompany = () => {
+    Alert.alert('Desvincular empresa', 'Tu cuenta ya no aparecerá en el monitoreo de la empresa.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Desvincular', style: 'destructive', onPress: async () => {
+        try {
+          await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/auth/remove-driver-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          });
+          setCompany({ company_id: null, company_name: null });
+          Alert.alert('Desvinculado', 'Se eliminó la vinculación con la empresa.');
+        } catch (e: any) { Alert.alert('Error', e?.message || 'No se pudo desvincular.'); }
+      } },
+    ]);
+  };
 
   const saveServer = async () => {
     if (!token) return;
@@ -121,6 +164,41 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+          </GlassCard>
+
+          <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+            <SectionHeader title="EMPRESA / MONITOREO" icon="business" accent />
+            {company?.company_id ? (
+              <View style={styles.deviceStatus}>
+                <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.statusLabel}>VINCULADO</Text>
+                  <Text style={styles.statusDevice}>{company.company_name}</Text>
+                </View>
+                <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
+                  <Text style={styles.inlineBtnText}>DESVINCULAR</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>TOKEN DE EMPRESA</Text>
+                <Text style={styles.helper}>Pídelo a tu empresa. Al ingresarlo, tu cuenta de conductor aparecerá en su centro de monitoreo.</Text>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    testID="company-token-input"
+                    style={[styles.input, { flex: 1, letterSpacing: 2 }]}
+                    value={companyTokenInput}
+                    onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
+                    placeholder="XXXX-XXXX-XXXX-XXXX"
+                    placeholderTextColor={COLORS.textDim}
+                    autoCapitalize="characters"
+                  />
+                  <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
+                    {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>VINCULAR</Text>}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </GlassCard>
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>

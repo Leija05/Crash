@@ -140,28 +140,38 @@ async def login_monitor(email: str, password: str) -> dict:
 
 
 async def verify_site_token(token: str) -> dict:
-    # First check company tokens (monitoristas)
-    from app.api.companies.service import verify_site_token as _verify_company
+    from app.api.tokens.service import verify_token
     try:
-        return await _verify_company(token)
+        tok = await verify_token(token)
     except HTTPException as exc:
         if exc.status_code != 404:
             raise
+        # Fall back to SuperAdmin personal token
+        db = await get_db()
+        user = await db.users.find_one({"site_token": token.upper(), "role": "superadmin"})
+        if not user:
+            raise HTTPException(404, "Token inválido")
+        return {"role": "superadmin", "email": user["email"]}
 
-    # Then check superadmin tokens
-    db = await get_db()
-    user = await db.users.find_one({"site_token": token.upper(), "role": "superadmin"})
-    if not user:
-        raise HTTPException(404, "Token inválido")
-    return {"role": "superadmin", "email": user["email"]}
+    return {
+        "role": tok["role"],
+        "company_id": tok["company_id"],
+        "company_name": tok["name"],
+        "plan_name": tok.get("plan_name"),
+        "max_uses": tok.get("max_uses"),
+        "use_count": tok.get("use_count", 0),
+        "token_type": tok["role"],
+    }
 
 async def register_monitor_with_token(token: str, email: str, password: str, name: str) -> dict:
-    from app.api.companies.service import verify_site_token as _verify
+    from app.api.tokens.service import verify_token, consume_token
+    tok = await verify_token(token)
+    if tok["role"] != "monitorista":
+        raise HTTPException(status_code=400, detail="Este token no corresponde a un monitorista")
 
     db = await get_db()
-    result = await _verify(token)
-    company_id = result["company_id"]
-    company_name = result["company_name"]
+    company_id = tok["company_id"]
+    company_name = tok["name"]
 
     email = email.strip().lower()
     existing = await db.monitor_operators.find_one({"email": email})
@@ -185,15 +195,37 @@ async def register_monitor_with_token(token: str, email: str, password: str, nam
     }
     await db.monitor_operators.insert_one(monitor_doc)
     await db.companies.update_one(
-        {"_id": ObjectId(company_id) if company_id else None},
+        {"id": company_id},
         {"$inc": {"monitor_count": 1}},
     )
+    await consume_token(token)
 
     access = create_access_token(monitor_doc["id"], email, "monitor")
     return {
         "access_token": access,
         "user": {"id": monitor_doc["id"], "email": email, "name": name.strip(), "role": "monitor", "company_id": company_id, "company_name": company_name},
     }
+
+
+async def link_driver_company(user_id: str, token: str) -> dict:
+    from app.api.tokens.service import verify_token, consume_token
+    tok = await verify_token(token)
+    if tok["role"] != "empresa":
+        raise HTTPException(status_code=400, detail="Este token no corresponde a una empresa")
+
+    db = await get_db()
+    company_id = tok["company_id"]
+    company = await db.companies.find_one({"id": company_id})
+    if not company:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    company_name = company.get("name", "")
+
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"company_id": company_id, "company_name": company_name}},
+    )
+    await consume_token(token)
+    return {"company_id": company_id, "company_name": company_name, "message": f"Vinculado a {company_name}"}
 
 async def assign_driver_company(user_id: str, token: str) -> dict:
     db = await get_db()

@@ -10,7 +10,7 @@ async def get_plans():
 
 @router.post("")
 async def create(plan: dict, _=Depends(get_current_superadmin)):
-    return await create_plan(plan.get("name"), plan.get("price"), plan.get("max_drivers"), plan.get("features", []))
+    return await create_plan(plan.get("name"), plan.get("price"), plan.get("max_drivers"), plan.get("features", []), plan.get("max_monitors", 1))
 
 @router.put("/{plan_id}")
 async def update(plan_id: str, plan: dict, _=Depends(get_current_superadmin)):

@@ -51,6 +51,10 @@ export const authAPI = {
     apiRequest('/auth/me', { token }),
   refresh: (refreshToken: string) =>
     apiRequest('/auth/refresh', { method: 'POST', body: { refresh_token: refreshToken } }),
+  linkCompany: (token: string, companyToken: string) =>
+    apiRequest('/auth/link-company', { method: 'POST', body: { token: companyToken }, token }),
+  driverCompany: (token: string) =>
+    apiRequest('/auth/driver-company', { token }),
 };
 
 export const profileAPI = {

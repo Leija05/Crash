@@ -1,7 +1,10 @@
 import uuid
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
-from app.api.companies.service import create_company, list_companies, get_company, update_company, delete_company, generate_company_token, regenerate_company_token
+from app.api.companies.service import (
+    create_company, list_companies, get_company, update_company, delete_company,
+    buy_package, get_company_tokens,
+)
 from app.core.security import get_current_superadmin, get_current_monitor_user
 
 router = APIRouter(prefix="/companies", tags=["companies"])
@@ -28,14 +31,14 @@ async def get_company_detail(company_id: str, _=Depends(get_current_monitor_user
 async def create(data: dict, _=Depends(get_current_superadmin)):
     return await create_company(
         name=data.get("name"), email=data.get("email"),
-        phone=data.get("phone", ""), plan_id=data.get("plan_id"),
+        phone=data.get("phone", ""), plan_id=data.get("plan_id"), cycle=data.get("cycle", "Mensual"),
     )
 
 @router.post("/public/register")
 async def public_register(data: dict):
     return await create_company(
         name=data.get("name"), email=data.get("email"),
-        phone=data.get("phone", ""), plan_id=data.get("plan_id"),
+        phone=data.get("phone", ""), plan_id=data.get("plan_id"), cycle=data.get("cycle", "Mensual"),
     )
 
 @router.put("/{company_id}")
@@ -46,13 +49,13 @@ async def update(company_id: str, data: dict, _=Depends(get_current_superadmin))
 async def delete(company_id: str, _=Depends(get_current_superadmin)):
     return await delete_company(company_id)
 
-@router.post("/{company_id}/token/generate")
-async def gen_token(company_id: str, _=Depends(get_current_superadmin)):
-    return await generate_company_token(company_id)
+@router.post("/{company_id}/buy-package")
+async def buy(company_id: str, data: dict, _=Depends(get_current_superadmin)):
+    return await buy_package(company_id, data.get("plan_id"), data.get("cycle", "Mensual"))
 
-@router.post("/{company_id}/token/regenerate")
-async def regen_token(company_id: str, _=Depends(get_current_superadmin)):
-    return await regenerate_company_token(company_id)
+@router.get("/{company_id}/tokens")
+async def tokens(company_id: str, _=Depends(get_current_superadmin)):
+    return await get_company_tokens(company_id)
 
 @router.get("/{company_id}/monitors")
 async def company_monitors(company_id: str, _=Depends(get_current_monitor_user)):

@@ -457,3 +457,143 @@ body[data-theme='light'] .red-accent-panel::after{border-color:rgba(220,38,38,.2
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
 }
+
+/* ── SafeDrive-inspired premium utilities (CRASH branding) ─────────────── */
+
+.card-premium {
+  position: relative;
+  background: linear-gradient(135deg, rgba(20,20,22,0.92), rgba(10,10,12,0.96));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: transform var(--transition-premium), border-color var(--transition-premium), box-shadow var(--transition-premium);
+}
+.card-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(16,185,129,0.12), transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.card-premium:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+}
+
+.card-glass-strong {
+  background: rgba(13,13,15,0.82);
+  backdrop-filter: blur(28px) saturate(1.2);
+  -webkit-backdrop-filter: blur(28px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 20px;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.auth-glow::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(239,68,68,0.06), transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.04), transparent 55%);
+  pointer-events: none;
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981, #ef4444);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+
+.pulse-critical {
+  animation: pulse-critical 1.6s ease-in-out infinite;
+}
+@keyframes pulse-critical {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.45); }
+  50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
+
+.pulse-safe {
+  animation: pulse-safe 2s ease-in-out infinite;
+}
+@keyframes pulse-safe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.fade-up {
+  animation: fade-up 0.6s ease-out both;
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in-right {
+  animation: slide-in-right 0.35s ease-out both;
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.brand-chip {
+  background: #ffffff;
+  color: #0a0a0a;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.btn-solid {
+  background: #ffffff;
+  color: #0a0a0a;
+  font-weight: 700;
+  border-radius: 12px;
+  transition: all var(--transition-premium);
+}
+.btn-solid:hover { background: #e5e5e5; }
+
+.btn-ghost {
+  border: 1px solid rgba(255,255,255,0.16);
+  color: #fff;
+  border-radius: 12px;
+  transition: all var(--transition-premium);
+}
+.btn-ghost:hover { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.06); }
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 12px;
+  transition: all var(--transition-premium);
+}
+.btn-danger:hover { background: #dc2626; }

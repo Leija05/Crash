@@ -5,8 +5,8 @@ import { api, formatApiError } from "../lib/api";
 import {
   LayoutDashboard, Building2, CreditCard, Users, Key, LogOut,
   Plus, Trash2, Edit3, Copy, RefreshCw, Loader2, Check, X,
-  Search, ChevronDown, ChevronRight, Shield, Activity, Mail, Phone,
-  AlertCircle, Settings, BarChart3, Clock, Globe, Smartphone, Eye,
+  ChevronDown, ChevronRight, Shield, Activity, Mail, Phone,
+  AlertCircle, Settings, BarChart3, Clock, Eye, Package,
 } from "lucide-react";
 
 function StatsCard({ icon: Icon, label, value, accent }) {
@@ -27,8 +27,17 @@ function CompanyModal({ company, onClose, onSaved }) {
   const [name, setName] = useState(company?.name || "");
   const [email, setEmail] = useState(company?.email || "");
   const [phone, setPhone] = useState(company?.phone || "");
+  const [planId, setPlanId] = useState(company?.plan_id || "");
+  const [cycle, setCycle] = useState(company?.cycle || "Mensual");
+  const [plans, setPlans] = useState([]);
   const [busy, setBusy] = useState(false);
   const isEdit = !!company;
+
+  useEffect(() => {
+    (async () => {
+      try { const { data } = await api.get("/plans"); setPlans(data || []); } catch { setPlans([]); }
+    })();
+  }, []);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -37,7 +46,9 @@ function CompanyModal({ company, onClose, onSaved }) {
       if (isEdit) {
         await api.put(`/companies/${company.id}`, { name, email, phone });
       } else {
-        await api.post("/companies", { name, email, phone });
+        const payload = { name, email, phone };
+        if (planId) { payload.plan_id = planId; payload.cycle = cycle; }
+        await api.post("/companies", payload);
       }
       onSaved();
       onClose();
@@ -45,7 +56,7 @@ function CompanyModal({ company, onClose, onSaved }) {
       alert(formatApiError(err));
     }
     setBusy(false);
-  }, [name, email, phone, isEdit, company, onClose, onSaved]);
+  }, [name, email, phone, planId, cycle, isEdit, company, onClose, onSaved]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
@@ -68,36 +79,144 @@ function CompanyModal({ company, onClose, onSaved }) {
             <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Teléfono</label>
             <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all" />
           </div>
+          {!isEdit && (
+            <>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Plan (genera tokens automáticamente)</label>
+                <select value={planId} onChange={e => setPlanId(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+                  <option value="">Sin plan (sin tokens por ahora)</option>
+                  {plans.map(p => <option key={p.id} value={p.id}>{p.name} — ${p.price}/mes · {p.max_drivers} cond. · {p.max_monitors} mon.</option>)}
+                </select>
+              </div>
+              {planId && (
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Ciclo de facturación</label>
+                  <select value={cycle} onChange={e => setCycle(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+                    {["Semanal", "Mensual", "Bimestral", "Trimestral", "Anual"].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+            </>
+          )}
           <button disabled={busy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {busy ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear empresa"}
           </button>
+          {!isEdit && !planId && (
+            <p className="text-[11px] text-neutral-500 text-center">Sin plan la empresa queda sin tokens. Podrás comprar un paquete después desde su sección de tokens.</p>
+          )}
         </form>
       </div>
     </div>
   );
 }
 
-function TokenDisplay({ token, onRegenerate }) {
+function TokenRow({ token, onRegenerate, onDeactivate }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = useCallback(() => {
-    navigator.clipboard?.writeText(token);
+    navigator.clipboard?.writeText(token.token);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [token]);
-  if (!token) return null;
+  }, [token.token]);
+
+  const used = token.use_count || 0;
+  const max = token.max_uses || 0;
+  const pct = max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0;
+  const active = token.active !== false;
+  const isMonitor = token.role === "monitorista";
+
   return (
-    <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10 group">
-      <Key className="h-3.5 w-3.5 text-neutral-500 flex-shrink-0" />
-      <code className="font-mono text-xs text-emerald-300 tracking-wider flex-1 truncate">{token}</code>
-      <button onClick={handleCopy} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all flex-shrink-0" title="Copiar">
-        {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-neutral-400" />}
-      </button>
-      {onRegenerate && (
-        <button onClick={() => { if (confirm("¿Regenerar token? Los monitoristas deberán usar el nuevo.")) onRegenerate(); }} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all flex-shrink-0" title="Regenerar">
-          <RefreshCw className="h-3.5 w-3.5 text-amber-400" />
-        </button>
-      )}
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full ${isMonitor ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"}`}>
+            {isMonitor ? "Monitorista" : "Empresa"}
+          </span>
+          {!active && <span className="text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-neutral-500/15 text-neutral-400 border border-neutral-500/30">Inactivo</span>}
+          <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{token.cycle || "Mensual"}</span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button onClick={handleCopy} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all" title="Copiar">
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-neutral-400" />}
+          </button>
+          {onRegenerate && (
+            <button onClick={() => { if (confirm("¿Regenerar? Los usuarios deberán usar el nuevo token.")) onRegenerate(); }} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all" title="Regenerar">
+              <RefreshCw className="h-3.5 w-3.5 text-amber-400" />
+            </button>
+          )}
+          {onDeactivate && active && (
+            <button onClick={() => { if (confirm("¿Desactivar este token?")) onDeactivate(); }} className="h-7 w-7 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Desactivar">
+              <X className="h-3.5 w-3.5 text-red-400" />
+            </button>
+          )}
+        </div>
+      </div>
+      <code className="block font-mono text-xs text-emerald-300 tracking-wider break-all mb-3">{token.token}</code>
+      <div className="flex items-center justify-between text-[11px] text-neutral-500 mb-1.5">
+        <span>Usos</span>
+        <span className="text-white font-medium">{used} / {max}</span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className={`h-full rounded-full ${pct >= 100 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function BuyPackageModal({ company, onClose, onSaved }) {
+  const [planId, setPlanId] = useState(company?.plan_id || "");
+  const [cycle, setCycle] = useState(company?.cycle || "Mensual");
+  const [plans, setPlans] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const cid = company?.id || company?._id;
+
+  useEffect(() => {
+    (async () => {
+      try { const { data } = await api.get("/plans"); setPlans(data || []); } catch { setPlans([]); }
+    })();
+  }, []);
+
+  const handleBuy = useCallback(async () => {
+    setBusy(true);
+    try {
+      await api.post(`/companies/${cid}/buy-package`, { plan_id: planId, cycle });
+      onSaved();
+      onClose();
+    } catch (err) {
+      alert(formatApiError(err));
+    }
+    setBusy(false);
+  }, [planId, cycle, cid, onSaved, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Package className="h-5 w-5 text-emerald-400" /></div>
+          <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Comprar paquete</div><div className="font-bold">{company?.name}</div></div>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Plan</label>
+            <select value={planId} onChange={e => setPlanId(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+              <option value="">Selecciona un plan</option>
+              {plans.map(p => <option key={p.id} value={p.id}>{p.name} — ${p.price}/mes · {p.max_drivers} cond. · {p.max_monitors} mon.</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Ciclo de facturación</label>
+            <select value={cycle} onChange={e => setCycle(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+              {["Semanal", "Mensual", "Bimestral", "Trimestral", "Anual"].map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <p className="text-[11px] text-neutral-500">La compra es simulada: al confirmar se generan los tokens de empresa y monitorista según el plan.</p>
+          <button disabled={busy || !planId} onClick={handleBuy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+            {busy ? "Generando tokens..." : "Comprar y generar tokens"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -120,6 +239,9 @@ function CompaniesTab() {
 
   useEffect(() => { load(); }, [load]);
 
+  const [tokens, setTokens] = useState({});
+  const [buyOpen, setBuyOpen] = useState(null);
+
   const loadMonitors = useCallback(async (companyId) => {
     try {
       const { data } = await api.get(`/companies/${companyId}/monitors`);
@@ -127,11 +249,21 @@ function CompaniesTab() {
     } catch { }
   }, []);
 
+  const loadTokens = useCallback(async (companyId) => {
+    try {
+      const { data } = await api.get(`/companies/${companyId}/tokens`);
+      setTokens(prev => ({ ...prev, [companyId]: data }));
+    } catch { }
+  }, []);
+
   const toggleExpand = useCallback((id) => {
     const isNow = !expanded[id];
     setExpanded(prev => ({ ...prev, [id]: isNow }));
-    if (isNow && !monitors[id]) loadMonitors(id);
-  }, [expanded, monitors, loadMonitors]);
+    if (isNow) {
+      if (!monitors[id]) loadMonitors(id);
+      if (!tokens[id]) loadTokens(id);
+    }
+  }, [expanded, monitors, tokens, loadMonitors, loadTokens]);
 
   const handleDelete = useCallback(async (id) => {
     if (!confirm("¿Eliminar empresa y todos sus monitoristas?")) return;
@@ -141,12 +273,33 @@ function CompaniesTab() {
     } catch { }
   }, [load]);
 
-  const handleRegenToken = useCallback(async (id) => {
+  const handleRegenToken = useCallback(async (id, planId, cycle) => {
     try {
-      await api.post(`/companies/${id}/token/regenerate`);
+      await api.post(`/tokens/regenerate`, { company_id: id, plan_id: planId, cycle: cycle || "Mensual" });
+      loadTokens(id);
       load();
-    } catch { }
-  }, [load]);
+    } catch (err) { alert(formatApiError(err)); }
+  }, [loadTokens, load]);
+
+  const handleCreateMonitor = useCallback(async (id, cycle) => {
+    try {
+      await api.post(`/tokens/${id}/monitorista`, { cycle: cycle || "Mensual" });
+      loadTokens(id);
+    } catch (err) { alert(formatApiError(err)); }
+  }, [loadTokens]);
+
+  const handleDeactivate = useCallback(async (token) => {
+    try {
+      await api.post(`/tokens/deactivate`, { token: token.token });
+      loadTokens(token.company_id);
+    } catch (err) { alert(formatApiError(err)); }
+  }, [loadTokens]);
+
+  const handleBuy = useCallback(async () => {
+    setBuyOpen(null);
+    loadTokens(buyOpen?.id || buyOpen?._id);
+    load();
+  }, [buyOpen, loadTokens, load]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
 
@@ -186,8 +339,20 @@ function CompaniesTab() {
                     </button>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-3 text-xs text-neutral-500">
-                  <span>Token: <TokenDisplay token={c.site_token} onRegenerate={() => handleRegenToken(c.id || c._id)} /></span>
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
+                  <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full ${c.has_token ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-amber-500/15 text-amber-300 border border-amber-500/30"}`}>
+                    {c.has_token ? "Con tokens" : "Sin token"}
+                  </span>
+                  {!c.has_token && (
+                    <button onClick={() => setBuyOpen(c)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg px-3 py-1.5 transition-all">
+                      <Package className="h-3.5 w-3.5" /> Comprar paquete
+                    </button>
+                  )}
+                  {c.has_token && (
+                    <button onClick={() => handleRegenToken(c.id || c._id, c.plan_id, c.cycle)} className="inline-flex items-center gap-1.5 border border-white/10 hover:bg-white/10 rounded-lg px-3 py-1.5 transition-all" title="Regenerar ambos tokens">
+                      <RefreshCw className="h-3.5 w-3.5 text-amber-400" /> Regenerar tokens
+                    </button>
+                  )}
                 </div>
                 <div className="mt-3 flex items-center gap-4 text-xs text-neutral-500">
                   <span>Monitoristas: <strong className="text-white">{c.monitor_count || 0}</strong></span>
@@ -197,7 +362,29 @@ function CompaniesTab() {
               </div>
               {expanded[c.id || c._id] && (
                 <div className="border-t border-white/10 px-5 py-4 bg-white/[0.02]">
-                  <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">Monitoristas asignados</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500">Tokens de acceso</h4>
+                    {c.has_token && (
+                      <button onClick={() => handleCreateMonitor(c.id || c._id, c.cycle)} className="inline-flex items-center gap-1.5 border border-amber-500/30 hover:bg-amber-500/10 text-amber-300 rounded-lg px-2.5 py-1.5 text-xs transition-all" title="Crear/regenerar token de monitorista">
+                        <Key className="h-3.5 w-3.5" /> Nuevo token monitorista
+                      </button>
+                    )}
+                  </div>
+                  {tokens[c.id || c._id]?.length > 0 ? (
+                    <div className="space-y-3">
+                      {tokens[c.id || c._id].map(t => (
+                        <TokenRow
+                          key={t.token}
+                          token={t}
+                          onRegenerate={t.role === "monitorista" ? () => handleCreateMonitor(c.id || c._id, c.cycle) : () => handleRegenToken(c.id || c._id, c.plan_id, c.cycle)}
+                          onDeactivate={() => handleDeactivate(t)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-neutral-500">Sin tokens. {c.has_token ? "Cárgalos de nuevo expandiendo." : "Compra un paquete para generarlos."}</div>
+                  )}
+                  <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mt-5 mb-3">Monitoristas asignados</h4>
                   {monitors[c.id || c._id]?.length > 0 ? (
                     <div className="space-y-2">
                       {monitors[c.id || c._id].map(m => (
@@ -216,7 +403,8 @@ function CompaniesTab() {
           ))}
         </div>
       )}
-      {modalOpen && <CompanyModal company={editing} onClose={() => setModalOpen(false)} onSaved={load} />}
+       {modalOpen && <CompanyModal company={editing} onClose={() => setModalOpen(false)} onSaved={load} />}
+       {buyOpen && <BuyPackageModal company={buyOpen} onClose={() => setBuyOpen(null)} onSaved={handleBuy} />}
     </div>
   );
 }
