@@ -406,7 +406,6 @@ function CompaniesTab() {
                   ) : (
                     <div className="text-xs text-neutral-500">Sin monitoristas asignados todavía.</div>
                   )}
-                </div>
                 <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mt-5 mb-3">Conductores vinculados</h4>
                 {drivers[c.id || c._id]?.length > 0 ? (
                   <div className="space-y-2">
@@ -420,6 +419,7 @@ function CompaniesTab() {
                 ) : (
                   <div className="text-xs text-neutral-500">Ningún conductor ha vinculado su cuenta a esta empresa todavía.</div>
                 )}
+              </div>
               )}
             </div>
           ))}
