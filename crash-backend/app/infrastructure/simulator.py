@@ -43,6 +43,7 @@ class FleetSimulator:
         return {
             "id": d["id"],
             "name": d["name"],
+            "company_id": d.get("company_id"),
             "vehicle": d["vehicle"],
             "plate": d["plate"],
             "lat": d["lat"],

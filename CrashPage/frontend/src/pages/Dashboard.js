@@ -51,17 +51,34 @@ function Dashboard() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const driverList = useMemo(() => Object.values(drivers || {}), [drivers]);
+  const isMonitor = user?.role === "monitor" && !!user?.company_id;
+
+  const visibleDrivers = useMemo(() => {
+    if (!isMonitor) return drivers || {};
+    const out = {};
+    for (const [k, v] of Object.entries(drivers || {})) {
+      if (v.company_id === user.company_id) out[k] = v;
+    }
+    return out;
+  }, [drivers, isMonitor, user?.company_id]);
+
+  const visibleAlerts = useMemo(() => {
+    if (!isMonitor) return alerts;
+    const ids = new Set(Object.keys(visibleDrivers));
+    return (alerts || []).filter((a) => ids.has(a.driver_id));
+  }, [alerts, isMonitor, visibleDrivers]);
+
+  const driverList = useMemo(() => Object.values(visibleDrivers || {}), [visibleDrivers]);
 
   const selected = useMemo(() => {
-    if (selectedId && drivers[selectedId]) return drivers[selectedId];
+    if (selectedId && visibleDrivers[selectedId]) return visibleDrivers[selectedId];
     if (driverList.length > 0) return driverList[0];
     return null;
-  }, [selectedId, drivers, driverList]);
+  }, [selectedId, visibleDrivers, driverList]);
 
   const activeAlertCount = useMemo(
-    () => alerts.filter((a) => a.status === "pending").length,
-    [alerts]
+    () => (visibleAlerts || []).filter((a) => a.status === "pending").length,
+    [visibleAlerts]
   );
 
   const openDetail = useCallback((id) => {
@@ -75,8 +92,8 @@ function Dashboard() {
   const handleHistoryClose = useCallback(() => setHistoryOpen(false), []);
 
   const driverDetail = useMemo(
-    () => (detailId ? drivers[detailId] : null),
-    [detailId, drivers]
+    () => (detailId ? visibleDrivers[detailId] : null),
+    [detailId, visibleDrivers]
   );
 
   return (
@@ -95,7 +112,7 @@ function Dashboard() {
         <aside className="lg:col-span-3 rounded-2xl border border-white/10 glass-card backdrop-premium p-4 min-h-0 flex flex-col">
           <div className="flex-1 min-h-0">
             <DriverList
-              drivers={drivers}
+              drivers={visibleDrivers}
               selectedId={selected?.id}
               onSelect={handleSelectId}
               onOpenDetail={openDetail}
@@ -109,8 +126,8 @@ function Dashboard() {
         <section className="lg:col-span-6 flex flex-col gap-3 lg:gap-4 min-h-0">
           <div className="flex-1 rounded-2xl border border-white/10 overflow-hidden min-h-[280px]">
             <LiveMap
-              drivers={drivers}
-              alerts={alerts}
+              drivers={visibleDrivers}
+              alerts={visibleAlerts}
               selectedId={selected?.id}
               onSelect={handleSelectId}
             />
@@ -123,7 +140,7 @@ function Dashboard() {
         <aside className="lg:col-span-3 min-h-0 flex">
           <div className="flex-1 min-h-0">
             <AlertsCenter
-              alerts={alerts}
+              alerts={visibleAlerts}
               setAlerts={setAlerts}
               lastImpactId={lastImpactId}
               onSelectDriver={handleSelectId}

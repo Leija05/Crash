@@ -187,6 +187,7 @@ class MobileBridge:
                 "id": uid,
                 "name": u.get("name") or email or uid,
                 "email": email,
+                "company_id": u.get("company_id"),
                 "vehicle": "Motocicleta",
                 "plate": email.split("@")[0] if email else uid[-6:],
                 "lat": lat,
