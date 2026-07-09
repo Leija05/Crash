@@ -98,18 +98,20 @@ function DriverList({ drivers, selectedId, onSelect, onOpenDetail }) {
           Flota · <span className="text-white font-mono">{list.length}</span>
         </h3>
         <div className="text-[10px] font-mono text-emerald-400">
-          {list.filter((d) => d.status === "active").length} activos
+          {list.filter((d) => d.status === "active").length} en línea
         </div>
       </div>
 
       {list.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+          <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-3">
+            <Bike className="h-5 w-5 text-neutral-500" />
+          </div>
           <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">
             Sin conductores
           </div>
           <p className="text-xs text-neutral-600 leading-relaxed">
-            Aún no hay usuarios registrados con <span className="font-mono">role="user"</span> en la base del mobile.
-            Cuando un conductor se registre desde la app, aparecerá aquí.
+            Cuando un conductor vincule su cuenta a la empresa desde la app, aparecerá aquí en tu flota.
           </p>
         </div>
       ) : (

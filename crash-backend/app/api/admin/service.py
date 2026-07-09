@@ -142,6 +142,150 @@ async def get_system_analytics(days: int = 7) -> dict:
     }
 
 
+_SEVERITY_WEIGHT = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+
+
+async def get_token_alerts(threshold: float = None) -> dict:
+    """Tokens por agotarse (use_count/max_uses) o suscripciones por expirar."""
+    db = await get_db()
+    threshold = settings.TOKEN_ALERT_THRESHOLD if threshold is None else threshold
+    now = datetime.now(timezone.utc)
+    expiry_cutoff = now + timedelta(days=settings.EXPIRY_ALERT_DAYS)
+
+    cursor = db.site_tokens.find({"active": True}, {"_id": 0})
+    tokens = await cursor.to_list(500)
+
+    exhaustion = []
+    expiring = []
+    for t in tokens:
+        max_uses = t.get("max_uses", 0) or 0
+        use_count = t.get("use_count", 0) or 0
+        ratio = (use_count / max_uses) if max_uses > 0 else 0
+        remaining = max(0, max_uses - use_count)
+        if max_uses > 0 and ratio >= threshold:
+            exhaustion.append({
+                "company_id": t.get("company_id"),
+                "company_name": t.get("name", ""),
+                "role": t.get("role", ""),
+                "use_count": use_count,
+                "max_uses": max_uses,
+                "remaining": remaining,
+                "usage_ratio": round(ratio, 2),
+                "plan_name": t.get("plan_name", ""),
+            })
+        exp = t.get("expires_at")
+        if exp:
+            try:
+                exp_dt = datetime.fromisoformat(exp)
+                if exp_dt.tzinfo is None:
+                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                if exp_dt <= expiry_cutoff:
+                    days_left = (exp_dt - now).days
+                    expiring.append({
+                        "company_id": t.get("company_id"),
+                        "company_name": t.get("name", ""),
+                        "role": t.get("role", ""),
+                        "expires_at": exp,
+                        "days_left": days_left,
+                        "expired": exp_dt < now,
+                    })
+            except (ValueError, TypeError):
+                pass
+
+    exhaustion.sort(key=lambda x: x["usage_ratio"], reverse=True)
+    expiring.sort(key=lambda x: x["days_left"])
+    return {
+        "threshold": threshold,
+        "exhaustion": exhaustion,
+        "expiring": expiring,
+        "total_alerts": len(exhaustion) + len(expiring),
+        "timestamp": now.isoformat(),
+    }
+
+
+async def get_impact_heatmap(company_id: str = None, days: int = 30) -> dict:
+    """Puntos de impacto con lat/lng para el mapa de calor, con scope opcional por empresa."""
+    db = await get_db()
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=days)).isoformat()
+
+    points = []
+    if settings.DEMO_MODE:
+        for a in simulator.list_alerts():
+            if (a.get("created_at") or "") < cutoff:
+                continue
+            lat = a.get("latitude", a.get("lat"))
+            lng = a.get("longitude", a.get("lng"))
+            if lat is None or lng is None:
+                continue
+            sev = (a.get("severity") or "low").lower()
+            points.append({
+                "lat": float(lat), "lng": float(lng),
+                "severity": sev, "weight": _SEVERITY_WEIGHT.get(sev, 1),
+                "g_force": a.get("g_force", a.get("gforce")),
+                "company_id": None,
+                "company_name": a.get("driver_name", ""),
+                "created_at": a.get("created_at", ""),
+            })
+    else:
+        # Mapa user_id -> empresa
+        user_company = {}
+        async for u in db.users.find(
+            {"company_id": {"$ne": None}},
+            {"company_id": 1, "company_name": 1},
+        ):
+            user_company[str(u["_id"])] = {
+                "company_id": u.get("company_id"),
+                "company_name": u.get("company_name", ""),
+            }
+
+        cursor = db.impact_events.find(
+            {"created_at": {"$gte": cutoff}, "location": {"$ne": None}},
+            {"_id": 0, "user_id": 1, "location": 1, "severity": 1, "g_force": 1, "created_at": 1},
+        ).sort("created_at", -1)
+        rows = await cursor.to_list(2000)
+        for r in rows:
+            loc = r.get("location") or {}
+            lat = loc.get("latitude")
+            lng = loc.get("longitude")
+            if lat is None or lng is None:
+                continue
+            comp = user_company.get(r.get("user_id"), {})
+            if company_id and comp.get("company_id") != company_id:
+                continue
+            sev = (r.get("severity") or "low").lower()
+            points.append({
+                "lat": float(lat), "lng": float(lng),
+                "severity": sev, "weight": _SEVERITY_WEIGHT.get(sev, 1),
+                "g_force": r.get("g_force"),
+                "company_id": comp.get("company_id"),
+                "company_name": comp.get("company_name", ""),
+                "created_at": r.get("created_at", ""),
+            })
+
+    # Agregación por zona (cuadrícula ~1.1km redondeando a 2 decimales)
+    zones: dict[str, dict] = {}
+    for p in points:
+        key = f"{round(p['lat'], 2)},{round(p['lng'], 2)}"
+        z = zones.setdefault(key, {
+            "lat": round(p["lat"], 2), "lng": round(p["lng"], 2),
+            "count": 0, "risk": 0, "max_severity": "low",
+        })
+        z["count"] += 1
+        z["risk"] += p["weight"]
+        if _SEVERITY_WEIGHT.get(p["severity"], 1) > _SEVERITY_WEIGHT.get(z["max_severity"], 1):
+            z["max_severity"] = p["severity"]
+
+    return {
+        "period_days": days,
+        "company_id": company_id,
+        "total_points": len(points),
+        "points": points,
+        "zones": sorted(zones.values(), key=lambda z: z["risk"], reverse=True),
+        "timestamp": now.isoformat(),
+    }
+
+
 async def send_email_report(recipient: str) -> dict:
     if not settings.SMTP_HOST:
         return {"status": "error", "message": "SMTP no configurado. Reporte guardado para env\u00edo manual."}

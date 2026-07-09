@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Alert, Platform,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Alert, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';

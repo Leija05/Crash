@@ -1,25 +1,53 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { useAuth } from "../auth/AuthContext";
-import { api, formatApiError, superAdminAPI } from "../lib/api";
+import { api, formatApiError, superAdminAPI, adminAPI, companyAPI } from "../lib/api";
 import {
   LayoutDashboard, Building2, CreditCard, Users, Key, LogOut,
   Plus, Trash2, Edit3, Copy, RefreshCw, Loader2, Check, X,
   ChevronDown, ChevronRight, Shield, Activity, Mail, Phone,
   AlertCircle, Settings, BarChart3, Clock, Eye, Package, TrendingUp,
-  UserPlus, ScrollText,
+  UserPlus, ScrollText, LifeBuoy, Map as MapIcon, Bell, Webhook,
+  CalendarClock, Send, CheckCircle2, CalendarPlus, Slack,
 } from "lucide-react";
+
+const err = (e) => toast.error(formatApiError(e));
+const ok = (m) => toast.success(m);
+
+const ACCENTS = {
+  emerald: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
+  red: "bg-red-500/10 border-red-500/30 text-red-400",
+  amber: "bg-amber-500/10 border-amber-500/30 text-amber-400",
+  blue: "bg-blue-500/10 border-blue-500/30 text-blue-400",
+  default: "bg-white/5 border-white/10 text-neutral-400",
+};
+
+const ACCENT_GLOW = {
+  emerald: "group-hover:shadow-[0_18px_50px_-12px_rgba(16,185,129,0.25)]",
+  red: "group-hover:shadow-[0_18px_50px_-12px_rgba(239,68,68,0.25)]",
+  amber: "group-hover:shadow-[0_18px_50px_-12px_rgba(245,158,11,0.25)]",
+  blue: "group-hover:shadow-[0_18px_50px_-12px_rgba(59,130,246,0.25)]",
+  default: "",
+};
+const ACCENT_BAR = {
+  emerald: "from-emerald-500/60", red: "from-red-500/60",
+  amber: "from-amber-500/60", blue: "from-blue-500/60", default: "from-white/20",
+};
 
 function StatsCard({ icon: Icon, label, value, accent }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 hover-lift">
-      <div className="flex items-center justify-between mb-3">
-        <div className={`h-10 w-10 rounded-xl border flex items-center justify-center ${accent === "emerald" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : accent === "red" ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/5 border-white/10 text-neutral-400"}`}>
+    <div className={`group relative rounded-2xl border border-white/10 bg-white/[0.03] p-5 hover-lift overflow-hidden transition-all hover:border-white/20 ${ACCENT_GLOW[accent] || ""}`}>
+      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/[0.02] blur-2xl group-hover:bg-white/[0.04] transition-all" />
+      <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b to-transparent ${ACCENT_BAR[accent] || ACCENT_BAR.default} opacity-0 group-hover:opacity-100 transition-opacity`} />
+      <div className="relative flex items-center justify-between mb-3">
+        <div className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 ${ACCENTS[accent] || ACCENTS.default}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="text-xs text-neutral-500 mt-1">{label}</div>
+      <div className="relative text-3xl font-bold tracking-tight tabular-nums">{value}</div>
+      <div className="relative text-[11px] uppercase tracking-[0.15em] text-neutral-500 mt-1">{label}</div>
     </div>
   );
 }
@@ -217,6 +245,177 @@ function BuyPackageModal({ company, onClose, onSaved }) {
             {busy ? "Generando tokens..." : "Comprar y generar tokens"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionPanel({ company, onChanged }) {
+  const cid = company?.id || company?._id;
+  const [busy, setBusy] = useState(false);
+  const exp = company?.subscription_expires_at;
+  const expDate = exp ? new Date(exp) : null;
+  const daysLeft = expDate ? Math.ceil((expDate - new Date()) / 86400000) : null;
+  const expired = daysLeft != null && daysLeft < 0;
+  const warn = daysLeft != null && daysLeft >= 0 && daysLeft <= 7;
+
+  const extend = useCallback(async (days) => {
+    setBusy(true);
+    try {
+      await companyAPI.extendSubscription(cid, days);
+      ok(`Suscripción extendida ${days} días`);
+      onChanged?.();
+    } catch (e) { err(e); }
+    setBusy(false);
+  }, [cid, onChanged]);
+
+  return (
+    <div className="mt-5">
+      <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">Suscripción</h4>
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <CalendarClock className={`h-4 w-4 ${expired ? "text-red-400" : warn ? "text-amber-400" : "text-emerald-400"}`} />
+          {expDate ? (
+            <span>
+              Vence: <strong className="text-white">{expDate.toLocaleDateString()}</strong>
+              <span className={`ml-2 text-xs ${expired ? "text-red-400" : warn ? "text-amber-400" : "text-neutral-500"}`}>
+                {expired ? "· Expirada" : `· ${daysLeft} día(s)`}
+              </span>
+            </span>
+          ) : <span className="text-neutral-500">Sin fecha de expiración</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          {[30, 90, 365].map((d) => (
+            <button key={d} disabled={busy} onClick={() => extend(d)} className="inline-flex items-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 rounded-lg px-2.5 py-1.5 text-xs transition-all disabled:opacity-50">
+              <CalendarPlus className="h-3.5 w-3.5" /> +{d === 365 ? "1 año" : `${d}d`}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const WEBHOOK_EVENTS = [
+  { id: "impact", label: "Impactos" },
+  { id: "token_low", label: "Tokens por agotarse" },
+  { id: "subscription_expiring", label: "Suscripción por vencer" },
+];
+
+function WebhooksPanel({ company }) {
+  const cid = company?.id || company?._id;
+  const [cfg, setCfg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try { const { data } = await companyAPI.getWebhooks(cid); setCfg(data); }
+      catch { setCfg({ slack_webhook_url: "", whatsapp_number: "", enabled: false, events: ["impact"] }); }
+    })();
+  }, [cid]);
+
+  const toggleEvent = (id) => setCfg((p) => ({
+    ...p,
+    events: p.events.includes(id) ? p.events.filter((e) => e !== id) : [...p.events, id],
+  }));
+
+  const save = useCallback(async () => {
+    setBusy(true);
+    try { await companyAPI.setWebhooks(cid, cfg); ok("Webhooks guardados"); }
+    catch (e) { err(e); }
+    setBusy(false);
+  }, [cid, cfg]);
+
+  const test = useCallback(async () => {
+    try { const { data } = await companyAPI.testWebhook(cid); ok(`Prueba enviada · Slack: ${data.slack ? "ok" : "—"} · WhatsApp: ${data.whatsapp ? "ok" : "—"}`); }
+    catch (e) { err(e); }
+  }, [cid]);
+
+  if (!cfg) return null;
+  const inputCls = "w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all";
+
+  return (
+    <div className="mt-5">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500">Webhooks de alerta</h4>
+        <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer">
+          <input type="checkbox" checked={cfg.enabled} onChange={(e) => setCfg({ ...cfg, enabled: e.target.checked })} className="accent-emerald-500" />
+          Habilitado
+        </label>
+      </div>
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 flex items-center gap-1.5"><Slack className="h-3 w-3" /> Slack Incoming Webhook URL</label>
+          <input value={cfg.slack_webhook_url} onChange={(e) => setCfg({ ...cfg, slack_webhook_url: e.target.value })} placeholder="https://hooks.slack.com/services/..." className={inputCls} />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 flex items-center gap-1.5"><Phone className="h-3 w-3" /> WhatsApp (número con código país)</label>
+          <input value={cfg.whatsapp_number} onChange={(e) => setCfg({ ...cfg, whatsapp_number: e.target.value })} placeholder="5215512345678" className={inputCls} />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 block">Eventos</label>
+          <div className="flex flex-wrap gap-2">
+            {WEBHOOK_EVENTS.map((ev) => (
+              <button key={ev.id} onClick={() => toggleEvent(ev.id)} className={`text-xs rounded-lg px-2.5 py-1.5 border transition-all ${cfg.events.includes(ev.id) ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-white/10 text-neutral-400 hover:bg-white/5"}`}>
+                {ev.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <button disabled={busy} onClick={save} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg px-3 py-2 text-xs transition-all disabled:opacity-50">
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Webhook className="h-3.5 w-3.5" />} Guardar
+          </button>
+          <button onClick={test} className="inline-flex items-center gap-1.5 border border-white/10 hover:bg-white/10 rounded-lg px-3 py-2 text-xs transition-all">
+            <Send className="h-3.5 w-3.5" /> Probar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportSchedulePanel({ company }) {
+  const cid = company?.id || company?._id;
+  const init = company?.report_schedule || { frequency: "off", channel: "email", recipient: "" };
+  const [cfg, setCfg] = useState(init);
+  const [busy, setBusy] = useState(false);
+
+  const save = useCallback(async () => {
+    setBusy(true);
+    try { await companyAPI.setReportSchedule(cid, cfg); ok("Programación guardada"); }
+    catch (e) { err(e); }
+    setBusy(false);
+  }, [cid, cfg]);
+
+  const selCls = "bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none";
+  return (
+    <div className="mt-5">
+      <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">Reportes programados</h4>
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 grid sm:grid-cols-4 gap-3 items-end">
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Frecuencia</label>
+          <select value={cfg.frequency} onChange={(e) => setCfg({ ...cfg, frequency: e.target.value })} className={`${selCls} w-full`}>
+            <option value="off">Desactivado</option>
+            <option value="daily">Diario</option>
+            <option value="weekly">Semanal</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Canal</label>
+          <select value={cfg.channel} onChange={(e) => setCfg({ ...cfg, channel: e.target.value })} className={`${selCls} w-full`}>
+            <option value="email">Email</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="slack">Slack</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Destino</label>
+          <input value={cfg.recipient} onChange={(e) => setCfg({ ...cfg, recipient: e.target.value })} placeholder="correo o número" className={`${selCls} w-full`} />
+        </div>
+        <button disabled={busy} onClick={save} className="inline-flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg px-3 py-2.5 text-xs transition-all disabled:opacity-50">
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CalendarClock className="h-3.5 w-3.5" />} Guardar
+        </button>
       </div>
     </div>
   );
@@ -429,6 +628,9 @@ function CompaniesTab() {
                 ) : (
                   <div className="text-xs text-neutral-500">Ningún conductor ha vinculado su cuenta a esta empresa todavía.</div>
                 )}
+                <SubscriptionPanel company={c} onChanged={load} />
+                <WebhooksPanel company={c} />
+                <ReportSchedulePanel company={c} />
               </div>
               )}
             </div>
@@ -479,6 +681,73 @@ function PlansTab() {
   );
 }
 
+function TokenAlertsPanel() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try { const { data } = await adminAPI.tokenAlerts(); setData(data); } catch { }
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return null;
+  const exhaustion = data?.exhaustion || [];
+  const expiring = data?.expiring || [];
+  const total = exhaustion.length + expiring.length;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center"><Bell className="h-4 w-4 text-amber-400" /></div>
+        <div>
+          <h3 className="font-bold">Alertas de tokens y suscripciones</h3>
+          <div className="text-xs text-neutral-500">{total === 0 ? "Todo en orden" : `${total} alerta${total > 1 ? "s" : ""} activa${total > 1 ? "s" : ""}`}</div>
+        </div>
+      </div>
+      {total === 0 ? (
+        <div className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="h-4 w-4" /> No hay tokens por agotarse ni suscripciones por vencer.</div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">Tokens por agotarse</h4>
+            {exhaustion.length === 0 ? <div className="text-xs text-neutral-500">Sin alertas.</div> : (
+              <div className="space-y-2">
+                {exhaustion.map((a, i) => (
+                  <div key={i} className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium truncate">{a.company_name}</span>
+                      <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">{a.role}</span>
+                    </div>
+                    <div className="text-xs text-neutral-400 mt-1">{a.use_count}/{a.max_uses} usos · quedan {a.remaining}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">Suscripciones por vencer</h4>
+            {expiring.length === 0 ? <div className="text-xs text-neutral-500">Sin alertas.</div> : (
+              <div className="space-y-2">
+                {expiring.map((a, i) => (
+                  <div key={i} className={`rounded-xl border p-3 ${a.expired ? "border-red-500/25 bg-red-500/[0.05]" : "border-amber-500/20 bg-amber-500/[0.04]"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium truncate">{a.company_name}</span>
+                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${a.expired ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-300"}`}>{a.role}</span>
+                    </div>
+                    <div className="text-xs text-neutral-400 mt-1">{a.expired ? "Expirada" : `Vence en ${a.days_left} día(s)`}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OverviewTab() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -510,6 +779,259 @@ function OverviewTab() {
           <div className="flex items-center gap-2"><Shield className="h-4 w-4" /> Modo: <strong className="text-white">{stats?.demo_mode ? "Demo" : "Producción"}</strong></div>
         </div>
       </div>
+      <TokenAlertsPanel />
+    </div>
+  );
+}
+
+const SEVERITY_COLORS = { low: "#10b981", medium: "#f59e0b", high: "#f97316", critical: "#ef4444" };
+
+function HeatmapTab() {
+  const [companies, setCompanies] = useState([]);
+  const [companyId, setCompanyId] = useState("");
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try { const { data } = await api.get("/companies"); setCompanies(data || []); } catch { }
+    })();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const params = { days };
+    if (companyId) params.company_id = companyId;
+    adminAPI.heatmap(params)
+      .then((r) => { if (!cancelled) setData(r.data); })
+      .catch((e) => { if (!cancelled) err(e); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [companyId, days]);
+
+  const points = data?.points || [];
+  const zones = data?.zones || [];
+  const center = points[0] ? [points[0].lat, points[0].lng] : [19.4326, -99.1332];
+  const selCls = "bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none";
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h2 className="text-xl font-bold">Mapa de calor de impactos</h2>
+        <div className="flex items-center gap-2">
+          <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className={selCls}>
+            <option value="">Todas las empresas</option>
+            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={days} onChange={(e) => setDays(Number(e.target.value))} className={selCls}>
+            <option value={7}>7 días</option>
+            <option value={30}>30 días</option>
+            <option value={90}>90 días</option>
+            <option value={365}>1 año</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 rounded-2xl border border-white/10 overflow-hidden h-[520px] relative">
+          {loading && <div className="absolute inset-0 z-[500] flex items-center justify-center bg-black/40"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>}
+          <MapContainer key={`heat-${companyId}-${days}`} center={center} zoom={11} scrollWheelZoom className="h-full w-full" style={{ background: "#0a0a0a" }}>
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; carto.com' />
+            {points.map((p, i) => (
+              <CircleMarker key={i} center={[p.lat, p.lng]} radius={Math.min(20, 6 + (p.weight || 1) * 3)}
+                pathOptions={{ color: SEVERITY_COLORS[p.severity] || "#10b981", fillColor: SEVERITY_COLORS[p.severity] || "#10b981", fillOpacity: 0.4, weight: 1, opacity: 0.6 }}>
+                <Popup>
+                  <div className="text-xs">
+                    <div className="font-semibold capitalize">{p.severity}</div>
+                    {p.company_name && <div>{p.company_name}</div>}
+                    <div>{p.g_force != null ? `${Number(p.g_force).toFixed(2)}G` : ""}</div>
+                    <div className="text-neutral-400">{p.created_at ? new Date(p.created_at).toLocaleString() : ""}</div>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+          </MapContainer>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="text-3xl font-bold">{data?.total_points || 0}</div>
+            <div className="text-xs text-neutral-500 mt-1">impactos geolocalizados ({days}d)</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">Zonas de mayor riesgo</h4>
+            {zones.length === 0 ? <div className="text-xs text-neutral-500">Sin datos en el periodo.</div> : (
+              <div className="space-y-2 max-h-[340px] overflow-y-auto">
+                {zones.slice(0, 12).map((z, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: SEVERITY_COLORS[z.max_severity] }} />
+                      <span className="font-mono text-xs text-neutral-400">{z.lat}, {z.lng}</span>
+                    </span>
+                    <span className="text-xs"><strong className="text-white">{z.count}</strong> · riesgo {z.risk}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SUPPORT_TYPE_LABELS = {
+  password_reset: "Reinicio de contraseña",
+  remove_token: "Quitar token",
+  billing: "Facturación",
+  otro: "Otro",
+};
+
+function TempPasswordModal({ result, onClose }) {
+  const copy = useCallback(() => {
+    navigator.clipboard?.writeText(result.temp_password);
+    ok("Contraseña copiada");
+  }, [result]);
+  return (
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0d0d0f] border border-emerald-500/30 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Key className="h-5 w-5 text-emerald-400" /></div>
+          <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Contraseña reiniciada</div><div className="font-bold">{result.email}</div></div>
+        </div>
+        <p className="text-sm text-neutral-400 mb-3">Entrega esta contraseña temporal al usuario ({result.target_type}). No se volverá a mostrar.</p>
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <code className="flex-1 font-mono text-lg text-emerald-300 tracking-wide">{result.temp_password}</code>
+          <button onClick={copy} className="inline-flex items-center gap-1.5 border border-white/10 hover:bg-white/10 rounded-lg px-3 py-1.5 text-xs transition-all"><Copy className="h-3.5 w-3.5" /> Copiar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupportTab() {
+  const [reqs, setReqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("open");
+  const [pwResult, setPwResult] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+
+  const load = useCallback(async () => {
+    try { const { data } = await adminAPI.supportList(); setReqs(data || []); } catch (e) { err(e); }
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const forward = useCallback(async (id) => {
+    try { await adminAPI.supportForward(id); ok("Reenviado a soporte"); load(); } catch (e) { err(e); }
+  }, [load]);
+  const resolve = useCallback(async (id) => {
+    try { await adminAPI.supportResolve(id, ""); ok("Marcado como resuelto"); load(); } catch (e) { err(e); }
+  }, [load]);
+
+  const resetPassword = useCallback(async (r) => {
+    const suggested = r.requested_by_email || "";
+    const email = window.prompt("Correo de la cuenta a reiniciar:", suggested);
+    if (email === null) return;
+    setBusyId(r.id);
+    try {
+      const { data } = await adminAPI.supportResetPassword(r.id, email.trim() || undefined);
+      setPwResult(data);
+      ok("Contraseña reiniciada");
+      load();
+    } catch (e) { err(e); }
+    setBusyId(null);
+  }, [load]);
+
+  const revokeToken = useCallback(async (r) => {
+    if (!window.confirm(`¿Desactivar el token de monitorista de ${r.company_name || "esta empresa"}?`)) return;
+    setBusyId(r.id);
+    try {
+      const { data } = await adminAPI.supportRevokeToken(r.id);
+      ok(`${data.deactivated} token(s) desactivado(s)`);
+      load();
+    } catch (e) { err(e); }
+    setBusyId(null);
+  }, [load]);
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return reqs;
+    if (filter === "open") return reqs.filter((r) => r.status !== "resolved");
+    return reqs.filter((r) => r.status === "resolved");
+  }, [reqs, filter]);
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
+
+  const statusBadge = (s) => {
+    const map = {
+      open: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+      forwarded: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+      resolved: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    };
+    return map[s] || map.open;
+  };
+
+  return (
+    <div>
+      {pwResult && <TempPasswordModal result={pwResult} onClose={() => setPwResult(null)} />}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-xl font-bold">Centro de Ayudas</h2>
+          <p className="text-sm text-neutral-500 mt-0.5">Solicitudes de las empresas: reinicio de contraseña, quitar tokens y más.</p>
+        </div>
+        <div className="flex items-center gap-1 rounded-xl border border-white/10 p-1">
+          {[["open", "Abiertas"], ["resolved", "Resueltas"], ["all", "Todas"]].map(([k, l]) => (
+            <button key={k} onClick={() => setFilter(k)} className={`text-xs px-3 py-1.5 rounded-lg transition-all ${filter === k ? "bg-emerald-500/15 text-emerald-300" : "text-neutral-400 hover:text-white"}`}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-neutral-500 text-sm">No hay solicitudes {filter === "resolved" ? "resueltas" : filter === "open" ? "abiertas" : ""}.</div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((r) => (
+            <div key={r.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <LifeBuoy className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                    <h3 className="font-bold truncate">{r.company_name || "Empresa"}</h3>
+                    <span className="text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300">{SUPPORT_TYPE_LABELS[r.type] || r.type}</span>
+                    <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border ${statusBadge(r.status)}`}>{r.status}</span>
+                  </div>
+                  {r.requested_by_email && (
+                    <div className="text-[11px] text-neutral-400 mt-1">Solicitado por: <span className="text-neutral-200">{r.requested_by_name || r.requested_by_email}</span> · {r.requested_by_email}</div>
+                  )}
+                  <p className="text-sm text-neutral-300 mt-2 whitespace-pre-wrap">{r.message || "(sin mensaje)"}</p>
+                  {r.resolution_note && <div className="text-[11px] text-emerald-400/80 mt-2">✓ {r.resolution_note}</div>}
+                  <div className="text-[11px] text-neutral-500 mt-2">{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</div>
+                </div>
+                <div className="flex flex-col gap-2 flex-shrink-0 w-40">
+                  {r.status !== "resolved" && (
+                    <>
+                      <button disabled={busyId === r.id} onClick={() => resetPassword(r)} className="inline-flex items-center justify-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 disabled:opacity-50 text-emerald-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                        <Key className="h-3.5 w-3.5" /> Reiniciar contraseña
+                      </button>
+                      <button disabled={busyId === r.id} onClick={() => revokeToken(r)} className="inline-flex items-center justify-center gap-1.5 border border-red-500/30 hover:bg-red-500/10 disabled:opacity-50 text-red-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                        <Shield className="h-3.5 w-3.5" /> Quitar token
+                      </button>
+                      <button disabled={busyId === r.id} onClick={() => forward(r.id)} className="inline-flex items-center justify-center gap-1.5 border border-blue-500/30 hover:bg-blue-500/10 disabled:opacity-50 text-blue-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                        <Send className="h-3.5 w-3.5" /> Reenviar
+                      </button>
+                      <button disabled={busyId === r.id} onClick={() => resolve(r.id)} className="inline-flex items-center justify-center gap-1.5 border border-white/10 hover:bg-white/10 disabled:opacity-50 text-neutral-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -517,6 +1039,8 @@ function OverviewTab() {
 const TABS = [
   { id: "overview", label: "Resumen", icon: LayoutDashboard, Tab: OverviewTab },
   { id: "companies", label: "Empresas", icon: Building2, Tab: CompaniesTab },
+  { id: "heatmap", label: "Mapa de Calor", icon: MapIcon, Tab: HeatmapTab },
+  { id: "support", label: "Centro de Ayudas", icon: LifeBuoy, Tab: SupportTab },
   { id: "plans", label: "Planes", icon: CreditCard, Tab: PlansTab },
   { id: "logistics", label: "Logística de Ventas", icon: TrendingUp, Tab: SalesLogisticsTab },
   { id: "superadmins", label: "SuperAdmins", icon: UserPlus, Tab: SuperAdminsTab },
@@ -803,48 +1327,79 @@ function AdminPanel() {
     return tab?.Tab || OverviewTab;
   }, [activeTab]);
 
+  const activeLabel = useMemo(() => TABS.find(t => t.id === activeTab)?.label || "", [activeTab]);
+
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex">
-      <aside className="w-64 border-r border-white/10 bg-white/[0.02] p-5 flex flex-col flex-shrink-0 hidden lg:flex">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex relative">
+      <div className="pointer-events-none fixed inset-0 grid-bg opacity-[0.35]" />
+      <div className="pointer-events-none fixed -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/[0.06] blur-[120px]" />
+      <div className="pointer-events-none fixed -bottom-40 -right-40 h-96 w-96 rounded-full bg-red-500/[0.05] blur-[120px]" />
+
+      <aside className="relative z-10 w-64 border-r border-white/10 bg-black/40 backdrop-blur-xl p-5 flex flex-col flex-shrink-0 hidden lg:flex">
         <div className="flex items-center gap-3 mb-8">
-          <div className="h-9 w-9 rounded-xl bg-red-500/15 border border-red-500/40 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500/25 to-red-500/5 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)]">
             <Shield className="h-5 w-5 text-red-400" />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 leading-tight">SuperAdmin</div>
-            <div className="text-base font-bold leading-tight">C.R.A.S.H.</div>
+            <div className="text-[10px] uppercase tracking-[0.35em] text-neutral-500 leading-tight">SuperAdmin</div>
+            <div className="text-base font-bold leading-tight tracking-tight">C.R.A.S.H.</div>
           </div>
         </div>
         <nav className="flex-1 space-y-1">
-          {TABS.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${activeTab === tab.id ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30" : "text-neutral-400 hover:text-white hover:bg-white/5"}`}>
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
+          {TABS.map(tab => {
+            const active = activeTab === tab.id;
+            return (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${active ? "bg-emerald-500/10 text-emerald-300" : "text-neutral-400 hover:text-white hover:bg-white/5"}`}>
+                <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-emerald-400 transition-all ${active ? "opacity-100" : "opacity-0 group-hover:opacity-40"}`} />
+                <tab.icon className={`h-4 w-4 transition-transform ${active ? "" : "group-hover:scale-110"}`} />
+                {tab.label}
+              </button>
+            );
+          })}
         </nav>
         <div className="border-t border-white/10 pt-4 space-y-3">
           <div className="text-xs text-neutral-500 px-3 truncate">{user?.email}</div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-all">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all">
             <LogOut className="h-4 w-4" />
             Cerrar sesión
           </button>
         </div>
       </aside>
-      <main className="flex-1 p-6 overflow-y-auto">
-        <div className="lg:hidden flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Shield className="h-5 w-5 text-red-400" />
-            <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">SuperAdmin</div><div className="font-bold">C.R.A.S.H.</div></div>
+
+      <main className="relative z-10 flex-1 min-w-0 overflow-y-auto">
+        {/* Mobile header + horizontal tabs */}
+        <div className="lg:hidden sticky top-0 z-20 bg-black/60 backdrop-blur-xl border-b border-white/10">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-red-500/15 border border-red-500/40 flex items-center justify-center"><Shield className="h-4 w-4 text-red-400" /></div>
+              <div><div className="text-[9px] uppercase tracking-[0.3em] text-neutral-500 leading-none">SuperAdmin</div><div className="font-bold text-sm leading-tight">{activeLabel}</div></div>
+            </div>
+            <button onClick={handleLogout} className="h-9 w-9 rounded-lg border border-red-500/30 flex items-center justify-center hover:bg-red-500/10 transition-all"><LogOut className="h-4 w-4 text-red-400" /></button>
           </div>
-          <div className="flex items-center gap-2">
-            <select value={activeTab} onChange={e => setActiveTab(e.target.value)} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none">
-              {TABS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </select>
-            <button onClick={handleLogout} className="h-9 w-9 rounded-lg border border-red-500/30 flex items-center justify-center"><LogOut className="h-4 w-4 text-red-400" /></button>
+          <div className="flex gap-1.5 overflow-x-auto px-4 pb-3 no-scrollbar">
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs whitespace-nowrap transition-all ${activeTab === t.id ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "text-neutral-400 border border-white/10 hover:bg-white/5"}`}>
+                <t.icon className="h-3.5 w-3.5" /> {t.label}
+              </button>
+            ))}
           </div>
         </div>
-        <ActiveComponent />
+        {/* Desktop section header */}
+        <div className="hidden lg:flex items-center justify-between sticky top-0 z-20 bg-black/50 backdrop-blur-xl border-b border-white/10 px-8 py-4">
+          <div className="flex items-center gap-3">
+            {(() => { const T = TABS.find(t => t.id === activeTab); const I = T?.icon; return I ? <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-300"><I className="h-4.5 w-4.5" /></div> : null; })()}
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.35em] text-neutral-500 leading-none">Panel de control</div>
+              <div className="text-lg font-bold leading-tight tracking-tight mt-1">{activeLabel}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-neutral-500">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]" /> Sistema operativo
+          </div>
+        </div>
+        <div key={activeTab} className="p-4 sm:p-6 lg:p-8 page-enter">
+          <ActiveComponent />
+        </div>
       </main>
     </div>
   );

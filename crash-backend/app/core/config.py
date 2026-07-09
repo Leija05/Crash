@@ -54,5 +54,17 @@ class Settings:
     SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
     SMTP_FROM: str = os.environ.get("SMTP_FROM", "noreply@crash.io")
 
+    # Soporte / Centro de Ayudas
+    SUPPORT_PHONE: str = os.environ.get("SUPPORT_PHONE", "")
+    SUPPORT_EMAIL: str = os.environ.get("SUPPORT_EMAIL", "")
+    SUPPORT_SLACK_WEBHOOK: str = os.environ.get("SUPPORT_SLACK_WEBHOOK", "")
+
+    # Umbral (0-1) a partir del cual un token se considera "por agotarse"
+    TOKEN_ALERT_THRESHOLD: float = float(os.environ.get("TOKEN_ALERT_THRESHOLD", "0.8"))
+    # Días antes de la expiración de suscripción para alertar
+    EXPIRY_ALERT_DAYS: int = int(os.environ.get("EXPIRY_ALERT_DAYS", "7"))
+    # Intervalo del scheduler de reportes/alertas en minutos
+    SCHEDULER_INTERVAL_MINUTES: int = int(os.environ.get("SCHEDULER_INTERVAL_MINUTES", "15"))
+
 
 settings = Settings()

@@ -9,7 +9,7 @@ import { useAuth } from '../src/context/AuthContext';
 import { useI18n } from '../src/i18n';
 import { CrashLogoFull } from '../src/components/CrashLogo';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, SHADOWS } from '../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, FONT } from '../src/theme';
 
 export default function LoginScreen() {
   const { t } = useI18n();
@@ -48,6 +48,7 @@ export default function LoginScreen() {
             <View style={styles.cardHeader}>
               <Text style={styles.badge}>{t('login.badge')}</Text>
               <Text style={styles.cardTitle}>{t('login.title')}</Text>
+              <View style={styles.titleAccent} />
               <Text style={styles.cardDesc}>{t('login.subtitle')}</Text>
             </View>
 
@@ -141,11 +142,11 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   card: {
-    backgroundColor: 'rgba(13,13,18,0.92)',
+    backgroundColor: COLORS.glassBg,
     borderRadius: RADIUS.xl,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: COLORS.glassBorder,
     ...SHADOWS.lg,
   },
   cardHeader: { marginBottom: 20, alignItems: 'center' },
@@ -153,8 +154,9 @@ const styles = StyleSheet.create({
     fontSize: 9, color: COLORS.primary, letterSpacing: 4,
     marginBottom: 8, fontWeight: '800',
   },
-  cardTitle: { fontSize: 26, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
-  cardDesc: { fontSize: 12, color: COLORS.textSec, marginTop: 4, letterSpacing: 0.3 },
+  cardTitle: { fontSize: 30, fontFamily: FONT.headingBold, fontWeight: '900', color: COLORS.text, letterSpacing: 0.5, textTransform: 'uppercase' },
+  titleAccent: { width: 40, height: 3, borderRadius: 2, backgroundColor: COLORS.primary, marginTop: 10 },
+  cardDesc: { fontSize: 12, color: COLORS.textSec, marginTop: 12, letterSpacing: 0.3 },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: 'rgba(255,59,48,0.08)',
@@ -181,7 +183,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.glow(COLORS.primary),
   },
   buttonDisabled: { opacity: 0.5 },
-  buttonText: { color: '#FFF', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  buttonText: { color: '#FFF', fontSize: 14, fontFamily: FONT.headingBold, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
   linkBtn: { alignItems: 'center', marginTop: SPACING.md, paddingVertical: 4 },
   linkText: { color: COLORS.textDim, fontSize: 13 },
   linkAccent: { color: COLORS.accent, fontWeight: '700' },

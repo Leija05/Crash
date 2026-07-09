@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Toaster } from "sonner";
 import "./App.css";
 import { AuthProvider } from "./auth/AuthContext";
 import { I18nProvider } from "./i18n";
@@ -75,6 +76,7 @@ function AppContent() {
               <Suspense fallback={<LoadingFallback />}>
                 <AnimatedRoutes />
               </Suspense>
+              <Toaster theme="dark" position="top-right" richColors closeButton />
             </BrowserRouter>
           </SettingsProvider>
         </AuthProvider>

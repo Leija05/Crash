@@ -491,9 +491,14 @@ async def on_startup() -> None:
         await bridge.start(db, manager.broadcast)
         logger.info("CRASH started in LIVE mode — reading mobile DB '%s'", settings.DB_NAME)
 
+    from app.infrastructure.scheduler import scheduler
+    await scheduler.start()
+
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
+    from app.infrastructure.scheduler import scheduler
+    await scheduler.stop()
     if settings.DEMO_MODE:
         from app.infrastructure.simulator import simulator
         await simulator.stop()

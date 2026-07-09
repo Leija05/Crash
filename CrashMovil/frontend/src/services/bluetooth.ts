@@ -19,6 +19,8 @@ export interface TelemetryData {
   battery?: number | null;
   critical: boolean;
   timestamp: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface ScanDevice {

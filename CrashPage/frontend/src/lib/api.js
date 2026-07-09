@@ -53,3 +53,27 @@ export const superAdminAPI = {
   remove: (id) => api.delete(`/auth/superadmin/${id}`),
   audit: () => api.get("/admin/audit"),
 };
+
+// Centro de Ayudas, alertas de tokens y mapa de calor (superadmin).
+export const adminAPI = {
+  tokenAlerts: () => api.get("/admin/token-alerts"),
+  heatmap: (params) => api.get("/admin/heatmap", { params }),
+  supportList: () => api.get("/admin/support"),
+  supportForward: (id) => api.post(`/admin/support/${id}/forward`),
+  supportResolve: (id, note) => api.post(`/admin/support/${id}/resolve`, { note }),
+  supportResetPassword: (id, targetEmail) =>
+    api.post(`/admin/support/${id}/reset-password`, { target_email: targetEmail || undefined }),
+  supportRevokeToken: (id, token) =>
+    api.post(`/admin/support/${id}/revoke-token`, { token: token || undefined }),
+};
+
+// Configuración por empresa (webhooks, suscripción, reportes).
+export const companyAPI = {
+  createSupport: (type, message) => api.post("/companies/support", { type, message }),
+  extendSubscription: (id, days = 30) =>
+    api.post(`/companies/${id}/extend-subscription`, { days }),
+  getWebhooks: (id) => api.get(`/companies/${id}/webhooks`),
+  setWebhooks: (id, data) => api.put(`/companies/${id}/webhooks`, data),
+  testWebhook: (id) => api.post(`/companies/${id}/webhooks/test`),
+  setReportSchedule: (id, data) => api.put(`/companies/${id}/report-schedule`, data),
+};

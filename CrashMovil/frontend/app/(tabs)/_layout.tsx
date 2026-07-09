@@ -2,14 +2,17 @@ import { Redirect, Tabs } from 'expo-router';
 import { memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View, Platform } from 'react-native';
-import { COLORS, RADIUS, SHADOWS } from '../../src/theme';
+import { COLORS, RADIUS, SHADOWS, FONT } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 
-function TabIcon({ name, color, size, focused }) {
+function TabIcon({ name, color, size, focused }: { name: any; color: string; size: number; focused: boolean }) {
   return (
-    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-      <Ionicons name={name} size={size - 2} color={color} />
+    <View style={styles.iconOuter}>
+      <View style={[styles.iconDot, focused && styles.iconDotActive]} />
+      <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+        <Ionicons name={name} size={size - 2} color={color} />
+      </View>
     </View>
   );
 }
@@ -60,14 +63,30 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 9,
+    fontFamily: FONT.medium,
     fontWeight: '700',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
     marginTop: 1,
     textTransform: 'uppercase',
   },
+  iconOuter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'transparent',
+    marginBottom: 3,
+  },
+  iconDotActive: {
+    backgroundColor: COLORS.accent,
+    ...SHADOWS.glow(COLORS.accent),
+  },
   iconWrap: {
     width: 34,
-    height: 24,
+    height: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,

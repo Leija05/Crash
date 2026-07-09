@@ -49,6 +49,26 @@ async def create_impact(user: dict, body) -> dict:
     }
     await db.impact_events.insert_one(impact_doc)
 
+    # Notificar a la empresa del conductor por sus webhooks (Slack/WhatsApp).
+    company_id = user.get("company_id")
+    if company_id:
+        try:
+            from app.infrastructure.notifications import notify_company
+
+            loc = impact_doc.get("location") or {}
+            loc_str = (
+                f"\nUbicación: https://maps.google.com/?q={loc['latitude']},{loc['longitude']}"
+                if loc.get("latitude") else ""
+            )
+            asyncio.create_task(notify_company(
+                company_id,
+                "impact",
+                f"Impacto {impact_doc['severity_label']} · {user.get('name', 'Conductor')}",
+                f"Fuerza: {body.g_force:.1f}G{loc_str}",
+            ))
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Company webhook notify failed: {e}")
+
     profile = await db.user_profiles.find_one({"user_id": user["id"]}, {"_id": 0})
 
     diagnosis = None

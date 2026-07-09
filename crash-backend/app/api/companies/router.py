@@ -4,6 +4,9 @@ from fastapi import APIRouter, Depends
 from app.api.companies.service import (
     create_company, list_companies, get_company, update_company, delete_company,
     buy_package, get_company_tokens, get_company_drivers,
+    create_support_request, extend_subscription,
+    get_company_webhooks, set_company_webhooks, test_company_webhook,
+    set_report_schedule,
 )
 from app.core.security import get_current_superadmin, get_current_monitor_user, get_current_admin
 
@@ -68,3 +71,46 @@ async def company_monitors(company_id: str, _=Depends(get_current_admin)):
 @router.get("/{company_id}/drivers")
 async def company_drivers(company_id: str, _=Depends(get_current_admin)):
     return await get_company_drivers(company_id)
+
+
+@router.post("/support")
+async def create_support(data: dict, user: dict = Depends(get_current_monitor_user)):
+    """Un monitorista/empresa envía un reporte al Centro de Ayudas (superadmin)."""
+    company_id = user.get("company_id")
+    if not company_id:
+        from fastapi import HTTPException
+        raise HTTPException(400, "Tu cuenta no está asociada a una empresa")
+    return await create_support_request(
+        company_id, data.get("type", "otro"), data.get("message", ""),
+        requested_by={
+            "id": user.get("id", ""),
+            "email": user.get("email", ""),
+            "name": user.get("name", ""),
+        },
+    )
+
+
+@router.post("/{company_id}/extend-subscription")
+async def extend_sub(company_id: str, data: dict = None, _=Depends(get_current_superadmin)):
+    days = int((data or {}).get("days", 30))
+    return await extend_subscription(company_id, days)
+
+
+@router.get("/{company_id}/webhooks")
+async def company_webhooks_get(company_id: str, _=Depends(get_current_admin)):
+    return await get_company_webhooks(company_id)
+
+
+@router.put("/{company_id}/webhooks")
+async def company_webhooks_set(company_id: str, data: dict, _=Depends(get_current_superadmin)):
+    return await set_company_webhooks(company_id, data)
+
+
+@router.post("/{company_id}/webhooks/test")
+async def company_webhooks_test(company_id: str, _=Depends(get_current_superadmin)):
+    return await test_company_webhook(company_id)
+
+
+@router.put("/{company_id}/report-schedule")
+async def company_report_schedule(company_id: str, data: dict, _=Depends(get_current_superadmin)):
+    return await set_report_schedule(company_id, data)

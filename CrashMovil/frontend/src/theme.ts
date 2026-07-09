@@ -1,27 +1,32 @@
 import { Platform } from 'react-native';
 
+// Paleta alineada a design_guidelines.json ("Performance Pro" · tactical dark).
 export const COLORS = {
-  bg: '#050506',
-  surface: '#0D0D12',
-  surfaceAlt: '#14141C',
-  elevated: '#1A1A26',
-  border: 'rgba(255,255,255,0.07)',
-  borderStrong: 'rgba(255,255,255,0.12)',
-  text: '#F2F2F5',
-  textSec: '#9494A5',
-  textDim: '#5C5C6E',
+  bg: '#0A0A0A',
+  bgElevated: '#141414',
+  surface: '#171717',
+  surfaceAlt: '#1E1E1E',
+  elevated: '#262626',
+  border: 'rgba(255,255,255,0.10)',
+  borderStrong: 'rgba(255,255,255,0.16)',
+  text: '#FFFFFF',
+  textSec: '#A3A3A3',
+  textDim: '#6B6B6B',
   primary: '#FF3B30',
+  primaryHover: '#D63026',
   primarySoft: 'rgba(255,59,48,0.12)',
+  primaryStrong: 'rgba(255,59,48,0.22)',
   accent: '#CCFF00',
   accentSoft: 'rgba(204,255,0,0.10)',
-  success: '#34D399',
-  warning: '#FBBF24',
-  info: '#60A5FA',
-  danger: '#F87171',
-  cardBg: '#0D0D12',
-  overlay: 'rgba(0,0,0,0.75)',
-  glassBg: 'rgba(13,13,18,0.85)',
-  glassBorder: 'rgba(255,255,255,0.08)',
+  accentStrong: 'rgba(204,255,0,0.20)',
+  success: '#34C759',
+  warning: '#FF9500',
+  info: '#007AFF',
+  danger: '#FF3B30',
+  cardBg: '#171717',
+  overlay: 'rgba(0,0,0,0.80)',
+  glassBg: 'rgba(10,10,10,0.72)',
+  glassBorder: 'rgba(255,255,255,0.10)',
 };
 
 export const RADIUS = {
@@ -40,10 +45,12 @@ export const SPACING = {
   xl: 32,
 };
 
+// Tipografía premium usando fuentes nativas del sistema (sin dependencias extra).
+// En Android usamos la familia condensada para un look "tactical" tipo Barlow Condensed.
 export const FONT = Platform.select({
-  ios: { mono: 'Menlo' },
-  android: { mono: 'monospace' },
-  default: { mono: 'monospace' },
+  ios: { heading: 'System', headingBold: 'System', body: 'System', medium: 'System', mono: 'Menlo' },
+  android: { heading: 'sans-serif-condensed', headingBold: 'sans-serif-condensed', body: 'sans-serif', medium: 'sans-serif-medium', mono: 'monospace' },
+  default: { heading: 'System', headingBold: 'System', body: 'System', medium: 'System', mono: 'monospace' },
 })!;
 
 export const SHADOWS = {
@@ -77,17 +84,17 @@ export const SHADOWS = {
   }),
 };
 
+// Clasificación de impactos alineada a design_guidelines.json:
+// Low <5G verde · Med 5-10 amarillo · High 10-15 naranja · Critical >15 rojo.
 export function severityColor(gForce: number) {
-  if (gForce < 1.5) return COLORS.success;
-  if (gForce < 5) return COLORS.info;
-  if (gForce < 10) return COLORS.warning;
-  if (gForce < 15) return '#FB923C';
+  if (gForce < 5) return COLORS.success;
+  if (gForce < 10) return '#FFD60A';
+  if (gForce < 15) return COLORS.warning;
   return COLORS.primary;
 }
 
 export function severityLabel(gForce: number) {
-  if (gForce < 1.5) return 'ESTABLE';
-  if (gForce < 5) return 'NORMAL';
+  if (gForce < 5) return 'ESTABLE';
   if (gForce < 10) return 'MEDIO';
   if (gForce < 15) return 'ALTO';
   return 'CRÍTICO';
