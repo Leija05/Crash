@@ -41,6 +41,8 @@ async def create_company(name: str, email: str, phone: str = "", plan_id: str = 
     }
     result = await db.companies.insert_one(doc)
     company_id = str(result.inserted_id)
+    from app.api.admin.service import log_admin_action
+    await log_admin_action("create_company", f"Empresa {name} ({plan.get('name','Basic') if plan else 'Basic'})")
     doc["id"] = company_id
 
     if plan:
@@ -115,6 +117,8 @@ async def buy_package(company_id: str, plan_id: str, cycle: str = "Mensual") -> 
     if not plan:
         raise HTTPException(404, "Plan no encontrado")
     result = await tokens_service.regenerate_tokens(company_id, plan, cycle)
+    from app.api.admin.service import log_admin_action
+    await log_admin_action("buy_package", f"Empresa {company_id} · plan {plan.get('name', '')}")
     return result
 
 

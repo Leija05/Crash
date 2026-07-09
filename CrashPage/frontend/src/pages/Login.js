@@ -72,12 +72,12 @@ function TokenGate({ onVerified }) {
             </div>
 
             {role === "empresa" ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
-                <div className="flex items-center gap-2 text-amber-300 text-sm font-medium mb-1">
-                  <AlertCircle size={16} /> Token para la app movil
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4">
+                <div className="flex items-center gap-2 text-emerald-300 text-sm font-medium mb-1">
+                  <AlertCircle size={16} /> Token de empresa
                 </div>
                 <p className="text-zinc-400 text-xs leading-relaxed">
-                  Este token vincula la cuenta del <b className="text-white">conductor</b> en la app movil (Configuracion → Empresa), no se usa en el panel web. Compartelo con tus conductores.
+                  Este token te permitira <b className="text-white">crear</b> tu cuenta de monitorista (o vincular una existente) asociada a <b className="text-white">{tokenInfo?.company_name || "tu empresa"}</b>. Al iniciar sesion solo veras los conductores de esa empresa.
                 </p>
                 <div className="text-[11px] text-zinc-500 mt-2">Usos: {tokenInfo?.use_count || 0} / {tokenInfo?.max_uses || 0}</div>
               </div>
@@ -86,13 +86,11 @@ function TokenGate({ onVerified }) {
                 {role === "superadmin" ? "Continua para entrar al panel de administracion." : "Continua para iniciar sesion en el monitoreo."}
               </p>
             )}
-
+            
             <div className="flex items-center gap-2 pt-2">
-              {role !== "empresa" && (
-                <button onClick={() => onVerified(role, tokenInfo)} className="flex-1 bg-white text-black font-bold py-2.5 rounded-xl hover:bg-zinc-200 transition-all text-sm">
-                  Continuar al inicio de sesion
-                </button>
-              )}
+              <button onClick={() => onVerified(role === "empresa" ? "monitor" : role, tokenInfo)} className="flex-1 bg-white text-black font-bold py-2.5 rounded-xl hover:bg-zinc-200 transition-all text-sm">
+                {role === "empresa" ? "Continuar y gestionar mi empresa" : "Continuar al inicio de sesion"}
+              </button>
               <button onClick={clearAndRetry} className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs border border-zinc-700/50 transition-all">
                 Usar otro token
               </button>
@@ -204,7 +202,14 @@ function LoginForm({ token, role, initialEmail = "" }) {
         if (ok) navigate("/dashboard");
       } else {
         ok = await login(email, password);
-        if (ok) navigate("/dashboard");
+        if (ok) {
+          // Si ingresamos el token de empresa y ya teniamos cuenta, asociarla.
+          const pending = localStorage.getItem("crash_site_token");
+          if (pending) {
+            try { await associateMonitor(pending); } catch { /* ya asociada o no aplica */ }
+          }
+          navigate("/dashboard");
+        }
       }
     } catch (err) {
       setError(formatApiError(err));
@@ -354,9 +359,9 @@ function Login() {
       try {
         const { data } = await api.post("/auth/verify-site-token", { token: saved });
         if (cancelled) return;
-        // El token de empresa es para la app movil, no para el panel web.
+        // El token de empresa inicia el flujo de monitorista (se asocia a la empresa).
         if (data.role === "empresa") {
-          localStorage.removeItem("crash_site_token");
+          setGate({ role: "monitor", email: "" });
           return;
         }
         setGate({ role: data.role, email: data.email || "" });

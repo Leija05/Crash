@@ -1,12 +1,13 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { api, formatApiError } from "../lib/api";
+import { api, formatApiError, superAdminAPI } from "../lib/api";
 import {
   LayoutDashboard, Building2, CreditCard, Users, Key, LogOut,
   Plus, Trash2, Edit3, Copy, RefreshCw, Loader2, Check, X,
   ChevronDown, ChevronRight, Shield, Activity, Mail, Phone,
   AlertCircle, Settings, BarChart3, Clock, Eye, Package, TrendingUp,
+  UserPlus, ScrollText,
 } from "lucide-react";
 
 function StatsCard({ icon: Icon, label, value, accent }) {
@@ -274,6 +275,15 @@ function CompaniesTab() {
     }
   }, [expanded, monitors, tokens, drivers, loadMonitors, loadTokens, loadDrivers]);
 
+  useEffect(() => {
+    const ids = Object.keys(expanded).filter((id) => expanded[id]);
+    if (ids.length === 0) return;
+    const id = setInterval(() => {
+      ids.forEach((cid) => { loadDrivers(cid); loadMonitors(cid); });
+    }, 8000);
+    return () => clearInterval(id);
+  }, [expanded, loadDrivers, loadMonitors]);
+
   const handleDelete = useCallback(async (id) => {
     if (!confirm("¿Eliminar empresa y todos sus monitoristas?")) return;
     try {
@@ -509,6 +519,8 @@ const TABS = [
   { id: "companies", label: "Empresas", icon: Building2, Tab: CompaniesTab },
   { id: "plans", label: "Planes", icon: CreditCard, Tab: PlansTab },
   { id: "logistics", label: "Logística de Ventas", icon: TrendingUp, Tab: SalesLogisticsTab },
+  { id: "superadmins", label: "SuperAdmins", icon: UserPlus, Tab: SuperAdminsTab },
+  { id: "audit", label: "Auditoría", icon: ScrollText, Tab: AuditTab },
 ];
 
 function SalesLogisticsTab() {
@@ -673,6 +685,105 @@ function SalesLogisticsTab() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SuperAdminsTab() {
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try { const { data } = await superAdminAPI.list(); setList(data || []); } catch {}
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const handleCreate = useCallback(async (e) => {
+    e.preventDefault(); setBusy(true); setError("");
+    try {
+      await superAdminAPI.create(email, password, name);
+      setEmail(""); setPassword(""); setName(""); load();
+    } catch (err) { setError(formatApiError(err)); }
+    setBusy(false);
+  }, [email, password, name, load]);
+
+  const handleDelete = useCallback(async (id) => {
+    if (!confirm("¿Eliminar este SuperAdmin?")) return;
+    try { await superAdminAPI.remove(id); load(); }
+    catch (err) { alert(formatApiError(err)); }
+  }, [load]);
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-6">SuperAdmins</h2>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 mb-6">
+        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Crear nuevo SuperAdmin</h3>
+        <form onSubmit={handleCreate} className="grid md:grid-cols-4 gap-3">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" required className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña (8+, may/min/núm)" required className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <button disabled={busy || !email || !password} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? "Creando..." : "Crear"}</button>
+        </form>
+        {error && <div className="mt-3 text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-xl px-3 py-2.5">{error}</div>}
+      </div>
+      <div className="space-y-3">
+        {list.map((s) => (
+          <div key={s.id || s.email} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center"><Shield className="h-4 w-4 text-red-400" /></div>
+              <div>
+                <div className="font-bold">{s.name}</div>
+                <div className="text-xs text-neutral-500">{s.email}</div>
+              </div>
+            </div>
+            <button onClick={() => handleDelete(s.id)} className="h-9 w-9 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AuditTab() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try { const { data } = await superAdminAPI.audit(); setLogs(data || []); } catch {}
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-6">Auditoría de acciones</h2>
+      {logs.length === 0 ? (
+        <div className="text-neutral-500 text-sm">Sin acciones registradas todavía.</div>
+      ) : (
+        <div className="space-y-2">
+          {logs.map((l) => (
+            <div key={l.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center"><Activity className="h-4 w-4 text-emerald-400" /></div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium">{l.action}</div>
+                <div className="text-xs text-neutral-500 truncate">{l.detail}{l.actor ? ` · ${l.actor}` : ""}</div>
+              </div>
+              <div className="text-[11px] text-neutral-500 whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

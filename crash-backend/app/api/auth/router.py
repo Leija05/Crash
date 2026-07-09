@@ -10,6 +10,10 @@ from app.api.auth.service import (
     verify_site_token,
     register_monitor_with_token,
     link_driver_company,
+    associate_monitor_company,
+    create_superadmin,
+    list_superadmins,
+    delete_superadmin,
 )
 from app.core.security import get_current_monitor_user, get_current_rider, get_current_superadmin
 
@@ -81,6 +85,26 @@ async def assign_driver_token(body: dict, user: dict = Depends(get_current_rider
 @router.post("/link-company")
 async def link_company(body: dict, user: dict = Depends(get_current_rider)):
     return await link_driver_company(user["id"], body.get("token", ""))
+
+
+@router.post("/monitor/associate")
+async def monitor_associate(body: dict, user: dict = Depends(get_current_monitor_user)):
+    return await associate_monitor_company(body.get("token", ""), user)
+
+
+@router.post("/superadmin")
+async def create_sa(body: dict, _=Depends(get_current_superadmin)):
+    return await create_superadmin(body.get("email", ""), body.get("password", ""), body.get("name", "SuperAdmin"))
+
+
+@router.get("/superadmins")
+async def list_sa(_=Depends(get_current_superadmin)):
+    return await list_superadmins()
+
+
+@router.delete("/superadmin/{user_id}")
+async def delete_sa(user_id: str, _=Depends(get_current_superadmin)):
+    return await delete_superadmin(user_id)
 
 @router.post("/remove-driver-token")
 async def remove_driver_token(user: dict = Depends(get_current_rider)):

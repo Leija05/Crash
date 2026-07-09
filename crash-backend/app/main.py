@@ -413,6 +413,21 @@ async def _seed_operators() -> None:
             )
             logger.info("Refreshed operator password for %s", s["email"])
 
+    # Associate the seeded monitor operator with the first company (if any)
+    # so its dashboard is scoped to that company's drivers.
+    try:
+        first_company = await db.companies.find_one({}, {"name": 1})
+        if first_company:
+            await db.monitor_operators.update_one(
+                {"email": settings.MONITOR_EMAIL.lower()},
+                {"$set": {
+                    "company_id": str(first_company["_id"]),
+                    "company_name": first_company.get("name", ""),
+                }},
+            )
+    except Exception:
+        pass
+
     admin_email = settings.MOBILE_ADMIN_EMAIL
     admin_password = settings.MOBILE_ADMIN_PASSWORD
     existing = await db.users.find_one({"email": admin_email})

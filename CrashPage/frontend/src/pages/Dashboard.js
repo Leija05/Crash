@@ -13,14 +13,19 @@ import { api } from "../lib/api";
 
 function CompanyDriversPanel({ companyId }) {
   const [drivers, setDrivers] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(() => {
     if (!companyId) { setDrivers([]); return; }
     api.get(`/companies/${companyId}/drivers`)
-      .then((r) => { if (!cancelled) setDrivers(r.data || []); })
-      .catch(() => { if (!cancelled) setDrivers([]); });
-    return () => { cancelled = true; };
+      .then((r) => setDrivers(r.data || []))
+      .catch(() => setDrivers([]));
   }, [companyId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    load();
+    const id = setInterval(() => { if (!cancelled) load(); }, 8000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [load]);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

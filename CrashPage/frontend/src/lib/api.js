@@ -45,3 +45,11 @@ export function formatApiError(err) {
   if (detail && typeof detail.msg === "string") return detail.msg;
   return String(detail);
 }
+
+export const superAdminAPI = {
+  list: () => api.get("/auth/superadmins"),
+  create: (email, password, name) =>
+    api.post("/auth/superadmin", { email, password, name }),
+  remove: (id) => api.delete(`/auth/superadmin/${id}`),
+  audit: () => api.get("/admin/audit"),
+};

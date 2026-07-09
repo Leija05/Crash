@@ -16,6 +16,30 @@ def _source():
     return simulator if settings.DEMO_MODE else bridge
 
 
+async def log_admin_action(action: str, detail: str = "", actor: str = "") -> None:
+    """Registra una acción de administración (auditoría). No falla nunca."""
+    try:
+        db = await get_db()
+        await db.admin_logs.insert_one({
+            "action": action,
+            "detail": detail,
+            "actor": actor or "",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception:
+        pass
+
+
+async def get_audit_log(limit: int = 100) -> list:
+    db = await get_db()
+    cursor = db.admin_logs.find({}).sort("created_at", -1).limit(limit)
+    docs = await cursor.to_list(limit)
+    for d in docs:
+        d["id"] = str(d.get("_id", ""))
+        d.pop("_id", None)
+    return docs
+
+
 async def get_dashboard_stats() -> dict:
     db = await get_db()
     src = _source()

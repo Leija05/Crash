@@ -6,6 +6,7 @@ from app.api.admin.service import (
     export_impacts_csv,
     get_system_analytics,
     send_email_report,
+    get_audit_log,
 )
 from app.core.security import get_current_admin, require_role
 
@@ -15,6 +16,11 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.get("/stats")
 async def dashboard_stats(_: dict = Depends(get_current_admin)):
     return await get_dashboard_stats()
+
+
+@router.get("/audit")
+async def audit_log(_: dict = Depends(get_current_admin)):
+    return await get_audit_log()
 
 
 @router.get("/analytics")

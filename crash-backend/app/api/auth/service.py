@@ -166,8 +166,8 @@ async def verify_site_token(token: str) -> dict:
 async def register_monitor_with_token(token: str, email: str, password: str, name: str) -> dict:
     from app.api.tokens.service import verify_token, consume_token
     tok = await verify_token(token)
-    if tok["role"] != "monitorista":
-        raise HTTPException(status_code=400, detail="Este token no corresponde a un monitorista")
+    if tok["role"] not in ("monitorista", "empresa"):
+        raise HTTPException(status_code=400, detail="Este token no es válido para monitores")
 
     db = await get_db()
     company_id = tok["company_id"]
@@ -202,7 +202,9 @@ async def register_monitor_with_token(token: str, email: str, password: str, nam
         company_query,
         {"$inc": {"monitor_count": 1}},
     )
-    await consume_token(token)
+    # El token de empresa es para conductores; solo se consume si es de monitorista.
+    if tok["role"] == "monitorista":
+        await consume_token(token)
 
     access = create_access_token(monitor_doc["id"], email, "monitor")
     return {
@@ -289,3 +291,62 @@ async def refresh_rider_token(refresh_token: str) -> dict:
         return {"access_token": access}
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
+async def associate_monitor_company(token: str, monitor_user: dict) -> dict:
+    """Vincula la cuenta de monitorista logueada con la empresa de un token (empresa o monitorista)."""
+    from app.api.tokens.service import verify_token
+    tok = await verify_token(token)
+    if tok["role"] not in ("monitorista", "empresa"):
+        raise HTTPException(status_code=400, detail="Este token no es válido para monitores")
+    company_id = tok["company_id"]
+    company_name = tok["name"]
+
+    db = await get_db()
+    await db.monitor_operators.update_one(
+        {"id": monitor_user["id"]},
+        {"$set": {"company_id": company_id, "company_name": company_name,
+         "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"company_id": company_id, "company_name": company_name}
+
+
+async def create_superadmin(email: str, password: str, name: str = "SuperAdmin") -> dict:
+    db = await get_db()
+    email = email.strip().lower()
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+    now = datetime.now(timezone.utc).isoformat()
+    user_doc = {
+        "email": email,
+        "name": name.strip() or "SuperAdmin",
+        "password_hash": hash_password(password),
+        "role": "superadmin",
+        "created_at": now,
+        "updated_at": now,
+    }
+    res = await db.users.insert_one(user_doc)
+    from app.api.admin.service import log_admin_action
+    await log_admin_action("create_superadmin", f"SuperAdmin {email}")
+    return {"id": str(res.inserted_id), "email": email, "name": user_doc["name"], "role": "superadmin"}
+
+
+async def list_superadmins() -> list:
+    db = await get_db()
+    cursor = db.users.find({"role": "superadmin"}, {"_id": 0, "password_hash": 0})
+    return await cursor.to_list(100)
+
+
+async def delete_superadmin(user_id: str) -> dict:
+    from app.core.config import settings
+    db = await get_db()
+    target = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
+    if target.get("email") == settings.SUPERADMIN_EMAIL.lower():
+        raise HTTPException(status_code=400, detail="No puedes eliminar la cuenta principal (la del .env)")
+    r = await db.users.delete_one({"_id": ObjectId(user_id)})
+    if r.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
+    return {"ok": True}

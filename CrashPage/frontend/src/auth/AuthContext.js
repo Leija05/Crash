@@ -55,6 +55,19 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const associateMonitor = async (token) => {
+    setError("");
+    try {
+      await api.post("/auth/monitor/associate", { token });
+      const { data } = await api.get("/auth/monitor/me", { __authProbe: true });
+      setUser((u) => ({ ...u, company_id: data.company_id, company_name: data.company_name }));
+      return true;
+    } catch (e) {
+      setError(formatApiError(e));
+      return false;
+    }
+  };
+
   const loginSuperAdmin = async (email, password) => {
     setError("");
     try {
@@ -81,7 +94,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthCtx.Provider value={{ user, error, login, loginWithToken, loginSuperAdmin, logout, refresh }}>
+    <AuthCtx.Provider value={{ user, error, login, loginWithToken, loginSuperAdmin, associateMonitor, logout, refresh }}>
       {children}
     </AuthCtx.Provider>
   );
