@@ -194,11 +194,44 @@ async def get_token_alerts(threshold: float = None) -> dict:
 
     exhaustion.sort(key=lambda x: x["usage_ratio"], reverse=True)
     expiring.sort(key=lambda x: x["days_left"])
+
+    # Suscripciones de empresa por expirar (campo propio de la empresa).
+    subscriptions = []
+    try:
+        comp_cursor = db.companies.find(
+            {"subscription_expires_at": {"$ne": None}},
+            {"_id": 0, "id": 1, "name": 1, "email": 1, "subscription_expires_at": 1},
+        )
+        async for c in comp_cursor:
+            exp = c.get("subscription_expires_at")
+            if not exp:
+                continue
+            try:
+                exp_dt = datetime.fromisoformat(exp)
+                if exp_dt.tzinfo is None:
+                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                continue
+            if exp_dt <= expiry_cutoff:
+                days_left = (exp_dt - now).days
+                subscriptions.append({
+                    "company_id": c.get("id") or c.get("_id"),
+                    "company_name": c.get("name", ""),
+                    "company_email": c.get("email", ""),
+                    "subscription_expires_at": exp,
+                    "days_left": days_left,
+                    "expired": exp_dt < now,
+                })
+        subscriptions.sort(key=lambda x: x["days_left"])
+    except Exception:
+        subscriptions = []
+
     return {
         "threshold": threshold,
         "exhaustion": exhaustion,
         "expiring": expiring,
-        "total_alerts": len(exhaustion) + len(expiring),
+        "subscriptions": subscriptions,
+        "total_alerts": len(exhaustion) + len(expiring) + len(subscriptions),
         "timestamp": now.isoformat(),
     }
 

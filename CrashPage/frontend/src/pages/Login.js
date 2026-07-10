@@ -363,7 +363,7 @@ function LoginForm({ token, role, initialEmail = "" }) {
 }
 
 function Login() {
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
   const [gate, setGate] = useState(null);
   const [checking, setChecking] = useState(false);
 
@@ -390,6 +390,17 @@ function Login() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <span className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <span className="text-zinc-500 text-sm font-mono">Restaurando sesión...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (user) {
     if (user.role === "superadmin") return <Link to="/admin" />;

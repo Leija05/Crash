@@ -31,6 +31,26 @@ export function clearToken() {
   sessionStorage.removeItem(TOKEN_KEY);
 }
 
+// ── Credenciales recordadas (solo con "mantener sesión") ──
+// Se guardan en localStorage para poder reautenticar automáticamente
+// si el token expira al recargar la página.
+const REMEMBER_KEY = "crash_remember";
+
+export function setRememberedCredentials(creds) {
+  try { localStorage.setItem(REMEMBER_KEY, JSON.stringify(creds)); } catch { }
+}
+
+export function getRememberedCredentials() {
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+export function clearRememberedCredentials() {
+  localStorage.removeItem(REMEMBER_KEY);
+}
+
 api.interceptors.request.use((cfg) => {
   const t = getToken();
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
@@ -97,4 +117,9 @@ export const companyAPI = {
   setWebhooks: (id, data) => api.put(`/companies/${id}/webhooks`, data),
   testWebhook: (id) => api.post(`/companies/${id}/webhooks/test`),
   setReportSchedule: (id, data) => api.put(`/companies/${id}/report-schedule`, data),
+};
+
+// Endpoints de monitorista (mapa de calor de su empresa).
+export const monitorAPI = {
+  heatmap: (params) => api.get("/monitor/heatmap", { params }),
 };

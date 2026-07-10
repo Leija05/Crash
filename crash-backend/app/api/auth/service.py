@@ -341,12 +341,18 @@ async def list_superadmins() -> list:
 async def delete_superadmin(user_id: str) -> dict:
     from app.core.config import settings
     db = await get_db()
-    target = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user_id or user_id in ("undefined", "null", "None"):
+        raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
+    target = await db.users.find_one({"_id": oid})
     if not target:
         raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
     if target.get("email") == settings.SUPERADMIN_EMAIL.lower():
         raise HTTPException(status_code=400, detail="No puedes eliminar la cuenta principal (la del .env)")
-    r = await db.users.delete_one({"_id": ObjectId(user_id)})
+    r = await db.users.delete_one({"_id": oid})
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
     return {"ok": True}

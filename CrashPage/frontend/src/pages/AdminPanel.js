@@ -696,7 +696,8 @@ function TokenAlertsPanel() {
   if (loading) return null;
   const exhaustion = data?.exhaustion || [];
   const expiring = data?.expiring || [];
-  const total = exhaustion.length + expiring.length;
+  const subscriptions = data?.subscriptions || [];
+  const total = exhaustion.length + expiring.length + subscriptions.length;
 
   return (
     <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -711,33 +712,51 @@ function TokenAlertsPanel() {
         <div className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="h-4 w-4" /> No hay tokens por agotarse ni suscripciones por vencer.</div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">Tokens por agotarse</h4>
-            {exhaustion.length === 0 ? <div className="text-xs text-neutral-500">Sin alertas.</div> : (
-              <div className="space-y-2">
-                {exhaustion.map((a, i) => (
-                  <div key={i} className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium truncate">{a.company_name}</span>
-                      <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">{a.role}</span>
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">Tokens por agotarse</h4>
+              {exhaustion.length === 0 ? <div className="text-xs text-neutral-500">Sin alertas.</div> : (
+                <div className="space-y-2">
+                  {exhaustion.map((a, i) => (
+                    <div key={i} className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium truncate">{a.company_name}</span>
+                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">{a.role}</span>
+                      </div>
+                      <div className="text-xs text-neutral-400 mt-1">{a.use_count}/{a.max_uses} usos · quedan {a.remaining}</div>
                     </div>
-                    <div className="text-xs text-neutral-400 mt-1">{a.use_count}/{a.max_uses} usos · quedan {a.remaining}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">Tokens que expiran</h4>
+              {expiring.length === 0 ? <div className="text-xs text-neutral-500">Sin alertas.</div> : (
+                <div className="space-y-2">
+                  {expiring.map((a, i) => (
+                    <div key={i} className={`rounded-xl border p-3 ${a.expired ? "border-red-500/25 bg-red-500/[0.05]" : "border-amber-500/20 bg-amber-500/[0.04]"}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium truncate">{a.company_name}</span>
+                        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${a.expired ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-300"}`}>{a.role}</span>
+                      </div>
+                      <div className="text-xs text-neutral-400 mt-1">{a.expired ? "Expirado" : `Vence en ${a.days_left} día(s)`}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div>
             <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">Suscripciones por vencer</h4>
-            {expiring.length === 0 ? <div className="text-xs text-neutral-500">Sin alertas.</div> : (
+            {subscriptions.length === 0 ? <div className="text-xs text-neutral-500">Sin alertas.</div> : (
               <div className="space-y-2">
-                {expiring.map((a, i) => (
-                  <div key={i} className={`rounded-xl border p-3 ${a.expired ? "border-red-500/25 bg-red-500/[0.05]" : "border-amber-500/20 bg-amber-500/[0.04]"}`}>
+                {subscriptions.map((a, i) => (
+                  <div key={i} className={`rounded-xl border p-3 ${a.expired ? "border-red-500/25 bg-red-500/[0.05]" : a.days_left <= 7 ? "border-orange-500/25 bg-orange-500/[0.05]" : "border-amber-500/20 bg-amber-500/[0.04]"}`}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium truncate">{a.company_name}</span>
-                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${a.expired ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-300"}`}>{a.role}</span>
+                      <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${a.expired ? "bg-red-500/15 text-red-300" : a.days_left <= 7 ? "bg-orange-500/15 text-orange-300" : "bg-amber-500/15 text-amber-300"}`}>{a.expired ? "Expirada" : `${a.days_left} día(s)`}</span>
                     </div>
-                    <div className="text-xs text-neutral-400 mt-1">{a.expired ? "Expirada" : `Vence en ${a.days_left} día(s)`}</div>
+                    <div className="text-xs text-neutral-400 mt-1">{a.expired ? "Suscripción vencida" : `Quedan ${a.days_left} día(s) de suscripción`}</div>
                   </div>
                 ))}
               </div>

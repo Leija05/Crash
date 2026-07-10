@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Alert, Platform, ActivityIndicator,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Alert, Platform, ActivityIndicator, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -70,6 +70,9 @@ export default function DashboardScreen() {
   const lastTelemetrySentAtRef = useRef(0);
   const lastNotificationUpdateRef = useRef(0);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Pulso crítico: animación cuando hay un impacto alto en vivo.
+  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!telemetry) return;
@@ -164,6 +167,22 @@ export default function DashboardScreen() {
   const liveData = connected && !staleData && !!telemetryForDisplay;
   const highImpact = liveData && gForce >= alertThreshold;
 
+  // Pulso crítico: animación cuando hay un impacto alto en vivo.
+  useEffect(() => {
+    if (highImpact) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1, duration: 620, useNativeDriver: false }),
+          Animated.timing(pulseAnim, { toValue: 0, duration: 620, useNativeDriver: false }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    }
+    pulseAnim.setValue(0);
+    return undefined;
+  }, [highImpact, pulseAnim]);
+
   useEffect(() => {
     const pushRealtimeTelemetry = async () => {
       if (!token || !connected || !telemetry || staleData) return;
@@ -221,6 +240,62 @@ export default function DashboardScreen() {
       impactTriggeredRef.current = false;
     }
   }, [liveData, gForce, alertThreshold]);
+
+  const triggerEmergencyFlow = useCallback(async () => {
+    const currentTelemetry = impactTelemetryRef.current ?? telemetryRef.current;
+    if (!token || !currentTelemetry || sending || emergencyInFlightRef.current) return;
+
+    if (!hasEmergencyContacts) {
+      Alert.alert(
+        'No tienes contactos agregados',
+        'Antes de enviar alertas, registra al menos un contacto de emergencia.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Ir a Contactos', onPress: () => router.push('/contacts') },
+        ]
+      );
+      return;
+    }
+
+    emergencyInFlightRef.current = true;
+    setSending(true);
+    try {
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({});
+          latitude = pos.coords.latitude;
+          longitude = pos.coords.longitude;
+        }
+      } catch (locErr) {
+        console.warn('No se pudo obtener ubicación actual', locErr);
+      }
+
+      const impact = await impactsAPI.create(token, {
+        acceleration_x: currentTelemetry.acceleration_x,
+        acceleration_y: currentTelemetry.acceleration_y,
+        acceleration_z: currentTelemetry.acceleration_z,
+        gyroscope_x: currentTelemetry.gyroscope_x,
+        gyroscope_y: currentTelemetry.gyroscope_y,
+        gyroscope_z: currentTelemetry.gyroscope_z,
+        g_force: currentTelemetry.g_force,
+        latitude,
+        longitude,
+      });
+
+      if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error && currentTelemetry.g_force >= alertThreshold) {
+        Alert.alert('No tienes contactos agregados', 'No se pudo notificar a nadie.');
+      }
+      setAlertResult(impact);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'No se pudo enviar la alerta');
+    } finally {
+      setSending(false);
+      emergencyInFlightRef.current = false;
+    }
+  }, [token, sending, hasEmergencyContacts, router, alertThreshold]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -281,62 +356,6 @@ export default function DashboardScreen() {
       setSending(false);
     }
   }, [token, telemetry, sending, hasEmergencyContacts, router]);*/
-  const triggerEmergencyFlow = useCallback(async () => {
-    const currentTelemetry = impactTelemetryRef.current ?? telemetryRef.current;
-    if (!token || !currentTelemetry || sending || emergencyInFlightRef.current) return;
-
-    if (!hasEmergencyContacts) {
-      Alert.alert(
-        'No tienes contactos agregados',
-        'Antes de enviar alertas, registra al menos un contacto de emergencia.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Ir a Contactos', onPress: () => router.push('/contacts') },
-        ]
-      );
-      return;
-    }
-
-    emergencyInFlightRef.current = true;
-    setSending(true);
-    try {
-      let latitude: number | null = null;
-      let longitude: number | null = null;
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({});
-          latitude = pos.coords.latitude;
-          longitude = pos.coords.longitude;
-        }
-      } catch (locErr) {
-        console.warn('No se pudo obtener ubicación actual', locErr);
-      }
-
-      const impact = await impactsAPI.create(token, {
-        acceleration_x: currentTelemetry.acceleration_x,
-        acceleration_y: currentTelemetry.acceleration_y,
-        acceleration_z: currentTelemetry.acceleration_z,
-        gyroscope_x: currentTelemetry.gyroscope_x,
-        gyroscope_y: currentTelemetry.gyroscope_y,
-        gyroscope_z: currentTelemetry.gyroscope_z,
-        g_force: currentTelemetry.g_force,
-        latitude,
-        longitude,
-      });
-
-      if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error && currentTelemetry.g_force >= alertThreshold) {
-        Alert.alert('No tienes contactos agregados', 'No se pudo notificar a nadie.');
-      }
-      setAlertResult(impact);
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo enviar la alerta');
-    } finally {
-      setSending(false);
-      emergencyInFlightRef.current = false;
-    }
-  }, [token, sending, hasEmergencyContacts, router, alertThreshold]);
-
 
   useEffect(() => {
     const setupNotificationChannel = async () => {
@@ -463,7 +482,10 @@ export default function DashboardScreen() {
           <Ionicons name="chevron-forward" size={18} color={COLORS.textDim} />
         </TouchableOpacity>
 
-        <View style={styles.ringCard}>
+        <View style={[styles.ringCard, highImpact && styles.ringCardCritical]}>
+          {highImpact && (
+            <Animated.View pointerEvents="none" style={[styles.criticalPulse, { opacity: pulseAnim }]} />
+          )}
           <ForceRing gForce={gForce} liveData={liveData} color={sevColor} severity={sevLabel} />
           <View style={styles.peakRow}>
             <Text style={styles.peakLabel}>PICO</Text>
@@ -471,18 +493,23 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <View style={styles.coordsCard}>
-          <Text style={styles.coordsTitle}>COORDENADAS / ACELERACIÓN (m/s²)</Text>
-          <View style={styles.coordsGrid}>
-            <CoordItem label="X" value={telemetryForDisplay?.acceleration_x} live={liveData} />
-            <CoordItem label="Y" value={telemetryForDisplay?.acceleration_y} live={liveData} />
-            <CoordItem label="Z" value={telemetryForDisplay?.acceleration_z} live={liveData} />
+        <View style={styles.bentoRow}>
+          <View style={[styles.bentoCard, styles.bentoHalf]}>
+            <Text style={styles.coordsTitle}>ACELERACIÓN (m/s²)</Text>
+            <View style={styles.coordsGrid}>
+              <CoordItem label="X" value={telemetryForDisplay?.acceleration_x} live={liveData} />
+              <CoordItem label="Y" value={telemetryForDisplay?.acceleration_y} live={liveData} />
+              <CoordItem label="Z" value={telemetryForDisplay?.acceleration_z} live={liveData} />
+            </View>
           </View>
-          <Text style={styles.coordsGeo}>
-            {locationTrackingEnabled && telemetryForDisplay
-              ? `Lat: ${telemetryForDisplay.latitude?.toFixed(5) ?? '--'} · Lon: ${telemetryForDisplay.longitude?.toFixed(5) ?? '--'}`
-              : 'Ubicación no disponible'}
-          </Text>
+          <View style={[styles.bentoCard, styles.bentoHalf]}>
+            <Text style={styles.coordsTitle}>UBICACIÓN GPS</Text>
+            <Text style={styles.coordsGeoBig}>
+              {locationTrackingEnabled && telemetryForDisplay
+                ? `${telemetryForDisplay.latitude?.toFixed(5) ?? '--'}\n${telemetryForDisplay.longitude?.toFixed(5) ?? '--'}`
+                : 'No disponible'}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.sectionHead}>
@@ -707,7 +734,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
     marginBottom: SPACING.md,
+    overflow: 'hidden',
     ...SHADOWS.lg,
+  },
+  ringCardCritical: {
+    borderColor: 'rgba(239,68,68,0.55)',
+    backgroundColor: 'rgba(239,68,68,0.05)',
+  },
+  criticalPulse: {
+    position: 'absolute', top: -60, left: -60, right: -60, bottom: -60,
+    backgroundColor: 'rgba(239,68,68,0.28)',
+    borderRadius: 999,
   },
   ringWrap: { alignItems: 'center' },
   ringTrack: {
@@ -756,6 +793,15 @@ const styles = StyleSheet.create({
   },
   coordLabel: { color: COLORS.textDim, fontSize: 11, fontWeight: '900', marginBottom: 4 },
   coordValue: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
+
+  bentoRow: { flexDirection: 'row', gap: 10, marginBottom: SPACING.md },
+  bentoCard: {
+    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: COLORS.glassBg, padding: 14,
+    ...SHADOWS.sm,
+  },
+  bentoHalf: { flex: 1 },
+  coordsGeoBig: { color: COLORS.textDim, fontSize: 13, textAlign: 'center', letterSpacing: 0.5, marginTop: 4, lineHeight: 20 },
 
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2 },

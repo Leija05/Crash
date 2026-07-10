@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker, Circle, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Crosshair } from "lucide-react";
+import { Crosshair, Flame } from "lucide-react";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -90,7 +90,26 @@ function DriverMarkers({ positioned, onSelect }) {
 
 const MemoDriverMarkers = memo(DriverMarkers);
 
-function LiveMap({ drivers, alerts, selectedId, onSelect }) {
+const HEAT_SEVERITY = { low: "#10b981", medium: "#f59e0b", high: "#f97316", critical: "#ef4444" };
+
+function HeatLayer({ points }) {
+  if (!points || points.length === 0) return null;
+  return points.map((p, i) => (
+    <CircleMarker key={`heat-${i}`} center={[p.lat, p.lng]} radius={Math.min(20, 6 + (p.weight || 1) * 3)}
+      pathOptions={{ color: HEAT_SEVERITY[p.severity] || "#ef4444", fillColor: HEAT_SEVERITY[p.severity] || "#ef4444", fillOpacity: 0.4, weight: 1, opacity: 0.6 }}>
+      <Popup>
+        <div className="text-xs">
+          <div className="font-semibold capitalize">{p.severity}</div>
+          {p.company_name && <div>{p.company_name}</div>}
+          <div>{p.g_force != null ? `${Number(p.g_force).toFixed(2)}G` : ""}</div>
+          <div className="text-neutral-400">{p.created_at ? new Date(p.created_at).toLocaleString() : ""}</div>
+        </div>
+      </Popup>
+    </CircleMarker>
+  ));
+}
+
+function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
   const [theme, setTheme] = useState(() => document.body.dataset.theme || "dark");
   const [focusNonce, setFocusNonce] = useState(0);
 
@@ -160,6 +179,8 @@ function LiveMap({ drivers, alerts, selectedId, onSelect }) {
             <Popup><div className="text-xs"><div className="font-semibold">Impacto histórico</div><div>{p.driver || "Conductor"}</div><div>{p.gforce != null ? `${p.gforce.toFixed(2)}G` : "G-Force no reportada"}</div></div></Popup>
           </CircleMarker>
         ))}
+
+        <HeatLayer points={heatPoints} />
 
         {positioned.map((d) => {
           const recentPath = (d.recent_path || d.route || [])

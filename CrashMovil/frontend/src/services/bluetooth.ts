@@ -107,7 +107,7 @@ class BluetoothTelemetryService {
       if (api >= 33) {
         perms.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       }
-      const granted = await PermissionsAndroid.requestMultiple(perms);
+      const granted = await PermissionsAndroid.requestMultiple(perms as never);
       return Object.values(granted).every(r => r === PermissionsAndroid.RESULTS.GRANTED);
     } catch { return false; }
   }

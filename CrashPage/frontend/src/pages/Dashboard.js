@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { LifeBuoy, Send, X } from "lucide-react";
+import { LifeBuoy, Send, X, Flame } from "lucide-react";
 import Topbar from "../components/Topbar";
 import LiveMap from "../components/LiveMap";
 import DriverList from "../components/DriverList";
@@ -11,7 +11,7 @@ import CrashHistoryModal from "../components/CrashHistoryModal";
 import SystemHealthPanel from "../components/SystemHealthPanel";
 import { useCrashSocket } from "../lib/ws";
 import { useAuth } from "../auth/AuthContext";
-import { api, companyAPI, formatApiError } from "../lib/api";
+import { api, companyAPI, monitorAPI, formatApiError } from "../lib/api";
 
 const SUPPORT_TYPES = [
   { id: "password_reset", label: "Reiniciar contraseña" },
@@ -74,6 +74,20 @@ function Dashboard() {
   const [supportOpen, setSupportOpen] = useState(false);
 
   const [roster, setRoster] = useState([]);
+
+  const [heatOn, setHeatOn] = useState(false);
+  const [heatDays, setHeatDays] = useState(30);
+  const [heatPoints, setHeatPoints] = useState(null);
+
+  // Mapa de calor histórico de impactos de la empresa del monitorista.
+  useEffect(() => {
+    if (!isMonitor || !heatOn) { setHeatPoints(null); return; }
+    let cancelled = false;
+    monitorAPI.heatmap({ days: heatDays })
+      .then((r) => { if (!cancelled) setHeatPoints(r.data?.points || []); })
+      .catch(() => { if (!cancelled) setHeatPoints([]); });
+    return () => { cancelled = true; };
+  }, [isMonitor, heatOn, heatDays]);
 
   const isMonitor = user?.role === "monitor" && !!user?.company_id;
 
@@ -193,13 +207,39 @@ function Dashboard() {
         </aside>
 
         <section className="lg:col-span-6 flex flex-col gap-3 lg:gap-4 min-h-0">
-          <div className="flex-1 rounded-2xl border border-white/10 overflow-hidden min-h-[280px]">
+          <div className="flex-1 rounded-2xl border border-white/10 overflow-hidden min-h-[280px] relative">
             <LiveMap
               drivers={visibleDrivers}
               alerts={visibleAlerts}
               selectedId={selected?.id}
               onSelect={handleSelectId}
+              heatPoints={heatOn ? heatPoints : null}
             />
+            {isMonitor && (
+              <div className="absolute top-4 right-4 z-[500] flex items-center gap-2">
+                {heatOn && (
+                  <select
+                    value={heatDays}
+                    onChange={(e) => setHeatDays(Number(e.target.value))}
+                    className="rounded-lg border border-white/10 bg-black/50 backdrop-blur-xl px-2 py-1.5 text-[10px] uppercase tracking-[0.15em] text-neutral-300 outline-none"
+                  >
+                    <option value={7}>7 días</option>
+                    <option value={30}>30 días</option>
+                    <option value={90}>90 días</option>
+                    <option value={365}>1 año</option>
+                  </select>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setHeatOn((v) => !v)}
+                  className={`rounded-xl border backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 transition-colors ${heatOn ? "border-orange-500/50 bg-orange-500/20 text-orange-200" : "border-white/10 bg-black/40 text-neutral-300 hover:bg-white/10"}`}
+                  title="Mapa de calor de impactos"
+                >
+                  <Flame className="h-3.5 w-3.5" />
+                  Mapa de calor
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex-shrink-0">
             <TelemetryBento driver={selected} />

@@ -16,6 +16,7 @@ from app.api.monitor.service import (
     list_users,
     query_impacts,
 )
+from app.api.admin.service import get_impact_heatmap
 from app.core.security import get_current_monitor_user, require_role
 
 router = APIRouter(prefix="/monitor", tags=["monitor"])
@@ -84,6 +85,15 @@ async def post_incident_log(
     incident_id: str, payload: IncidentLogPayload, user: dict = Depends(get_current_monitor_user),
 ):
     return await add_incident_log(incident_id, payload.note, user)
+
+
+@router.get("/heatmap")
+async def monitor_heatmap(
+    days: int = 30,
+    user: dict = Depends(get_current_monitor_user),
+):
+    """Mapa de calor de impactos de la empresa del monitorista."""
+    return await get_impact_heatmap(user.get("company_id"), days)
 
 
 @router.get("/admin/users")
