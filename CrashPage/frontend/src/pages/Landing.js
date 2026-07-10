@@ -22,6 +22,57 @@ const B2B_SUB_PER_DRIVER = 150; // SaaS por repartidor/mes
 
 const mx = (n) => `$${Number(Math.round(n)).toLocaleString("es-MX")} MXN`;
 
+const PROJECT_META = {
+  evento: "Cumbre Nacional de Desarrollo Tecnológico, Emprendimiento e Innovación · InnovaTecNM 2026",
+  sede: "Instituto Tecnológico de Nuevo Laredo · Etapa Local · Región 2",
+  folio: "66137-17",
+  categoria: "Tecnologías para la Salud Humana",
+  area: "Inteligencia Artificial y Análisis de Datos en Servicios para la Salud",
+  naturaleza: "Ciencias Computacionales",
+  descripcion:
+    "Dispositivo para cascos/vehículos que detecta impactos. Mediante IA, analiza la gravedad en una app celular y envía alertas automáticas a contactos de emergencia ante accidentes.",
+};
+
+const PROBLEMS = [
+  { t: "Dependencia de intervención humana", d: "Si el conductor queda inconsciente o el accidente ocurre en un tramo aislado sin testigos, la falta de notificación genera retrasos fatales en la asistencia." },
+  { t: "Falta de datos técnicos en tiempo real", d: "Los servicios de emergencia acuden 'a ciegas' sin la fuerza-G del impacto, dificultando el triaje y la preparación médica." },
+  { t: "Inexistencia de monitoreo inteligente en EPP", d: "A diferencia de los vehículos modernos, el Equipo de Protección Personal (cascos) es pasivo y no alerta sobre traumatismos craneoencefálicos." },
+];
+
+const VALUE = [
+  { t: "Monitoreo biomecánico dual", d: "Se adapta a cascos de seguridad industriales y a estructuras vehiculares, detectando grados de fuerza (G) durante un impacto o caída con sensores de alta precisión." },
+  { t: "Triaje automatizado por IA", d: "Algoritmos de inteligencia artificial discriminan entre un golpe accidental leve y una colisión crítica, categorizando la gravedad para optimizar la respuesta médica." },
+  { t: "Protocolo de alerta omnicanal", d: "Integración nativa con bot de WhatsApp y una aplicación de escritorio de alto rendimiento que envía GPS y datos del impacto a contactos y centros de control." },
+];
+
+const TEAM = [
+  "Héctor Aaron Leija Zavala · Ing. en Sistemas Computacionales",
+  "Víctor Manuel Martínez Sifuentes · Ing. en Sistemas Computacionales",
+  "Carlos Eduardo Contreras Hernández · Ing. en Sistemas Computacionales",
+  "Carlos Hiram Castillo Escobedo · Ing. en Sistemas Computacionales",
+  "Raquel Hernández Villanueva · Ing. Industrial",
+];
+
+const ADVISORS = [
+  "Mario Alberto Widales Cobio · marioalberto.widales@nlaredo.tecnm.mx",
+  "Ludwing Daniel Oliva Perea · ludwingdaniel.op@nlaredo.tecnm.mx",
+];
+
+const NORMS = [
+  { c: "NOM-115-STPS-2009", d: "Cascos de protección y especificaciones de seguridad en el entorno laboral mexicano." },
+  { c: "NOM-001-SCFI-2018", d: "Aparatos electrónicos y requisitos de seguridad para su comercialización." },
+  { c: "ISO 45001", d: "Sistemas de gestión de la seguridad y salud en el trabajo." },
+  { c: "ANSI/ISEA Z89.1", d: "Requisitos de desempeño para cascos de protección industrial (absorción de impacto)." },
+  { c: "LFPDPPP", d: "Ley Federal de Protección de Datos Personales: privacidad de contactos y ubicación." },
+];
+
+const ARCH = [
+  { t: "Hardware (Nodo Sensor)", d: "Módulo compacto montable en cascos (EPP) o chasis vehiculares con sensores MEMS (MPU-6050) para medir fuerzas G y cambios de orientación." },
+  { t: "Backend (Cerebro del Sistema)", d: "FastAPI (Python) con IA (red neuronal de clasificación) que analiza la curva de aceleración para determinar severidad y probabilidad de lesiones." },
+  { t: "Capa de Alerta", d: "Integración con bot de WhatsApp Business para difundir mensajes con plantillas interactivas y geolocalización precisa del incidente." },
+  { t: "Interfaz de Control", d: "Aplicación web de alto rendimiento (React) con panel de monitoreo en tiempo real y estética de alto impacto visual." },
+];
+
 const HERO_SUB = [
   { icon: Smartphone, t: "App Móvil", s: "El Escudo del Conductor", d: "Cero distracciones en marcha, caja negra offline y botón de pánico silencioso en el casco." },
   { icon: Cpu, t: "Backend / Dispositivo", s: "El Cerebro", d: "Arduino Nano + MPU-6050 detecta impactos en milisegundos, con filtro de acelerómetro e IA de gravedad." },
@@ -252,6 +303,99 @@ function Landing() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="max-w-6xl mx-auto px-4 py-24">
+          <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Demo en vivo</div>
+          <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Vélo en acción</h2>
+          <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video card-premium" style={{ borderRadius: 20 }}>
+            <video
+              className="w-full h-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              disablePictureInPicture
+              disableRemotePlayback
+              preload="auto"
+              poster={HERO}
+              src="/videos/CrashVideo.mp4"
+            >
+              Tu navegador no soporta el elemento de video.
+            </video>
+          </div>
+        </section>
+
+        <section className="max-w-6xl mx-auto px-4 py-10">
+          <div className="card-premium p-8 lg:p-12 relative overflow-hidden" style={{ borderRadius: 20 }}>
+            <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-red-500/10 blur-[100px]" />
+            <div className="relative">
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">El Proyecto C.R.A.S.H.</div>
+              <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-3">Memoria del proyecto · InnovaTecNM 2026</h2>
+              <p className="text-zinc-400 text-sm leading-relaxed mb-6">{PROJECT_META.descripcion}</p>
+              <div className="grid sm:grid-cols-2 gap-3 text-sm mb-8">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Evento</div><div className="font-medium">{PROJECT_META.evento}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Sede</div><div className="font-medium">{PROJECT_META.sede}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Folio · Categoría</div><div className="font-medium">{PROJECT_META.folio} · {PROJECT_META.categoria}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Área</div><div className="font-medium">{PROJECT_META.area}</div></div>
+              </div>
+
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Problemática</div>
+              <div className="grid md:grid-cols-3 gap-4 mb-8">
+                {PROBLEMS.map((p) => (
+                  <div key={p.t} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                    <div className="font-bold text-[15px] mb-1.5 text-red-300">{p.t}</div>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{p.d}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Propuesta de valor</div>
+              <div className="grid md:grid-cols-3 gap-4 mb-8">
+                {VALUE.map((v) => (
+                  <div key={v.t} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                    <div className="font-bold text-[15px] mb-1.5 text-emerald-300">{v.t}</div>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{v.d}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Arquitectura técnica</div>
+              <div className="grid md:grid-cols-2 gap-4 mb-8">
+                {ARCH.map((a) => (
+                  <div key={a.t} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                    <div className="font-bold text-[15px] mb-1.5">{a.t}</div>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{a.d}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Equipo · Autores</div>
+                  <ul className="space-y-2 text-sm text-zinc-300">
+                    {TEAM.map((m) => (
+                      <li key={m} className="flex items-start gap-2"><Users size={14} className="text-emerald-400 mt-1 shrink-0" /><span>{m}</span></li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Asesores</div>
+                  <ul className="space-y-2 text-sm text-zinc-300 mb-6">
+                    {ADVISORS.map((a) => (
+                      <li key={a} className="flex items-start gap-2"><Building2 size={14} className="text-red-400 mt-1 shrink-0" /><span>{a}</span></li>
+                    ))}
+                  </ul>
+                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Normatividad aplicable</div>
+                  <div className="space-y-2">
+                    {NORMS.map((n) => (
+                      <div key={n.c} className="text-sm"><span className="font-mono font-bold text-white">{n.c}</span><span className="text-zinc-400"> — {n.d}</span></div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

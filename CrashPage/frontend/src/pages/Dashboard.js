@@ -82,6 +82,8 @@ function Dashboard() {
 
   const [roster, setRoster] = useState([]);
 
+  const isMonitor = user?.role === "monitor" && !!user?.company_id;
+
   const [heatOn, setHeatOn] = useState(false);
   const [heatDays, setHeatDays] = useState(30);
   const [heatPoints, setHeatPoints] = useState(null);
@@ -95,8 +97,6 @@ function Dashboard() {
       .catch(() => { if (!cancelled) setHeatPoints([]); });
     return () => { cancelled = true; };
   }, [isMonitor, heatOn, heatDays]);
-
-  const isMonitor = user?.role === "monitor" && !!user?.company_id;
 
   useEffect(() => {
     if (!isMonitor) { setRoster([]); return; }

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator,
-  Alert, KeyboardAvoidingView, Platform, Switch,
+  KeyboardAvoidingView, Platform, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,10 +10,12 @@ import { COLORS, RADIUS, SPACING, SHADOWS, severityColor } from '../../src/theme
 import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
+import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
 import { settingsAPI, authAPI } from '../../src/services/api';
 import SectionHeader from '../../src/components/SectionHeader';
 import GlassCard from '../../src/components/GlassCard';
+import PremiumModal from '../../src/components/PremiumModal';
 
 export default function SettingsScreen() {
   const { t, locale, setLocale } = useI18n();
@@ -21,6 +23,7 @@ export default function SettingsScreen() {
   const { token, logout } = useAuth();
   const { deviceName, setDeviceName, notifyAlertsConfigChanged } = useAppSettings();
   const { connected, deviceName: liveDevice, disconnect, nativeAvailable } = useBluetooth();
+  const { alert, confirm } = useAlert();
 
   const [threshold, setThreshold] = useState('5');
   const [autoCall, setAutoCall] = useState(true);
@@ -63,59 +66,68 @@ export default function SettingsScreen() {
   const linkCompany = async () => {
     if (!token) return;
     const raw = companyTokenInput.trim().toUpperCase();
-    if (!raw) { Alert.alert('Error', 'Ingresa el token de empresa.'); return; }
+    if (!raw) { alert({ title: 'Error', message: 'Ingresa el token de empresa.' }); return; }
     setLinking(true);
     try {
       const r = await authAPI.linkCompany(token, raw);
       setCompany({ company_id: r.company_id ?? null, company_name: r.company_name ?? null });
       setCompanyTokenInput('');
-      Alert.alert('Vinculado', `Tu cuenta ahora está asociada a "${r.company_name}".`);
+      alert({ title: 'Vinculado', message: `Tu cuenta ahora está asociada a "${r.company_name}".` });
     } catch (e: any) {
-      Alert.alert('Error al vincular', e?.message || 'Token inválido, agotado o expirado.');
+      alert({ title: 'Error al vincular', message: e?.message || 'Token inválido, agotado o expirado.' });
     } finally { setLinking(false); }
   };
 
-  const unlinkCompany = () => {
-    Alert.alert('Desvincular empresa', 'Tu cuenta ya no aparecerá en el monitoreo de la empresa.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Desvincular', style: 'destructive', onPress: async () => {
-        try {
-          await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/auth/remove-driver-token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          });
-          setCompany({ company_id: null, company_name: null });
-          Alert.alert('Desvinculado', 'Se eliminó la vinculación con la empresa.');
-        } catch (e: any) { Alert.alert('Error', e?.message || 'No se pudo desvincular.'); }
-      } },
-    ]);
+  const unlinkCompany = async () => {
+    const ok = await confirm({
+      title: 'Desvincular empresa',
+      message: 'Tu cuenta ya no aparecerá en el monitoreo de la empresa.',
+      confirmText: 'Desvincular',
+      cancelText: 'Cancelar',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const r = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/auth/remove-driver-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body?.detail || `Error ${r.status}`);
+      }
+      await fetchCompany();
+      alert({ title: 'Desvinculado', message: 'Tu cuenta ahora está en el monitoreo general de C.R.A.S.H.' });
+    } catch (e: any) { alert({ title: 'Error', message: e?.message || 'No se pudo desvincular.' }); }
   };
 
   const saveServer = async () => {
     if (!token) return;
     const t = parseFloat(threshold);
-    if (isNaN(t) || t <= 0) { Alert.alert('Error', 'El umbral debe ser un número positivo'); return; }
+    if (isNaN(t) || t <= 0) { alert({ title: 'Error', message: 'El umbral debe ser un número positivo' }); return; }
     const c = parseInt(countdownSeconds, 10);
-    if (isNaN(c) || c < 3 || c > 60) { Alert.alert('Error', 'La cuenta regresiva debe estar entre 3 y 60 segundos'); return; }
+    if (isNaN(c) || c < 3 || c > 60) { alert({ title: 'Error', message: 'La cuenta regresiva debe estar entre 3 y 60 segundos' }); return; }
     setSaving(true);
     try {
       await settingsAPI.update(token, { alert_threshold: t, auto_call: autoCall, auto_whatsapp: autoWhatsapp, countdown_seconds: c, location_tracking_enabled: locationTrackingEnabled });
       notifyAlertsConfigChanged();
-      Alert.alert('Guardado', 'Configuración de alertas actualizada');
-    } catch (e: any) { Alert.alert('Error', e.message); }
+      alert({ title: 'Guardado', message: 'Configuración de alertas actualizada' });
+    } catch (e: any) { alert({ title: 'Error', message: e.message }); }
     finally { setSaving(false); }
   };
 
   const saveDeviceName = async () => {
     await setDeviceName(deviceInput.trim() || 'HC-05');
-    Alert.alert('Guardado', 'Nombre del dispositivo actualizado.');
+    alert({ title: 'Guardado', message: 'Nombre del dispositivo actualizado.' });
   };
 
-  const confirmLogout = () => {
-    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir de tu cuenta?', [
-      { text: 'No', style: 'cancel' },
-      { text: 'Sí', style: 'destructive', onPress: async () => { if (connected) disconnect(); await logout(); router.replace('/login'); } }
-    ]);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+
+  const doLogout = async () => {
+    setLogoutOpen(false);
+    if (connected) disconnect();
+    await logout();
+    router.replace('/login');
   };
 
   if (loading) {
@@ -168,37 +180,50 @@ export default function SettingsScreen() {
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
             <SectionHeader title="EMPRESA / MONITOREO" icon="business" accent />
-            {company?.company_id ? (
-              <View style={styles.deviceStatus}>
-                <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statusLabel}>VINCULADO</Text>
-                  <Text style={styles.statusDevice}>{company.company_name}</Text>
+            {(() => {
+              const isGeneral = company?.company_id === "general";
+              const linked = !!company?.company_id && !isGeneral;
+              if (linked) {
+                return (
+                  <View style={styles.deviceStatus}>
+                    <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statusLabel}>VINCULADO</Text>
+                      <Text style={styles.statusDevice}>{company.company_name}</Text>
+                    </View>
+                    <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
+                      <Text style={styles.inlineBtnText}>DESVINCULAR</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+              return (
+                <View style={styles.inputGroup}>
+                  {isGeneral ? (
+                    <Text style={[styles.helper, { color: COLORS.success, marginBottom: 8 }]}>
+                      Cuenta en monitoreo general de C.R.A.S.H. Puedes vincularla a una empresa específica con su token:
+                    </Text>
+                  ) : (
+                    <Text style={styles.label}>TOKEN DE EMPRESA</Text>
+                  )}
+                  <Text style={styles.helper}>Pídelo a tu empresa. Al ingresarlo, tu cuenta de conductor aparecerá en su centro de monitoreo.</Text>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      testID="company-token-input"
+                      style={[styles.input, { flex: 1, letterSpacing: 2 }]}
+                      value={companyTokenInput}
+                      onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
+                      placeholder="XXXX-XXXX-XXXX-XXXX"
+                      placeholderTextColor={COLORS.textDim}
+                      autoCapitalize="characters"
+                    />
+                    <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
+                      {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>VINCULAR</Text>}
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
-                  <Text style={styles.inlineBtnText}>DESVINCULAR</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>TOKEN DE EMPRESA</Text>
-                <Text style={styles.helper}>Pídelo a tu empresa. Al ingresarlo, tu cuenta de conductor aparecerá en su centro de monitoreo.</Text>
-                <View style={styles.inputRow}>
-                  <TextInput
-                    testID="company-token-input"
-                    style={[styles.input, { flex: 1, letterSpacing: 2 }]}
-                    value={companyTokenInput}
-                    onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
-                    placeholder="XXXX-XXXX-XXXX-XXXX"
-                    placeholderTextColor={COLORS.textDim}
-                    autoCapitalize="characters"
-                  />
-                  <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
-                    {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>VINCULAR</Text>}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+              );
+            })()}
           </GlassCard>
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
@@ -282,12 +307,39 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </GlassCard>
 
-          <TouchableOpacity testID="logout-btn" style={styles.logoutBtn} onPress={confirmLogout}>
+          <TouchableOpacity testID="logout-btn" style={styles.logoutBtn} onPress={() => setLogoutOpen(true)}>
             <Ionicons name="log-out-outline" size={18} color={COLORS.primary} />
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
           <Text style={styles.version}>C.R.A.S.H. v1.0</Text>
         </ScrollView>
+
+        <PremiumModal
+          visible={logoutOpen}
+          onClose={() => setLogoutOpen(false)}
+          title="Cerrar sesión"
+          eyebrow="C.R.A.S.H. · Cuenta"
+          accent={COLORS.primary}
+          closeOnBackdrop={false}
+        >
+          <Text style={{ color: COLORS.textSec, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+            ¿Seguro que quieres salir de tu cuenta?
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' }}>
+            <TouchableOpacity
+              onPress={() => setLogoutOpen(false)}
+              style={{ flex: 1, backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, paddingVertical: 14, alignItems: 'center' }}
+            >
+              <Text style={{ color: COLORS.text, fontWeight: '800', letterSpacing: 0.7 }}>No</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={doLogout}
+              style={{ flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#FFF', fontWeight: '900', letterSpacing: 1 }}>Sí, salir</Text>
+            </TouchableOpacity>
+          </View>
+        </PremiumModal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

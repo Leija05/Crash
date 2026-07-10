@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/context/AuthContext';
 import { AppSettingsProvider } from '../src/context/AppSettingsContext';
 import { BluetoothProvider } from '../src/context/BluetoothContext';
+import { AlertProvider } from '../src/context/AlertContext';
 import { I18nProvider } from '../src/i18n';
 import { COLORS } from '../src/theme';
 
@@ -15,7 +16,8 @@ export default function RootLayout() {
         <AppSettingsProvider>
           <AuthProvider>
             <BluetoothProvider>
-              <StatusBar style="light" translucent />
+              <AlertProvider>
+                <StatusBar style="light" translucent />
               <View style={styles.ambientGlow} pointerEvents="none" />
               <Stack
                 screenOptions={{
@@ -24,6 +26,7 @@ export default function RootLayout() {
                   animation: 'slide_from_right',
                 }}
               />
+              </AlertProvider>
             </BluetoothProvider>
           </AuthProvider>
         </AppSettingsProvider>

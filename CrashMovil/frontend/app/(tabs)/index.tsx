@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Alert, Platform, ActivityIndicator, Animated,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import PremiumModal from '../../src/components/PremiumModal';
 import { useAuth } from '../../src/context/AuthContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
+import { useAlert } from '../../src/context/AlertContext';
 import { contactsAPI, impactsAPI, settingsAPI, telemetryAPI } from '../../src/services/api';
 import { foregroundService } from '../../src/services/foregroundService';
 
@@ -42,6 +43,7 @@ export default function DashboardScreen() {
   const { user } = useAuth();
   const { token } = useAuth();
   const router = useRouter();
+  const { alert, confirm } = useAlert();
   const { deviceName: pattern, alertsConfigVersion } = useAppSettings();
   const {
     connected, telemetry, statusDetail, deviceName, batteryLevel,
@@ -247,14 +249,14 @@ export default function DashboardScreen() {
     if (!token || !currentTelemetry || sending || emergencyInFlightRef.current) return;
 
     if (!hasEmergencyContacts) {
-      Alert.alert(
-        'No tienes contactos agregados',
-        'Antes de enviar alertas, registra al menos un contacto de emergencia.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Ir a Contactos', onPress: () => router.push('/contacts') },
-        ]
-      );
+      const goToContacts = await confirm({
+        title: 'No tienes contactos agregados',
+        message: 'Antes de enviar alertas, registra al menos un contacto de emergencia.',
+        confirmText: 'Ir a Contactos',
+        cancelText: 'Cancelar',
+      });
+      if (goToContacts) router.push('/contacts');
+      impactTriggeredRef.current = false;
       return;
     }
 
@@ -287,16 +289,16 @@ export default function DashboardScreen() {
       });
 
       if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error && currentTelemetry.g_force >= alertThreshold) {
-        Alert.alert('No tienes contactos agregados', 'No se pudo notificar a nadie.');
+        alert({ title: 'No tienes contactos agregados', message: 'No se pudo notificar a nadie.' });
       }
       setAlertResult(impact);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'No se pudo enviar la alerta');
+      alert({ title: 'Error', message: e.message || 'No se pudo enviar la alerta' });
     } finally {
       setSending(false);
       emergencyInFlightRef.current = false;
     }
-  }, [token, sending, hasEmergencyContacts, router, alertThreshold]);
+  }, [token, sending, hasEmergencyContacts, router, alertThreshold, confirm, alert]);
 
   useEffect(() => {
     if (countdown === null) return;

@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import uuid
 from bson import ObjectId
@@ -14,6 +14,36 @@ from app.core.security import (
 )
 
 _login_attempts: dict[str, list[float]] = {}
+
+GENERAL_COMPANY_ID = "general"
+GENERAL_COMPANY_NAME = "Monitoreo General"
+
+
+async def ensure_general_company() -> None:
+    """Asegura la existencia de la empresa 'General' y sus tokens, para que
+    los conductores sin empresa específica sigan siendo monitoreados por un
+    monitorista general en lugar de quedar desasistidos."""
+    from app.api.tokens.service import create_company_token, create_monitor_token
+
+    db = await get_db()
+    plan = {"name": "General", "max_drivers": 100000, "max_monitors": 10}
+    existing = await db.companies.find_one({"id": GENERAL_COMPANY_ID})
+    if not existing:
+        await db.companies.insert_one({
+            "id": GENERAL_COMPANY_ID,
+            "name": GENERAL_COMPANY_NAME,
+            "has_token": True,
+            "plan_name": "General",
+            "max_drivers": plan["max_drivers"],
+            "max_monitors": plan["max_monitors"],
+            "cycle": "Anual",
+            "subscription_expires_at": (datetime.now(timezone.utc) + timedelta(days=36500)).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    if not await db.site_tokens.find_one({"company_id": GENERAL_COMPANY_ID, "role": "empresa", "active": True}):
+        await create_company_token({"id": GENERAL_COMPANY_ID, "name": GENERAL_COMPANY_NAME}, plan, "Anual")
+    if not await db.site_tokens.find_one({"company_id": GENERAL_COMPANY_ID, "role": "monitorista", "active": True}):
+        await create_monitor_token({"id": GENERAL_COMPANY_ID, "name": GENERAL_COMPANY_NAME}, plan, "Anual")
 
 
 def _check_bruteforce(identifier: str) -> None:
@@ -54,6 +84,11 @@ async def register_rider(email: str, password: str, name: str, company_id: str =
                 )
         except:
             company_id = ""
+
+    if not company_id:
+        # Conductores sin empresa específica -> monitoreo general.
+        company_id = GENERAL_COMPANY_ID
+        company_name = GENERAL_COMPANY_NAME
 
     user_doc = {
         "email": email,
@@ -233,6 +268,10 @@ async def link_driver_company(user_id: str, token: str) -> dict:
         {"_id": ObjectId(user_id)},
         {"$set": {"company_id": company_id, "company_name": company_name}},
     )
+    try:
+        await db.companies.update_one({"_id": ObjectId(company_id)}, {"$inc": {"driver_count": 1}})
+    except Exception:
+        await db.companies.update_one({"id": company_id}, {"$inc": {"driver_count": 1}})
     await consume_token(token)
     return {"company_id": company_id, "company_name": company_name, "message": f"Vinculado a {company_name}"}
 
@@ -263,13 +302,30 @@ async def assign_driver_company(user_id: str, token: str) -> dict:
 async def remove_driver_company(user_id: str) -> dict:
     db = await get_db()
     rider = await db.users.find_one({"_id": ObjectId(user_id)}, {"company_id": 1})
-    if rider and rider.get("company_id"):
+    if rider and rider.get("company_id") and rider["company_id"] != GENERAL_COMPANY_ID:
+        company_id = rider["company_id"]
+        # Liberar el uso del token de empresa: restar 1 al use_count (sin bajar de 0).
+        await db.site_tokens.update_one(
+            {"company_id": company_id, "role": "empresa", "active": True},
+            [{"$set": {"use_count": {"$max": [{"$subtract": ["$use_count", 1]}, 0]}}}],
+        )
+        # Mantener driver_count sincronizado con la realidad de conductores.
+        try:
+            await db.companies.update_one({"_id": ObjectId(company_id)}, {"$inc": {"driver_count": -1}})
+        except Exception:
+            await db.companies.update_one({"id": company_id}, {"$inc": {"driver_count": -1}})
+        # Si se vinculó con un token de monitorista/conductor, liberarlo para reutilización.
+        await db.driver_tokens.update_one(
+            {"used_by": user_id},
+            {"$set": {"used": False, "used_by": None, "used_at": None}},
+        )
+        # Al desvincular, el conductor pasa al monitoreo general (nunca queda sin supervisión).
         await db.users.update_one(
             {"_id": ObjectId(user_id)},
-            {"$unset": {"company_id": "", "company_name": ""}}
+            {"$set": {"company_id": GENERAL_COMPANY_ID, "company_name": GENERAL_COMPANY_NAME}},
         )
         return {"message": "Vinculación con empresa eliminada"}
-    return {"message": "No había empresa vinculada"}
+    return {"message": "El conductor ya pertenece al monitoreo general"}
 
 
 async def refresh_rider_token(refresh_token: str) -> dict:
@@ -295,7 +351,7 @@ async def refresh_rider_token(refresh_token: str) -> dict:
 
 async def associate_monitor_company(token: str, monitor_user: dict) -> dict:
     """Vincula la cuenta de monitorista logueada con la empresa de un token (empresa o monitorista)."""
-    from app.api.tokens.service import verify_token
+    from app.api.tokens.service import verify_token, consume_token
     tok = await verify_token(token)
     if tok["role"] not in ("monitorista", "empresa"):
         raise HTTPException(status_code=400, detail="Este token no es válido para monitores")
@@ -303,6 +359,14 @@ async def associate_monitor_company(token: str, monitor_user: dict) -> dict:
     company_name = tok["name"]
 
     db = await get_db()
+    # Solo los tokens de monitorista consumen uso; un token de empresa vincula al monitor a la empresa.
+    if tok["role"] == "monitorista":
+        await consume_token(token)
+        try:
+            await db.companies.update_one({"_id": ObjectId(company_id)}, {"$inc": {"monitor_count": 1}})
+        except Exception:
+            await db.companies.update_one({"id": company_id}, {"$inc": {"monitor_count": 1}})
+
     await db.monitor_operators.update_one(
         {"id": monitor_user["id"]},
         {"$set": {"company_id": company_id, "company_name": company_name,

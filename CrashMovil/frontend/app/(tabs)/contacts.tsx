@@ -1,17 +1,19 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  RefreshControl, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform,
+  RefreshControl, ActivityIndicator, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
+import { useAlert } from '../../src/context/AlertContext';
 import { contactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
 
 export default function ContactsScreen() {
   const { token } = useAuth();
+  const { alert } = useAlert();
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +43,7 @@ export default function ContactsScreen() {
       setName(''); setPhone(''); setRelationship('');
       setShowAdd(false);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      alert({ title: 'Error', message: e.message });
     } finally { setSubmitting(false); }
   };
 
@@ -51,7 +53,7 @@ export default function ContactsScreen() {
       await contactsAPI.delete(token, contactId);
       setContacts((prev) => prev.filter((c) => c.id !== contactId));
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      alert({ title: 'Error', message: e.message });
     }
   };
 

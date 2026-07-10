@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { X } from "lucide-react";
 import CrashLogo from "../CrashLogo";
+import { useCloseOnBrowserBack, closeModalViaHistory } from "../../hooks/useCloseOnBrowserBack";
 
 const SIZES = {
   sm: "max-w-sm",
@@ -29,15 +30,22 @@ export default function PremiumModal({
   icon: Icon,
   accent = "emerald",
   size = "md",
+  fullscreen = false,
   children,
   footer,
   closeOnBackdrop = true,
   bodyClassName = "",
   testId,
 }) {
+  useCloseOnBrowserBack(open, onClose);
+
+  const requestClose = useCallback(() => {
+    closeModalViaHistory(onClose);
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    const onKey = (e) => { if (e.key === "Escape") requestClose(); };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -45,22 +53,28 @@ export default function PremiumModal({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open, requestClose]);
 
   if (!open) return null;
 
   const a = ACCENT[accent] || ACCENT.emerald;
 
+  const dialogSize = fullscreen
+    ? "w-screen h-screen max-w-none max-h-none rounded-none"
+    : `w-full ${SIZES[size] || SIZES.md} max-h-[92vh] rounded-2xl`;
+
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-2 sm:p-3 lg:p-6 bg-black/80 backdrop-blur-md fade-in"
-      onClick={closeOnBackdrop ? onClose : undefined}
+      className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 backdrop-blur-md fade-in ${
+        fullscreen ? "p-0" : "p-2 sm:p-3 lg:p-6"
+      }`}
+      onClick={closeOnBackdrop ? requestClose : undefined}
       data-testid={testId}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`relative w-full ${SIZES[size] || SIZES.md} max-h-[92vh] flex flex-col overflow-hidden rounded-2xl border ${a.border} bg-[#0B0B0D] shadow-2xl animate-scale-in`}
+        className={`relative flex flex-col overflow-hidden border ${a.border} bg-[#0B0B0D] shadow-2xl animate-scale-in ${dialogSize}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glows de marca */}
@@ -81,7 +95,7 @@ export default function PremiumModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={requestClose}
             className="flex-shrink-0 h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center text-neutral-300 hover:text-white transition-all"
             title="Cerrar"
           >

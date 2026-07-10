@@ -1,19 +1,21 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  RefreshControl, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  RefreshControl, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useAlert } from '../../src/context/AlertContext';
 import { profileAPI } from '../../src/services/api';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function ProfileScreen() {
   const { user, token } = useAuth();
+  const { alert } = useAlert();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,9 +55,9 @@ export default function ProfileScreen() {
         disabilities: disabilitiesText.split(',').map(s => s.trim()).filter(Boolean),
         emergency_notes: notes.trim(),
       });
-      Alert.alert('Guardado', 'Tu perfil médico fue actualizado');
+      alert({ title: 'Guardado', message: 'Tu perfil médico fue actualizado' });
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      alert({ title: 'Error', message: e.message });
     } finally { setSaving(false); }
   };
 

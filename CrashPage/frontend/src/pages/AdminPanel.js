@@ -5,6 +5,9 @@ import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { useAuth } from "../auth/AuthContext";
 import { api, formatApiError, superAdminAPI, adminAPI, companyAPI } from "../lib/api";
 import PremiumModal from "../components/ui/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
+import PromptDialog from "../components/PromptDialog";
+import { useCloseOnBrowserBack, closeModalViaHistory } from "../hooks/useCloseOnBrowserBack";
 import {
   LayoutDashboard, Building2, CreditCard, Users, Key, LogOut,
   Plus, Trash2, Edit3, Copy, RefreshCw, Loader2, Check, X,
@@ -63,6 +66,8 @@ function CompanyModal({ company, onClose, onSaved }) {
   const [plans, setPlans] = useState([]);
   const [busy, setBusy] = useState(false);
   const isEdit = !!company;
+  useCloseOnBrowserBack(true, onClose);
+  const close = () => closeModalViaHistory(onClose);
 
   useEffect(() => {
     (async () => {
@@ -82,17 +87,17 @@ function CompanyModal({ company, onClose, onSaved }) {
         await api.post("/companies", payload);
       }
       onSaved();
-      onClose();
+      close();
     } catch (err) {
-      alert(formatApiError(err));
+      toast.error(formatApiError(err));
     }
     setBusy(false);
   }, [name, email, phone, planId, cycle, isEdit, company, onClose, onSaved]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={close}>
       <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
+        <button onClick={close} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
         <div className="flex items-center gap-3 mb-6">
           <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-400" /></div>
           <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">{isEdit ? "Editar" : "Nueva"} empresa</div><div className="font-bold">{isEdit ? "Editar " + company.name : "Registrar empresa"}</div></div>
@@ -144,6 +149,7 @@ function CompanyModal({ company, onClose, onSaved }) {
 
 function TokenRow({ token, onRegenerate, onDeactivate }) {
   const [copied, setCopied] = useState(false);
+  const [pending, setPending] = useState(null); // { kind: 'regenerate' | 'deactivate' }
   const handleCopy = useCallback(() => {
     navigator.clipboard?.writeText(token.token);
     setCopied(true);
@@ -171,12 +177,12 @@ function TokenRow({ token, onRegenerate, onDeactivate }) {
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-neutral-400" />}
           </button>
           {onRegenerate && (
-            <button onClick={() => { if (confirm("¿Regenerar? Los usuarios deberán usar el nuevo token.")) onRegenerate(); }} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all" title="Regenerar">
+            <button onClick={() => setPending({ kind: "regenerate" })} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all" title="Regenerar">
               <RefreshCw className="h-3.5 w-3.5 text-amber-400" />
             </button>
           )}
           {onDeactivate && active && (
-            <button onClick={() => { if (confirm("¿Desactivar este token?")) onDeactivate(); }} className="h-7 w-7 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Desactivar">
+            <button onClick={() => setPending({ kind: "deactivate" })} className="h-7 w-7 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Desactivar">
               <X className="h-3.5 w-3.5 text-red-400" />
             </button>
           )}
@@ -190,6 +196,23 @@ function TokenRow({ token, onRegenerate, onDeactivate }) {
       <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
         <div className={`h-full rounded-full ${pct >= 100 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
       </div>
+      <ConfirmDialog
+        open={!!pending}
+        onClose={() => setPending(null)}
+        onConfirm={() => {
+          const kind = pending?.kind;
+          setPending(null);
+          if (kind === "regenerate") onRegenerate?.();
+          else if (kind === "deactivate") onDeactivate?.();
+        }}
+        title={pending?.kind === "deactivate" ? "Desactivar token" : "Regenerar token"}
+        message={pending?.kind === "deactivate"
+          ? "Se desactivará este token y dejará de funcionar para acceder al monitoreo."
+          : "Los usuarios deberán usar el nuevo token generado."}
+        confirmLabel={pending?.kind === "deactivate" ? "Desactivar" : "Regenerar"}
+        danger={pending?.kind === "deactivate"}
+        testId={pending?.kind === "deactivate" ? "confirm-deactivate-token" : "confirm-regen-token"}
+      />
     </div>
   );
 }
@@ -200,6 +223,8 @@ function BuyPackageModal({ company, onClose, onSaved }) {
   const [plans, setPlans] = useState([]);
   const [busy, setBusy] = useState(false);
   const cid = company?.id || company?._id;
+  useCloseOnBrowserBack(true, onClose);
+  const close = () => closeModalViaHistory(onClose);
 
   useEffect(() => {
     (async () => {
@@ -212,17 +237,17 @@ function BuyPackageModal({ company, onClose, onSaved }) {
     try {
       await api.post(`/companies/${cid}/buy-package`, { plan_id: planId, cycle });
       onSaved();
-      onClose();
+      close();
     } catch (err) {
-      alert(formatApiError(err));
+      toast.error(formatApiError(err));
     }
     setBusy(false);
   }, [planId, cycle, cid, onSaved, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={close}>
       <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
+        <button onClick={close} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
         <div className="flex items-center gap-3 mb-6">
           <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Package className="h-5 w-5 text-emerald-400" /></div>
           <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Comprar paquete</div><div className="font-bold">{company?.name}</div></div>
@@ -430,6 +455,8 @@ function CompaniesTab() {
   const [editing, setEditing] = useState(null);
   const [expanded, setExpanded] = useState({});
   const [monitors, setMonitors] = useState({});
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -485,34 +512,36 @@ function CompaniesTab() {
     return () => clearInterval(id);
   }, [expanded, loadDrivers, loadMonitors]);
 
-  const handleDelete = useCallback(async (id) => {
-    if (!confirm("¿Eliminar empresa y todos sus monitoristas?")) return;
+  const handleDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      await api.delete(`/companies/${id}`);
+      await api.delete(`/companies/${pendingDelete.id}`);
+      setPendingDelete(null);
       load();
-    } catch { }
-  }, [load]);
+    } catch (err) { toast.error(formatApiError(err)); setDeleting(false); }
+  }, [pendingDelete, load]);
 
   const handleRegenToken = useCallback(async (id, planId, cycle) => {
     try {
       await api.post(`/tokens/regenerate`, { company_id: id, plan_id: planId, cycle: cycle || "Mensual" });
       loadTokens(id);
       load();
-    } catch (err) { alert(formatApiError(err)); }
+    } catch (err) { toast.error(formatApiError(err)); }
   }, [loadTokens, load]);
 
   const handleCreateMonitor = useCallback(async (id, cycle) => {
     try {
       await api.post(`/tokens/${id}/monitorista`, { cycle: cycle || "Mensual" });
       loadTokens(id);
-    } catch (err) { alert(formatApiError(err)); }
+    } catch (err) { toast.error(formatApiError(err)); }
   }, [loadTokens]);
 
   const handleDeactivate = useCallback(async (token) => {
     try {
       await api.post(`/tokens/deactivate`, { token: token.token });
       loadTokens(token.company_id);
-    } catch (err) { alert(formatApiError(err)); }
+    } catch (err) { toast.error(formatApiError(err)); }
   }, [loadTokens]);
 
   const handleBuy = useCallback(async () => {
@@ -553,7 +582,7 @@ function CompaniesTab() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button onClick={() => { setEditing(c); setModalOpen(true); }} className="h-9 w-9 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all" title="Editar"><Edit3 className="h-4 w-4 text-neutral-400" /></button>
-                    <button onClick={() => handleDelete(c.id || c._id)} className="h-9 w-9 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
+                    <button onClick={() => setPendingDelete({ id: c.id || c._id, name: c.name })} className="h-9 w-9 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
                     <button onClick={() => toggleExpand(c.id || c._id)} className="h-9 w-9 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all">
                       {expanded[c.id || c._id] ? <ChevronDown className="h-4 w-4 text-neutral-400" /> : <ChevronRight className="h-4 w-4 text-neutral-400" />}
                     </button>
@@ -639,8 +668,19 @@ function CompaniesTab() {
           ))}
         </div>
       )}
-       {modalOpen && <CompanyModal company={editing} onClose={() => setModalOpen(false)} onSaved={load} />}
-       {buyOpen && <BuyPackageModal company={buyOpen} onClose={() => setBuyOpen(null)} onSaved={handleBuy} />}
+        {modalOpen && <CompanyModal company={editing} onClose={() => setModalOpen(false)} onSaved={load} />}
+        {buyOpen && <BuyPackageModal company={buyOpen} onClose={() => setBuyOpen(null)} onSaved={handleBuy} />}
+        <ConfirmDialog
+          open={!!pendingDelete}
+          onClose={() => !deleting && setPendingDelete(null)}
+          onConfirm={handleDelete}
+          title="Eliminar empresa"
+          message={pendingDelete ? `¿Eliminar ${pendingDelete.name || "esta empresa"} y todos sus monitoristas? Esta acción no se puede deshacer.` : ""}
+          confirmLabel="Eliminar"
+          danger
+          busy={deleting}
+          testId="confirm-delete-company"
+        />
     </div>
   );
 }
@@ -945,6 +985,9 @@ function SupportTab() {
   const [filter, setFilter] = useState("open");
   const [pwResult, setPwResult] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [pendingRevoke, setPendingRevoke] = useState(null);
+  const [revoking, setRevoking] = useState(false);
+  const [resetPrompt, setResetPrompt] = useState(null);
 
   const load = useCallback(async () => {
     try { const { data } = await adminAPI.supportList(); setReqs(data || []); } catch (e) { err(e); }
@@ -960,29 +1003,35 @@ function SupportTab() {
   }, [load]);
 
   const resetPassword = useCallback(async (r) => {
-    const suggested = r.requested_by_email || "";
-    const email = window.prompt("Correo de la cuenta a reiniciar:", suggested);
-    if (email === null) return;
+    setResetPrompt({ id: r.id, suggested: r.requested_by_email || "" });
+  }, []);
+
+  const submitResetPassword = useCallback(async (email) => {
+    if (resetPrompt == null) return;
+    const r = resetPrompt;
+    setResetPrompt(null);
+    if (email === "") return;
     setBusyId(r.id);
     try {
-      const { data } = await adminAPI.supportResetPassword(r.id, email.trim() || undefined);
+      const { data } = await adminAPI.supportResetPassword(r.id, email || undefined);
       setPwResult(data);
       ok("Contraseña reiniciada");
       load();
     } catch (e) { err(e); }
     setBusyId(null);
-  }, [load]);
+  }, [resetPrompt, load]);
 
-  const revokeToken = useCallback(async (r) => {
-    if (!window.confirm(`¿Desactivar el token de monitorista de ${r.company_name || "esta empresa"}?`)) return;
-    setBusyId(r.id);
+  const revokeToken = useCallback(async () => {
+    if (!pendingRevoke) return;
+    setRevoking(true);
     try {
-      const { data } = await adminAPI.supportRevokeToken(r.id);
+      const { data } = await adminAPI.supportRevokeToken(pendingRevoke.id);
       ok(`${data.deactivated} token(s) desactivado(s)`);
+      setPendingRevoke(null);
       load();
     } catch (e) { err(e); }
-    setBusyId(null);
-  }, [load]);
+    setRevoking(false);
+  }, [pendingRevoke, load]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return reqs;
@@ -1042,7 +1091,7 @@ function SupportTab() {
                       <button disabled={busyId === r.id} onClick={() => resetPassword(r)} className="inline-flex items-center justify-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 disabled:opacity-50 text-emerald-300 rounded-lg px-3 py-1.5 text-xs transition-all">
                         <Key className="h-3.5 w-3.5" /> Reiniciar contraseña
                       </button>
-                      <button disabled={busyId === r.id} onClick={() => revokeToken(r)} className="inline-flex items-center justify-center gap-1.5 border border-red-500/30 hover:bg-red-500/10 disabled:opacity-50 text-red-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                      <button disabled={busyId === r.id} onClick={() => setPendingRevoke({ id: r.id, name: r.company_name })} className="inline-flex items-center justify-center gap-1.5 border border-red-500/30 hover:bg-red-500/10 disabled:opacity-50 text-red-300 rounded-lg px-3 py-1.5 text-xs transition-all">
                         <Shield className="h-3.5 w-3.5" /> Quitar token
                       </button>
                       <button disabled={busyId === r.id} onClick={() => forward(r.id)} className="inline-flex items-center justify-center gap-1.5 border border-blue-500/30 hover:bg-blue-500/10 disabled:opacity-50 text-blue-300 rounded-lg px-3 py-1.5 text-xs transition-all">
@@ -1059,6 +1108,29 @@ function SupportTab() {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={!!pendingRevoke}
+        onClose={() => !revoking && setPendingRevoke(null)}
+        onConfirm={revokeToken}
+        title="Quitar token de monitorista"
+        message={pendingRevoke ? `¿Desactivar el token de monitorista de ${pendingRevoke.name || "esta empresa"}?` : ""}
+        confirmLabel="Quitar token"
+        danger
+        busy={revoking}
+        testId="confirm-revoke-token"
+      />
+      <PromptDialog
+        open={!!resetPrompt}
+        onClose={() => setResetPrompt(null)}
+        onSubmit={submitResetPassword}
+        title="Reiniciar contraseña"
+        message="Introduce el correo de la cuenta cuya contraseña quieres reiniciar."
+        label="Correo electrónico"
+        placeholder="nombre@empresa.com"
+        defaultValue={resetPrompt?.suggested || ""}
+        submitLabel="Reiniciar"
+        testId="prompt-reset-password"
+      />
     </div>
   );
 }
@@ -1248,6 +1320,8 @@ function SuperAdminsTab() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try { const { data } = await superAdminAPI.list(); setList(data || []); } catch {}
@@ -1264,11 +1338,12 @@ function SuperAdminsTab() {
     setBusy(false);
   }, [email, password, name, load]);
 
-  const handleDelete = useCallback(async (id) => {
-    if (!confirm("¿Eliminar este SuperAdmin?")) return;
-    try { await superAdminAPI.remove(id); load(); }
-    catch (err) { alert(formatApiError(err)); }
-  }, [load]);
+  const confirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try { await superAdminAPI.remove(pendingDelete.id); setPendingDelete(null); load(); }
+    catch (err) { toast.error(formatApiError(err)); setDeleting(false); }
+  }, [pendingDelete, load]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
 
@@ -1295,10 +1370,22 @@ function SuperAdminsTab() {
                 <div className="text-xs text-neutral-500">{s.email}</div>
               </div>
             </div>
-            <button onClick={() => handleDelete(s.id)} className="h-9 w-9 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
+            <button onClick={() => setPendingDelete({ id: s.id, name: s.name })} className="h-9 w-9 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onClose={() => !deleting && setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        title="Eliminar SuperAdmin"
+        message={pendingDelete ? `¿Eliminar a ${pendingDelete.name || "este SuperAdmin"}? Esta acción no se puede deshacer.` : ""}
+        confirmLabel="Eliminar"
+        danger
+        busy={deleting}
+        testId="confirm-delete-sa"
+      />
     </div>
   );
 }

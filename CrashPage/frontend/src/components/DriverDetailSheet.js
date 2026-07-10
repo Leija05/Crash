@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "../components/ui/sheet";
-import {
   User,
   Heart,
   AlertTriangle,
@@ -20,6 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { api } from "../lib/api";
+import PremiumModal from "./ui/Modal";
 
 function Section({ icon: Icon, label, children, tone = "default" }) {
   const toneClass = {
@@ -92,233 +86,223 @@ export default function DriverDetailSheet({
   const tone = STATUS_TONE[driver?.status] || STATUS_TONE.offline;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-xl bg-[#0d0d0f] border-l border-white/10 text-white overflow-y-auto p-0 shadow-[0_0_60px_rgba(0,0,0,0.65)]"
-        data-testid="driver-detail-sheet"
-      >
-        <div className="sticky top-0 z-10 bg-[#0d0d0f]/95 backdrop-blur-xl border-b border-white/10 px-6 py-5">
-          <SheetHeader className="text-left space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center avatar-ring">
-                <Bike className="h-5 w-5 text-emerald-400" />
+    <PremiumModal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={driver?.name || "Conductor"}
+      eyebrow="C.R.A.S.H. · Conductor"
+      icon={Bike}
+      accent="emerald"
+      size="lg"
+      testId="driver-detail-sheet"
+    >
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className={`text-[10px] font-mono uppercase tracking-[0.2em] ${tone.text}`}>
+            {tone.label}
+          </span>
+          <span className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 truncate">
+            {driver?.email || driverId}
+          </span>
+        </div>
+
+        {driver ? (
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
+              <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
+                Vel.
               </div>
-              <div className="flex-1 min-w-0">
-                <SheetTitle className="text-xl font-bold tracking-tight truncate">
-                  {driver?.name || "Conductor"}
-                </SheetTitle>
-                <SheetDescription className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mt-1">
-                  {driver?.email || driverId}
-                </SheetDescription>
-              </div>
-              <div
-                className={`text-[10px] font-mono uppercase tracking-[0.2em] ${tone.text}`}
-              >
-                {tone.label}
+              <div className="font-mono text-sm">
+                {typeof driver.speed === "number"
+                  ? `${Math.round(driver.speed)} km/h`
+                  : "—"}
               </div>
             </div>
-            {driver ? (
-              <div className="grid grid-cols-3 gap-2 mt-4">
-                <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
-                  <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                    Vel.
+            <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
+              <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
+                G-Force
+              </div>
+              <div className="font-mono text-sm">
+                {typeof driver.gforce === "number"
+                  ? `${driver.gforce.toFixed(2)}G`
+                  : "—"}
+              </div>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
+              <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
+                Batería
+              </div>
+              <div className="font-mono text-sm">
+                {driver.battery != null ? `${driver.battery}%` : "—"}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-5 w-5 text-neutral-500 animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+            {error}
+          </div>
+        ) : (
+          <>
+            <Section icon={User} label="Perfil médico">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
+                    Nombre
                   </div>
-                  <div className="font-mono text-sm">
-                    {typeof driver.speed === "number"
-                      ? `${Math.round(driver.speed)} km/h`
-                      : "—"}
+                  <div className="text-white">
+                    {profile.full_name || driver?.name || "—"}
                   </div>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
-                  <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                    G-Force
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
+                    Tipo de sangre
                   </div>
-                  <div className="font-mono text-sm">
-                    {typeof driver.gforce === "number"
-                      ? `${driver.gforce.toFixed(2)}G`
-                      : "—"}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
-                  <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                    Batería
-                  </div>
-                  <div className="font-mono text-sm">
-                    {driver.battery != null ? `${driver.battery}%` : "—"}
+                  <div className="font-mono text-emerald-400 font-bold text-base">
+                    {profile.blood_type || "—"}
                   </div>
                 </div>
               </div>
+            </Section>
+
+            <Section
+              icon={AlertTriangle}
+              label="Alergias"
+              tone={(profile.allergies || []).length ? "danger" : "default"}
+            >
+              <ChipList items={profile.allergies} />
+            </Section>
+
+            <Section
+              icon={Heart}
+              label="Condiciones médicas"
+              tone={
+                (profile.medical_conditions || []).length
+                  ? "danger"
+                  : "default"
+              }
+            >
+              <ChipList items={profile.medical_conditions} />
+            </Section>
+
+            <Section icon={Accessibility} label="Discapacidades">
+              <ChipList items={profile.disabilities} />
+            </Section>
+
+            {profile.emergency_notes ? (
+              <Section icon={Pill} label="Notas de emergencia">
+                <p className="text-sm text-neutral-200 leading-relaxed whitespace-pre-line">
+                  {profile.emergency_notes}
+                </p>
+              </Section>
             ) : null}
-          </SheetHeader>
-        </div>
 
-        <div className="px-6 py-5 space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-5 w-5 text-neutral-500 animate-spin" />
-            </div>
-          ) : error ? (
-            <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-              {error}
-            </div>
-          ) : (
-            <>
-              <Section icon={User} label="Perfil médico">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
-                      Nombre
+            <Section
+              icon={Phone}
+              label={`Contactos de emergencia · ${contacts.length}`}
+            >
+              {contacts.length === 0 ? (
+                <div className="text-xs text-neutral-500 italic">
+                  Sin contactos registrados
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {contacts.map((c) => (
+                    <div
+                      key={c.id || c.phone}
+                      className="rounded-lg border border-white/10 bg-white/[0.03] p-3 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium truncate">
+                          {c.name}
+                        </div>
+                        <div className="font-mono text-xs text-neutral-400 truncate">
+                          {c.phone}
+                        </div>
+                        {c.relationship ? (
+                          <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mt-0.5">
+                            {c.relationship}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="flex gap-1">
+                        <a
+                          href={`tel:${c.phone}`}
+                          className="h-8 w-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center transition-all hover-lift"
+                          title="Llamar"
+                        >
+                          <Phone className="h-3.5 w-3.5 text-emerald-400" />
+                        </a>
+                        <a
+                          href={`https://wa.me/${(c.phone || "").replace(/[^\d]/g, "")}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all hover-lift"
+                          title="WhatsApp"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5 text-neutral-300" />
+                        </a>
+                      </div>
                     </div>
-                    <div className="text-white">
-                      {profile.full_name || driver?.name || "—"}
+                  ))}
+                </div>
+              )}
+            </Section>
+
+            {settings && Object.keys(settings).length > 0 ? (
+              <Section icon={ShieldCheck} label="Configuración del conductor">
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+                    <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
+                      Umbral G
+                    </div>
+                    <div className="font-mono text-emerald-400">
+                      {settings.alert_threshold ?? "—"}G
                     </div>
                   </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
-                      Tipo de sangre
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+                    <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
+                      Auto llamada
                     </div>
-                    <div className="font-mono text-emerald-400 font-bold text-base">
-                      {profile.blood_type || "—"}
+                    <div
+                      className={`font-mono ${settings.auto_call ? "text-emerald-400" : "text-neutral-500"}`}
+                    >
+                      {settings.auto_call ? "ON" : "OFF"}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
+                    <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
+                      WhatsApp
+                    </div>
+                    <div
+                      className={`font-mono ${settings.auto_whatsapp ? "text-emerald-400" : "text-neutral-500"}`}
+                    >
+                      {settings.auto_whatsapp ? "ON" : "OFF"}
                     </div>
                   </div>
                 </div>
               </Section>
+            ) : null}
 
-              <Section
-                icon={AlertTriangle}
-                label="Alergias"
-                tone={(profile.allergies || []).length ? "danger" : "default"}
-              >
-                <ChipList items={profile.allergies} />
-              </Section>
-
-              <Section
-                icon={Heart}
-                label="Condiciones médicas"
-                tone={
-                  (profile.medical_conditions || []).length
-                    ? "danger"
-                    : "default"
-                }
-              >
-                <ChipList items={profile.medical_conditions} />
-              </Section>
-
-              <Section icon={Accessibility} label="Discapacidades">
-                <ChipList items={profile.disabilities} />
-              </Section>
-
-              {profile.emergency_notes ? (
-                <Section icon={Pill} label="Notas de emergencia">
-                  <p className="text-sm text-neutral-200 leading-relaxed whitespace-pre-line">
-                    {profile.emergency_notes}
-                  </p>
-                </Section>
-              ) : null}
-
-              <Section
-                icon={Phone}
-                label={`Contactos de emergencia · ${contacts.length}`}
-              >
-                {contacts.length === 0 ? (
-                  <div className="text-xs text-neutral-500 italic">
-                    Sin contactos registrados
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {contacts.map((c) => (
-                      <div
-                        key={c.id || c.phone}
-                        className="rounded-lg border border-white/10 bg-white/[0.03] p-3 flex items-center justify-between gap-3"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium truncate">
-                            {c.name}
-                          </div>
-                          <div className="font-mono text-xs text-neutral-400 truncate">
-                            {c.phone}
-                          </div>
-                          {c.relationship ? (
-                            <div className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mt-0.5">
-                              {c.relationship}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="flex gap-1">
-                          <a
-                            href={`tel:${c.phone}`}
-                            className="h-8 w-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center transition-all hover-lift"
-                            title="Llamar"
-                          >
-                            <Phone className="h-3.5 w-3.5 text-emerald-400" />
-                          </a>
-                          <a
-                            href={`https://wa.me/${(c.phone || "").replace(/[^\d]/g, "")}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="h-8 w-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all hover-lift"
-                            title="WhatsApp"
-                          >
-                            <MessageCircle className="h-3.5 w-3.5 text-neutral-300" />
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Section>
-
-              {settings && Object.keys(settings).length > 0 ? (
-                <Section icon={ShieldCheck} label="Configuración del conductor">
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
-                      <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                        Umbral G
-                      </div>
-                      <div className="font-mono text-emerald-400">
-                        {settings.alert_threshold ?? "—"}G
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
-                      <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                        Auto llamada
-                      </div>
-                      <div
-                        className={`font-mono ${settings.auto_call ? "text-emerald-400" : "text-neutral-500"}`}
-                      >
-                        {settings.auto_call ? "ON" : "OFF"}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
-                      <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                        WhatsApp
-                      </div>
-                      <div
-                        className={`font-mono ${settings.auto_whatsapp ? "text-emerald-400" : "text-neutral-500"}`}
-                      >
-                        {settings.auto_whatsapp ? "ON" : "OFF"}
-                      </div>
-                    </div>
-                  </div>
-                </Section>
-              ) : null}
-
-              <Section icon={Mail} label="Identificadores">
-                <div className="font-mono text-[11px] text-neutral-400 space-y-1 break-all">
-                  <div>
-                    <span className="text-neutral-600">id:</span> {driverId}
-                  </div>
-                  <div>
-                    <span className="text-neutral-600">email:</span>{" "}
-                    {driver?.email || "—"}
-                  </div>
+            <Section icon={Mail} label="Identificadores">
+              <div className="font-mono text-[11px] text-neutral-400 space-y-1 break-all">
+                <div>
+                  <span className="text-neutral-600">id:</span> {driverId}
                 </div>
-              </Section>
-            </>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+                <div>
+                  <span className="text-neutral-600">email:</span>{" "}
+                  {driver?.email || "—"}
+                </div>
+              </div>
+            </Section>
+          </>
+        )}
+      </div>
+    </PremiumModal>
   );
 }

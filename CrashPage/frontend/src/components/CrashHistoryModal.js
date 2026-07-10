@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaf
 import { api, formatApiError } from "../lib/api";
 import CrashLogo from "./CrashLogo";
 import AlertDiagnosis from "./AlertDiagnosis";
+import { useCloseOnBrowserBack, closeModalViaHistory } from "../hooks/useCloseOnBrowserBack";
 
 const SEVERITY_OPTIONS = [{ v: "", l: "Todas" }, { v: "critical", l: "Crítica" }, { v: "high", l: "Alta" }, { v: "medium", l: "Media" }, { v: "low", l: "Baja" }];
 const STATUS_OPTIONS = [{ v: "all", l: "Todos" }, { v: "pending", l: "Pendientes" }, { v: "acknowledged", l: "Atendidos" }, { v: "false_alarm", l: "Falsa alarma" }];
@@ -67,9 +68,11 @@ function CrashHistoryModal({ open, onClose }) {
     return () => window.removeEventListener("themechange", updateTheme);
   }, []);
 
+  useCloseOnBrowserBack(open, onClose);
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    const onKey = (e) => { if (e.key === "Escape") closeModalViaHistory(onClose); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
@@ -113,8 +116,8 @@ function CrashHistoryModal({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-3 lg:p-6" data-testid="crash-history-modal" role="dialog" aria-modal="true">
-      <div className="relative w-full h-full max-w-[1700px] bg-[#0B0B0D] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-3 lg:p-6" data-testid="crash-history-modal" role="dialog" aria-modal="true" onClick={() => closeModalViaHistory(onClose)}>
+      <div className="relative w-full h-full max-w-[1700px] bg-[#0B0B0D] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[360px] w-[560px] rounded-full bg-red-500/10 blur-[140px]" />
         <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-60" style={{ boxShadow: "inset 0 0 0 1px rgba(239,68,68,0.12)" }} />
 
@@ -138,7 +141,7 @@ function CrashHistoryModal({ open, onClose }) {
               <span className="px-2 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-mono">{counts.acknowledged} atendidos</span>
               <span className="px-2 py-1 rounded border border-neutral-500/30 bg-neutral-500/10 text-neutral-300 font-mono">{counts.false_alarm} falsa</span>
             </div>
-            <button data-testid="crash-modal-close" onClick={onClose} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Cerrar"><X className="h-4 w-4" /></button>
+            <button data-testid="crash-modal-close" onClick={() => closeModalViaHistory(onClose)} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Cerrar"><X className="h-4 w-4" /></button>
           </div>
         </div>
 

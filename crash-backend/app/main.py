@@ -479,6 +479,8 @@ async def on_startup() -> None:
     await _seed_operators()
     from app.api.plans.service import seed_plans
     await seed_plans()
+    from app.api.auth.service import ensure_general_company
+    await ensure_general_company()
 
     if settings.DEMO_MODE:
         from app.infrastructure.simulator import simulator
@@ -486,6 +488,7 @@ async def on_startup() -> None:
         await simulator.start(db, manager.broadcast)
         logger.info("CRASH started in DEMO mode (simulator)")
     else:
+        logger.info("CRASH started in PRODUCTION mode")
         from app.infrastructure.mobile_bridge import bridge
         from app.api.monitor.websockets import manager
         await bridge.start(db, manager.broadcast)

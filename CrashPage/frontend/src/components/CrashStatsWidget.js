@@ -4,6 +4,7 @@ import { Activity, BarChart3, Loader2, TrendingUp, TriangleAlert, X } from "luci
 import { api, formatApiError } from "../lib/api";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useCloseOnBrowserBack, closeModalViaHistory } from "../hooks/useCloseOnBrowserBack";
 
 const SEVERITY_SCORE = { critical: 4, critico: 4, crítico: 4, high: 3, alto: 3, medium: 2, medio: 2, low: 1, bajo: 1 };
 const STATUS_LABEL = { pending: "Pendiente", acknowledged: "Atendido", false_alarm: "Falsa alarma" };
@@ -48,7 +49,7 @@ function CrashStatsWidget() {
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") closeModalViaHistory(() => setOpen(false)); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
@@ -104,7 +105,8 @@ function CrashStatsWidget() {
   const topImpacts = useMemo(() => [...impacts].sort((a, b) => severityScore(b) - severityScore(a)).slice(0, 8), [impacts]);
   const activeImpact = useMemo(() => impacts.find((i) => i.id === activeImpactId) || null, [impacts, activeImpactId]);
   const handleOpen = useCallback(() => setOpen(true), []);
-  const handleClose = useCallback(() => setOpen(false), []);
+  const handleClose = useCallback(() => closeModalViaHistory(() => setOpen(false)), []);
+  useCloseOnBrowserBack(open, () => setOpen(false));
 
   return (
     <>
@@ -113,8 +115,8 @@ function CrashStatsWidget() {
       </button>
 
       {open ? createPortal(
-        <div className="fixed inset-0 z-[2200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3" data-testid="crash-stats-modal" role="dialog" aria-modal="true">
-          <div className="w-[98vw] h-[94vh] bg-gradient-to-br from-black via-[#110607] to-[#1b0608] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden panel-entrance gradient-border gradient-border-slow">
+        <div className="fixed inset-0 z-[2200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3" data-testid="crash-stats-modal" role="dialog" aria-modal="true" onClick={handleClose}>
+          <div className="w-[98vw] h-[94vh] bg-gradient-to-br from-black via-[#110607] to-[#1b0608] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden panel-entrance gradient-border gradient-border-slow" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">C.R.A.S.H. · Estadísticas avanzadas</div>

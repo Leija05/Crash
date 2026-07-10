@@ -38,6 +38,12 @@ def _plan_limits(plan: dict) -> dict:
 
 async def create_company_token(company: dict, plan: dict, cycle: str = "Mensual") -> dict:
     db = await get_db()
+    company_id = company.get("id") or (str(company.get("_id")) if company.get("_id") else None)
+    # Only one active empresa token per company
+    await db.site_tokens.update_many(
+        {"company_id": company_id, "role": "empresa"},
+        {"$set": {"active": False, "deactivated_at": datetime.now(timezone.utc).isoformat()}},
+    )
     limits = _plan_limits(plan)
     raw = _gen_token()
     doc = {
