@@ -415,20 +415,20 @@ function Landing() {
       </div>
 
       {cartOpen && (
-        <div className="fixed inset-0 z-[100] flex justify-end">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onClick={() => setCartOpen(false)} />
-          <div className="relative w-full max-w-md bg-[#0a0a0a] border-l border-white/[0.06] h-full flex flex-col slide-in-right">
-            <div className="px-5 h-16 flex items-center justify-between border-b border-white/[0.06]">
+          <div className="relative w-full max-w-md max-h-[85vh] bg-[#0a0a0a] border border-white/[0.08] rounded-2xl flex flex-col shadow-[0_30px_80px_rgba(0,0,0,0.6)] animate-scale-in overflow-hidden">
+            <div className="px-5 h-16 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
               <span className="font-bold font-mono flex items-center gap-2 text-base">
-                <ShoppingCart size={18} /> Carrito
+                <ShoppingCart size={18} /> Carrito {cart.length > 0 && <span className="text-xs text-zinc-500">({cart.length})</span>}
               </span>
               <button onClick={() => setCartOpen(false)} className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/30 transition-all" aria-label="Cerrar carrito">
                 <X size={16} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
               {cart.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center mt-16 gap-3">
+                <div className="flex flex-col items-center justify-center text-center py-10 gap-3">
                   <ShoppingCart size={32} className="text-zinc-700" />
                   <p className="text-zinc-600 text-sm">Tu carrito está vacío.</p>
                   <p className="text-zinc-700 text-xs">Agrega un plan para comenzar.</p>
@@ -450,7 +450,7 @@ function Landing() {
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-white/[0.06] space-y-3 bg-black/20">
+            <div className="p-4 border-t border-white/[0.06] space-y-3 bg-black/20 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-400 text-sm uppercase tracking-wider font-mono">Total</span>
                 <span className="font-mono font-bold text-2xl">{mx(total)}</span>

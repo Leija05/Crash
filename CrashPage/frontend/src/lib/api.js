@@ -10,8 +10,29 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// ── Almacenamiento de token con opción "mantener sesión iniciada" ──
+// remember=true  -> localStorage (persiste entre sesiones del navegador)
+// remember=false -> sessionStorage (se borra al cerrar el navegador)
+const TOKEN_KEY = "crash_token";
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token, remember = true) {
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  if (!token) return;
+  (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
 api.interceptors.request.use((cfg) => {
-  const t = localStorage.getItem("crash_token");
+  const t = getToken();
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
 });
@@ -20,7 +41,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err?.response?.status === 401 && !err.config?.__authProbe) {
-      localStorage.removeItem("crash_token");
+      clearToken();
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }

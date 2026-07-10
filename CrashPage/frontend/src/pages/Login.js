@@ -179,7 +179,7 @@ function TokenGate({ onVerified }) {
 }
 
 function LoginForm({ token, role, initialEmail = "" }) {
-  const { login, loginWithToken, loginSuperAdmin } = useAuth();
+  const { login, loginWithToken, loginSuperAdmin, associateMonitor } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState(initialEmail || "");
   const [password, setPassword] = useState("");
@@ -188,6 +188,7 @@ function LoginForm({ token, role, initialEmail = "" }) {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [registerMode, setRegisterMode] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -195,13 +196,13 @@ function LoginForm({ token, role, initialEmail = "" }) {
     try {
       let ok = false;
       if (role === "superadmin") {
-        ok = await loginSuperAdmin(email, password);
+        ok = await loginSuperAdmin(email, password, remember);
         if (ok) window.location.href = "/admin";
       } else if (registerMode) {
-        ok = await loginWithToken(token, email, password, name);
+        ok = await loginWithToken(token, email, password, name, remember);
         if (ok) navigate("/dashboard");
       } else {
-        ok = await login(email, password);
+        ok = await login(email, password, remember);
         if (ok) {
           // Si ingresamos el token de empresa y ya teniamos cuenta, asociarla.
           const pending = localStorage.getItem("crash_site_token");
@@ -305,6 +306,22 @@ function LoginForm({ token, role, initialEmail = "" }) {
                 <span className="text-red-400">{error}</span>
               </div>
             )}
+            <label className="flex items-center gap-2.5 cursor-pointer select-none group pt-1">
+              <span className="relative flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <span className="h-4 w-4 rounded-[5px] border border-white/20 bg-[#0d0d0d] peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all flex items-center justify-center">
+                  {remember && <CheckCircle2 size={12} className="text-black" />}
+                </span>
+              </span>
+              <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                Mantener sesión iniciada en este dispositivo
+              </span>
+            </label>
             <button
               type="submit"
               disabled={busy}

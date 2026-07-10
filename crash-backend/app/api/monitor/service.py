@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+from bson import ObjectId
+
 from app.core.database import get_db
 from app.core.config import settings
 from app.infrastructure.simulator import simulator
@@ -19,14 +21,39 @@ async def list_drivers():
 async def get_driver(driver_id: str) -> dict:
     src = _source()
     d = src.drivers.get(driver_id)
-    if not d:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Driver not found")
+
     if settings.DEMO_MODE:
         db = await get_db()
         profile = await db.drivers.find_one({"id": driver_id}, {"_id": 0})
-        return {"driver": d, "profile": profile or {}}
+        if not d and not profile:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Driver not found")
+        driver = d or {"id": driver_id, "status": "offline"}
+        return {"driver": driver, "profile": profile or {}, "offline": d is None}
+
     profile = await bridge.driver_profile(driver_id)
+    if not d:
+        # Conductor de la empresa que no está en línea: mostramos su perfil médico.
+        db = await get_db()
+        try:
+            user = await db.users.find_one(
+                {"_id": ObjectId(driver_id)}, {"name": 1, "email": 1, "company_id": 1}
+            )
+        except Exception:
+            user = await db.users.find_one(
+                {"id": driver_id}, {"_id": 0, "name": 1, "email": 1, "company_id": 1}
+            )
+        if not user and not profile:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Driver not found")
+        driver = {
+            "id": driver_id,
+            "name": (user or {}).get("name") or (profile or {}).get("full_name"),
+            "email": (user or {}).get("email"),
+            "status": "offline",
+        }
+        return {"driver": driver, "profile": profile or {}, "offline": True}
+
     return {"driver": d, "profile": profile}
 
 

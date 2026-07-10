@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { api, formatApiError } from "../lib/api";
+import { api, formatApiError, getToken, setToken, clearToken } from "../lib/api";
 
 const AuthCtx = createContext(null);
 
@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
-    const token = localStorage.getItem("crash_token");
+    const token = getToken();
     if (!token) { setUser(false); return; }
     try {
       const { data } = await api.get("/auth/monitor/me", { __authProbe: true });
@@ -29,11 +29,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, remember = true) => {
     setError("");
     try {
       const { data } = await api.post("/auth/monitor/login", { email, password });
-      if (data.access_token) localStorage.setItem("crash_token", data.access_token);
+      if (data.access_token) setToken(data.access_token, remember);
       setUser({ id: data.id, email: data.email, name: data.name, role: data.role, company_id: data.company_id, company_name: data.company_name });
       return true;
     } catch (e) {
@@ -42,11 +42,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const loginWithToken = async (token, email, password, name) => {
+  const loginWithToken = async (token, email, password, name, remember = true) => {
     setError("");
     try {
       const { data } = await api.post("/auth/register-monitor", { token, email, password, name });
-      if (data.access_token) localStorage.setItem("crash_token", data.access_token);
+      if (data.access_token) setToken(data.access_token, remember);
       setUser({ id: data.user.id, email: data.user.email, name: data.user.name, role: "monitor", company_id: data.user.company_id, company_name: data.user.company_name });
       return true;
     } catch (e) {
@@ -68,14 +68,14 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const loginSuperAdmin = async (email, password) => {
+  const loginSuperAdmin = async (email, password, remember = true) => {
     setError("");
     try {
       const { data } = await api.post("/auth/login", { email, password });
-      if (data.access_token) localStorage.setItem("crash_token", data.access_token);
+      if (data.access_token) setToken(data.access_token, remember);
       if (data.user.role !== "superadmin") {
         setError("No tienes permisos de SuperAdmin");
-        localStorage.removeItem("crash_token");
+        clearToken();
         return false;
       }
       setUser({ ...data.user, is_superadmin: true });
@@ -88,7 +88,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try { await api.post("/auth/monitor/logout"); } catch { }
-    localStorage.removeItem("crash_token");
+    clearToken();
     localStorage.removeItem("crash_site_token");
     setUser(false);
   };

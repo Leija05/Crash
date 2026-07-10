@@ -15,10 +15,13 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
   const speedTxt = typeof d.speed === "number" ? Math.round(d.speed) : "—";
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       data-testid={`driver-list-item-${d.id}`}
       onClick={() => onSelect?.(d.id)}
-      className={`w-full text-left rounded-xl border transition-all p-3 group hover-lift ${
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(d.id); } }}
+      className={`w-full text-left rounded-xl border transition-all p-3 group hover-lift cursor-pointer ${
         sel
           ? "bg-white/10 border-emerald-500/50 shadow-[0_0_25px_rgba(16,185,129,0.15)]"
           : "bg-white/[0.04] border-white/10 hover:bg-white/[0.07] hover:border-white/20"
@@ -77,7 +80,7 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
           </Link>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 

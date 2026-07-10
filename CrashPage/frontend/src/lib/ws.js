@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { API_BASE } from "./api";
+import { API_BASE, getToken } from "./api";
 
 export function useCrashSocket() {
   const [drivers, setDrivers] = useState({});
@@ -34,7 +34,7 @@ export function useCrashSocket() {
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
-    const token = localStorage.getItem("crash_token") || "";
+    const token = getToken() || "";
     if (!token) {
       setStatus("closed");
       return;
@@ -104,7 +104,17 @@ export function useCrashSocket() {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
-      try { wsRef.current?.close(); } catch {}
+      try {
+        const s = wsRef.current;
+        if (s) {
+          if (s.readyState === WebSocket.OPEN) {
+            s.close();
+          } else if (s.readyState === WebSocket.CONNECTING) {
+            // Evita "closed before established": cierra al abrir.
+            s.onopen = () => { try { s.close(); } catch {} };
+          }
+        }
+      } catch {}
     };
   }, [connect]);
 

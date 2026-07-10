@@ -11,6 +11,7 @@ import {
   AlertCircle, Settings, BarChart3, Clock, Eye, Package, TrendingUp,
   UserPlus, ScrollText, LifeBuoy, Map as MapIcon, Bell, Webhook,
   CalendarClock, Send, CheckCircle2, CalendarPlus, Slack,
+  PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 
 const err = (e) => toast.error(formatApiError(e));
@@ -1316,6 +1317,15 @@ function AdminPanel() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("crash_admin_sidebar") === "1");
+
+  const toggleSidebar = useCallback(() => {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem("crash_admin_sidebar", next ? "1" : "0");
+      return next;
+    });
+  }, []);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -1335,33 +1345,45 @@ function AdminPanel() {
       <div className="pointer-events-none fixed -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/[0.06] blur-[120px]" />
       <div className="pointer-events-none fixed -bottom-40 -right-40 h-96 w-96 rounded-full bg-red-500/[0.05] blur-[120px]" />
 
-      <aside className="relative z-10 w-64 border-r border-white/10 bg-black/40 backdrop-blur-xl p-5 flex flex-col flex-shrink-0 hidden lg:flex">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500/25 to-red-500/5 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+      <aside className={`relative z-10 ${collapsed ? "w-[76px]" : "w-64"} border-r border-white/10 bg-black/40 backdrop-blur-xl p-3 flex-col flex-shrink-0 hidden lg:flex sticky top-0 h-screen transition-[width] duration-300 ease-out`}>
+        <div className={`flex items-center gap-3 mb-5 px-1 ${collapsed ? "justify-center" : ""}`}>
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500/25 to-red-500/5 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)] flex-shrink-0">
             <Shield className="h-5 w-5 text-red-400" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.35em] text-neutral-500 leading-tight">SuperAdmin</div>
-            <div className="text-base font-bold leading-tight tracking-tight">C.R.A.S.H.</div>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase tracking-[0.35em] text-neutral-500 leading-tight">SuperAdmin</div>
+              <div className="text-base font-bold leading-tight tracking-tight">C.R.A.S.H.</div>
+            </div>
+          )}
         </div>
-        <nav className="flex-1 space-y-1">
+
+        <button
+          onClick={toggleSidebar}
+          title={collapsed ? "Expandir menú" : "Ocultar menú"}
+          className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-neutral-400 hover:text-white hover:bg-white/5 border border-white/10 transition-all ${collapsed ? "justify-center" : ""}`}
+        >
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> Ocultar menú</>}
+        </button>
+
+        <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-1">
           {TABS.map(tab => {
             const active = activeTab === tab.id;
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${active ? "bg-emerald-500/10 text-emerald-300" : "text-neutral-400 hover:text-white hover:bg-white/5"}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} title={collapsed ? tab.label : undefined} className={`group relative w-full flex items-center gap-3 rounded-xl text-sm transition-all ${collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"} ${active ? "bg-emerald-500/10 text-emerald-300" : "text-neutral-400 hover:text-white hover:bg-white/5"}`}>
                 <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-emerald-400 transition-all ${active ? "opacity-100" : "opacity-0 group-hover:opacity-40"}`} />
-                <tab.icon className={`h-4 w-4 transition-transform ${active ? "" : "group-hover:scale-110"}`} />
-                {tab.label}
+                <tab.icon className={`h-4 w-4 flex-shrink-0 transition-transform ${active ? "" : "group-hover:scale-110"}`} />
+                {!collapsed && <span className="truncate">{tab.label}</span>}
               </button>
             );
           })}
         </nav>
-        <div className="border-t border-white/10 pt-4 space-y-3">
-          <div className="text-xs text-neutral-500 px-3 truncate">{user?.email}</div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all">
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
+
+        <div className="border-t border-white/10 pt-3 mt-2 space-y-2 flex-shrink-0">
+          {!collapsed && <div className="text-xs text-neutral-500 px-3 truncate">{user?.email}</div>}
+          <button onClick={handleLogout} title={collapsed ? "Cerrar sesión" : undefined} className={`w-full flex items-center gap-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all ${collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"}`}>
+            <LogOut className="h-4 w-4 flex-shrink-0" />
+            {!collapsed && "Cerrar sesión"}
           </button>
         </div>
       </aside>

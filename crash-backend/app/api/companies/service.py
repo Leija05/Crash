@@ -138,12 +138,12 @@ async def get_company_drivers(company_id: str) -> list:
     cid = str(company.get("_id", ""))
     cursor = db.users.find(
         {"company_id": cid},
-        {"_id": 0, "password_hash": 0},
+        {"password_hash": 0},
     ).sort("created_at", -1)
     docs = await cursor.to_list(200)
     for d in docs:
-        d["id"] = str(d.get("_id", "")) if d.get("_id") else d.get("id")
-        d.pop("_id", None)
+        # id estable = _id de Mongo (coincide con los conductores en vivo del bridge)
+        d["id"] = str(d.pop("_id")) if d.get("_id") is not None else d.get("id")
     return docs
 
 
