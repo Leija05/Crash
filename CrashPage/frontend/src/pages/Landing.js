@@ -1,4 +1,5 @@
 import { memo, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   Smartphone, Cpu, Monitor, Lock, Network, Siren, Navigation,
@@ -63,6 +64,14 @@ function Landing() {
       try { const { data } = await api.get("/plans"); setPlans(data || []); } catch { setPlans([]); }
     })();
   }, []);
+
+  // Bloquea el scroll del fondo mientras el carrito está abierto.
+  useEffect(() => {
+    if (!cartOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [cartOpen]);
 
   const deviceB2B = plans[0]?.device_b2b || B2B_DEVICE;
   const deviceB2C = plans[0]?.device_b2c || B2C_DEVICE;
@@ -414,7 +423,7 @@ function Landing() {
         </footer>
       </div>
 
-      {cartOpen && (
+      {cartOpen && createPortal((
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm fade-in" onClick={() => setCartOpen(false)} />
           <div className="relative w-full max-w-md max-h-[85vh] bg-[#0a0a0a] border border-white/[0.08] rounded-2xl flex flex-col shadow-[0_30px_80px_rgba(0,0,0,0.6)] animate-scale-in overflow-hidden">
@@ -469,7 +478,7 @@ function Landing() {
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }
