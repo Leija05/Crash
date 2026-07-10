@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { api, formatApiError } from "../lib/api";
 import { useI18n } from "../i18n";
-import { X, Download, FileText, Loader2, CheckCircle } from "lucide-react";
+import { Download, FileText, Loader2, CheckCircle } from "lucide-react";
+import PremiumModal from "./ui/Modal";
 
 export default function ExportModal({ open, onClose }) {
   const { t } = useI18n();
@@ -37,23 +38,17 @@ export default function ExportModal({ open, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className="relative w-full max-w-sm rounded-2xl border border-white/10 glass-card p-6 space-y-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <FileText className="h-5 w-5 text-emerald-400" />
-            {t("export.title")}
-          </h2>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg border border-white/10 hover:bg-white/5 flex items-center justify-center transition-all">
-            <X className="h-4 w-4 text-neutral-400" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
+    <PremiumModal
+      open
+      onClose={onClose}
+      title={t("export.title")}
+      eyebrow="C.R.A.S.H. · Exportar"
+      icon={FileText}
+      accent="emerald"
+      size="sm"
+      testId="export-modal"
+    >
+      <div className="space-y-4">
           <div>
             <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2">
               {t("export.period")}
@@ -100,7 +95,6 @@ export default function ExportModal({ open, onClose }) {
             {busy ? t("export.preparing") : t("export.download")}
           </button>
         </div>
-      </div>
-    </div>
+    </PremiumModal>
   );
 }

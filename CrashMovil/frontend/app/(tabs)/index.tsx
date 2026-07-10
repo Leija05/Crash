@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel } from '../../src/theme';
+import PremiumModal from '../../src/components/PremiumModal';
 import { useAuth } from '../../src/context/AuthContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
@@ -573,58 +574,57 @@ export default function DashboardScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={countdown !== null} transparent animationType="fade">
-        <View style={styles.overlay}>
-          <View style={styles.dialog}>
-            <View style={styles.countdownIconWrap}>
-              <Ionicons name="warning" size={22} color="#0A0A0A" />
-            </View>
-            <View style={styles.countdownGlow} pointerEvents="none" />
-            <Text style={styles.dialogTitle}>Impacto alto detectado</Text>
-            <Text style={styles.dialogText}>Se enviarán alertas a tus contactos de emergencia.</Text>
-            <Text style={styles.countdownLabel}>Tiempo restante</Text>
-            <Text style={styles.countdownValue}>{countdown}s</Text>
-            <View style={styles.dialogActions}>
-              <TouchableOpacity style={styles.cancelBtnSoft} onPress={() => setCountdown(null)}>
-                <Text style={styles.cancelSoftText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.cancelBtn, sending && { opacity: 0.6 }]}
-                disabled={sending}
-                onPress={() => { setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
-              >
-                {sending ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.cancelText}>Enviar ahora</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+      <PremiumModal
+        visible={countdown !== null}
+        onClose={() => setCountdown(null)}
+        title="Impacto alto detectado"
+        eyebrow="C.R.A.S.H. · Alerta"
+        accent={COLORS.primary}
+        closeOnBackdrop={false}
+      >
+        <Text style={styles.dialogText}>Se enviarán alertas a tus contactos de emergencia.</Text>
+        <Text style={styles.countdownLabel}>Tiempo restante</Text>
+        <Text style={styles.countdownValue}>{countdown}s</Text>
+        <View style={styles.dialogActions}>
+          <TouchableOpacity style={styles.cancelBtnSoft} onPress={() => setCountdown(null)}>
+            <Text style={styles.cancelSoftText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.cancelBtn, sending && { opacity: 0.6 }]}
+            disabled={sending}
+            onPress={() => { setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
+          >
+            {sending ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.cancelText}>Enviar ahora</Text>
+            )}
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </PremiumModal>
 
-      <Modal visible={!!alertResult} transparent animationType="fade">
-        <View style={styles.overlay}>
-          <View style={styles.dialog}>
-            <View style={[styles.countdownIconWrap, { backgroundColor: alertResult?.alerts_sent ? COLORS.success : COLORS.textDim }]}>
-              <Ionicons name={alertResult?.alerts_sent ? 'checkmark-circle' : 'alert-circle'} size={22} color="#FFF" />
-            </View>
-            <Text style={styles.dialogTitle}>{alertResult?.alerts_sent ? 'Mensajes enviados' : 'No se enviaron mensajes'}</Text>
-            <Text style={styles.dialogText}>
-              {alertResult?.alerts_sent
-                ? 'Se notificó a contactos de emergencia:'
-                : (alertResult?.alert_error || 'No fue posible completar el envío de alertas.')}
-            </Text>
-            {(alertResult?.alerted_contacts || []).map((c: any) => (
-              <Text key={c.id} style={styles.contactSent}>{`• ${c.name} (${c.phone})`}</Text>
-            ))}
-            <TouchableOpacity style={styles.okBtn} onPress={() => setAlertResult(null)}>
-              <Text style={styles.okBtnText}>Aceptar</Text>
-            </TouchableOpacity>
-          </View>
+      <PremiumModal
+        visible={!!alertResult}
+        onClose={() => setAlertResult(null)}
+        title={alertResult?.alerts_sent ? 'Mensajes enviados' : 'No se enviaron mensajes'}
+        eyebrow="C.R.A.S.H. · Reporte"
+        accent={alertResult?.alerts_sent ? COLORS.success : COLORS.primary}
+        closeOnBackdrop={false}
+      >
+        <Text style={styles.dialogText}>
+          {alertResult?.alerts_sent
+            ? 'Se notificó a contactos de emergencia:'
+            : (alertResult?.alert_error || 'No fue posible completar el envío de alertas.')}
+        </Text>
+        {(alertResult?.alerted_contacts || []).map((c: any) => (
+          <Text key={c.id} style={styles.contactSent}>{`• ${c.name} (${c.phone})`}</Text>
+        ))}
+        <View style={styles.dialogActions}>
+          <TouchableOpacity style={styles.okBtnWide} onPress={() => setAlertResult(null)}>
+            <Text style={styles.okBtnText}>Aceptar</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </PremiumModal>
     </SafeAreaView>
   );
 }
@@ -875,6 +875,7 @@ const styles = StyleSheet.create({
   cancelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center' },
   cancelText: { color: '#FFF', fontWeight: '900', letterSpacing: 1 },
   okBtn: { backgroundColor: COLORS.accent, borderRadius: RADIUS.md, paddingVertical: 14, paddingHorizontal: 48, marginTop: 12 },
+  okBtnWide: { backgroundColor: COLORS.accent, borderRadius: RADIUS.md, paddingVertical: 14, marginTop: 14, width: '100%', alignItems: 'center' },
   okBtnText: { color: '#000', fontWeight: '900', letterSpacing: 1, fontSize: 14 },
   contactSent: { color: COLORS.textSec, fontSize: 13, marginBottom: 4, textAlign: 'center' },
 });

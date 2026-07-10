@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, Search, Calendar, Filter as FilterIcon, RotateCcw, AlertTriangle, CheckCircle2, XCircle, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import { api, formatApiError } from "../lib/api";
+import CrashLogo from "./CrashLogo";
 import AlertDiagnosis from "./AlertDiagnosis";
 
 const SEVERITY_OPTIONS = [{ v: "", l: "Todas" }, { v: "critical", l: "Crítica" }, { v: "high", l: "Alta" }, { v: "medium", l: "Media" }, { v: "low", l: "Baja" }];
@@ -112,12 +113,23 @@ function CrashHistoryModal({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 lg:p-6" data-testid="crash-history-modal" role="dialog" aria-modal="true">
-      <div className="w-full h-full max-w-[1700px] bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden gradient-border gradient-border-slow">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4 border-b border-white/10 flex-shrink-0">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">C.R.A.S.H. · Registro</div>
-            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-400" /> Historial de Choques</h2>
+    <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-3 lg:p-6" data-testid="crash-history-modal" role="dialog" aria-modal="true">
+      <div className="relative w-full h-full max-w-[1700px] bg-[#0B0B0D] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[360px] w-[560px] rounded-full bg-red-500/10 blur-[140px]" />
+        <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-60" style={{ boxShadow: "inset 0 0 0 1px rgba(239,68,68,0.12)" }} />
+
+        <div className="relative flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-4 border-b border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 rounded-xl blur-md bg-red-500/20" />
+              <div className="relative h-10 w-10 rounded-xl border border-red-500/30 flex items-center justify-center" style={{ background: "rgba(239,68,68,0.08)" }}>
+                <CrashLogo size={22} className="text-red-500" />
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">C.R.A.S.H. · Registro</div>
+              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-400" /> Historial de Choques</h2>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.2em]">
@@ -126,11 +138,11 @@ function CrashHistoryModal({ open, onClose }) {
               <span className="px-2 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-mono">{counts.acknowledged} atendidos</span>
               <span className="px-2 py-1 rounded border border-neutral-500/30 bg-neutral-500/10 text-neutral-300 font-mono">{counts.false_alarm} falsa</span>
             </div>
-            <button data-testid="crash-modal-close" onClick={onClose} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all hover-lift" title="Cerrar"><X className="h-4 w-4" /></button>
+            <button data-testid="crash-modal-close" onClick={onClose} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Cerrar"><X className="h-4 w-4" /></button>
           </div>
         </div>
 
-        <div className="px-4 sm:px-5 py-3 border-b border-white/10 bg-white/[0.02] flex flex-wrap items-end gap-3 flex-shrink-0">
+        <div className="relative px-4 sm:px-5 py-3 border-b border-white/10 bg-white/[0.02] flex flex-wrap items-end gap-3 flex-shrink-0">
           <div className="flex-1 min-w-[200px]">
             <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><Search className="inline h-3 w-3 mr-1" />Nombre o correo</label>
             <input data-testid="filter-name" type="text" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") fetchImpacts(); }} placeholder="Buscar conductor..." className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-500/40 outline-none transition-all" />

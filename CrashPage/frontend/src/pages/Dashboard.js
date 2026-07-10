@@ -9,6 +9,7 @@ import AlertsCenter from "../components/AlertsCenter";
 import DriverDetailSheet from "../components/DriverDetailSheet";
 import CrashHistoryModal from "../components/CrashHistoryModal";
 import SystemHealthPanel from "../components/SystemHealthPanel";
+import PremiumModal from "../components/ui/Modal";
 import { useCrashSocket } from "../lib/ws";
 import { useAuth } from "../auth/AuthContext";
 import { api, companyAPI, monitorAPI, formatApiError } from "../lib/api";
@@ -37,30 +38,36 @@ function SupportModal({ onClose }) {
   }, [type, message, onClose]);
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><LifeBuoy className="h-5 w-5 text-emerald-400" /></div>
-          <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Centro de Ayudas</div><div className="font-bold">Reportar a soporte</div></div>
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Tipo de solicitud</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
-              {SUPPORT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Detalle</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} required placeholder="Describe qué necesitas (cuenta afectada, motivo, etc.)" className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all resize-none" />
-          </div>
-          <button disabled={busy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+    <PremiumModal
+      open
+      onClose={onClose}
+      title="Reportar a soporte"
+      eyebrow="Centro de Ayudas"
+      icon={LifeBuoy}
+      size="md"
+      testId="support-modal"
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/30 text-neutral-300 text-sm transition-all">Cancelar</button>
+          <button form="support-form" type="submit" disabled={busy} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all flex items-center justify-center gap-2">
             <Send className="h-4 w-4" /> {busy ? "Enviando..." : "Enviar reporte"}
           </button>
-        </form>
-      </div>
-    </div>
+        </div>
+      }
+    >
+      <form id="support-form" onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Tipo de solicitud</label>
+          <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+            {SUPPORT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Detalle</label>
+          <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} required placeholder="Describe qué necesitas (cuenta afectada, motivo, etc.)" className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all resize-none" />
+        </div>
+      </form>
+    </PremiumModal>
   );
 }
 

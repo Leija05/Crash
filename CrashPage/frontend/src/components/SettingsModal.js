@@ -1,6 +1,7 @@
 import { useI18n } from "../i18n";
 import { useSettings } from "../context/SettingsContext";
-import { X, Sun, Moon, Globe, Volume2, Bell, Gauge } from "lucide-react";
+import { Sun, Moon, Globe, Volume2, Bell, Gauge } from "lucide-react";
+import PremiumModal from "./ui/Modal";
 
 export default function SettingsModal({ open, onClose }) {
   const { t, locales } = useI18n();
@@ -15,20 +16,16 @@ export default function SettingsModal({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className="relative w-full max-w-md rounded-2xl border border-white/10 glass-card p-6 space-y-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">{t("settings.title")}</h2>
-          <button onClick={onClose} className="h-8 w-8 rounded-lg border border-white/10 hover:bg-white/5 flex items-center justify-center transition-all">
-            <X className="h-4 w-4 text-neutral-400" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
+    <PremiumModal
+      open
+      onClose={onClose}
+      title={t("settings.title")}
+      eyebrow="C.R.A.S.H. · Configuración"
+      accent="emerald"
+      size="md"
+      testId="settings-modal"
+    >
+      <div className="space-y-4">
           <div>
             <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-2 flex items-center gap-1.5">
               <Sun className="h-3 w-3" /> {t("settings.theme")}
@@ -125,10 +122,9 @@ export default function SettingsModal({ open, onClose }) {
           </div>
         </div>
 
-        <div className="text-center text-[10px] text-neutral-600 pt-3 border-t border-white/5">
+        <div className="text-center text-[10px] text-neutral-600 pt-3 border-t border-white/10">
           C.R.A.S.H. v2.0 &middot; {t("settings.about")}
         </div>
-      </div>
-    </div>
+    </PremiumModal>
   );
 }

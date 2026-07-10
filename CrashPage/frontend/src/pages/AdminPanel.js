@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { useAuth } from "../auth/AuthContext";
 import { api, formatApiError, superAdminAPI, adminAPI, companyAPI } from "../lib/api";
+import PremiumModal from "../components/ui/Modal";
 import {
   LayoutDashboard, Building2, CreditCard, Users, Key, LogOut,
   Plus, Trash2, Edit3, Copy, RefreshCw, Loader2, Check, X,
@@ -915,20 +916,26 @@ function TempPasswordModal({ result, onClose }) {
     ok("Contraseña copiada");
   }, [result]);
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0d0d0f] border border-emerald-500/30 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Key className="h-5 w-5 text-emerald-400" /></div>
-          <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">Contraseña reiniciada</div><div className="font-bold">{result.email}</div></div>
+    <PremiumModal
+      open
+      onClose={onClose}
+      title={result.email}
+      eyebrow="Contraseña reiniciada"
+      icon={Key}
+      size="md"
+      testId="temp-password-modal"
+      footer={
+        <div className="flex items-center justify-end">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/30 text-neutral-300 text-sm transition-all">Cerrar</button>
         </div>
-        <p className="text-sm text-neutral-400 mb-3">Entrega esta contraseña temporal al usuario ({result.target_type}). No se volverá a mostrar.</p>
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-          <code className="flex-1 font-mono text-lg text-emerald-300 tracking-wide">{result.temp_password}</code>
-          <button onClick={copy} className="inline-flex items-center gap-1.5 border border-white/10 hover:bg-white/10 rounded-lg px-3 py-1.5 text-xs transition-all"><Copy className="h-3.5 w-3.5" /> Copiar</button>
-        </div>
+      }
+    >
+      <p className="text-sm text-neutral-400 mb-3">Entrega esta contraseña temporal al usuario ({result.target_type}). No se volverá a mostrar.</p>
+      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+        <code className="flex-1 font-mono text-lg text-emerald-300 tracking-wide">{result.temp_password}</code>
+        <button onClick={copy} className="inline-flex items-center gap-1.5 border border-white/10 hover:bg-white/10 rounded-lg px-3 py-1.5 text-xs transition-all"><Copy className="h-3.5 w-3.5" /> Copiar</button>
       </div>
-    </div>
+    </PremiumModal>
   );
 }
 
