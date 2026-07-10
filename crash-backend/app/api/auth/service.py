@@ -72,23 +72,12 @@ async def register_rider(email: str, password: str, name: str, company_id: str =
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
-    company_name = ""
-    if company_id:
-        try:
-            company = await db.companies.find_one({"_id": ObjectId(company_id)})
-            if company:
-                company_name = company.get("name", "")
-                await db.companies.update_one(
-                    {"_id": ObjectId(company_id)},
-                    {"$inc": {"driver_count": 1}},
-                )
-        except:
-            company_id = ""
-
-    if not company_id:
-        # Conductores sin empresa específica -> monitoreo general.
-        company_id = GENERAL_COMPANY_ID
-        company_name = GENERAL_COMPANY_NAME
+    # El alta del conductor siempre arranca en el monitoreo general.
+    # La vinculación a una empresa (y el consumo de su token / límite de
+    # conductores) ocurre después vía /auth/link-company o /auth/assign-driver-token,
+    # nunca en el registro, para no saltarse el control de max_drivers.
+    company_id = GENERAL_COMPANY_ID
+    company_name = GENERAL_COMPANY_NAME
 
     user_doc = {
         "email": email,

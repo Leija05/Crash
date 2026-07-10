@@ -101,11 +101,33 @@ async def update_company(company_id: str, data: dict) -> dict:
 
 async def delete_company(company_id: str) -> dict:
     db = await get_db()
-    await db.monitor_operators.delete_many({"company_id": company_id})
-    r = await db.companies.delete_one({"_id": ObjectId(company_id)})
-    if r.deleted_count == 0:
+    try:
+        company_query = {"_id": ObjectId(company_id)}
+        company = await db.companies.find_one(company_query, {"name": 1})
+    except Exception:
+        company_query = {"id": company_id}
+        company = await db.companies.find_one(company_query, {"name": 1})
+    if not company:
         raise HTTPException(404, "Empresa no encontrada")
-    return {"ok": True}
+
+    company_name = company.get("name", company_id)
+    # Eliminar tokens asociados (empresa, monitorista y de conductor) para no dejar
+    # credenciales colgadas tras borrar la empresa.
+    await db.site_tokens.delete_many({"company_id": company_id})
+    await db.driver_tokens.delete_many({"company_id": company_id})
+    await db.monitor_operators.delete_many({"company_id": company_id})
+    await db.users.update_many(
+        {"company_id": company_id},
+        {"$set": {
+            "company_id": None,
+            "company_name": None,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    r = await db.companies.delete_one(company_query)
+    from app.api.admin.service import log_admin_action
+    await log_admin_action("delete_company", f"Empresa {company_name} ({company_id}) y sus tokens")
+    return {"ok": True, "deleted_company": company_name}
 
 
 async def buy_package(company_id: str, plan_id: str, cycle: str = "Mensual") -> dict:

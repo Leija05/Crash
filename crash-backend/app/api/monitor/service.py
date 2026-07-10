@@ -14,8 +14,24 @@ def _source():
     return simulator if settings.DEMO_MODE else bridge
 
 
-async def list_drivers():
-    return {"drivers": _source().list_drivers(), "demo": settings.DEMO_MODE}
+def _company_driver_ids(company_id: str | None) -> set | None:
+    """En producción devuelve el conjunto de driver_id de la empresa del
+    monitorista. En DEMO o sin company_id devuelve None (sin filtrar)."""
+    if settings.DEMO_MODE or not company_id:
+        return None
+    ids: set = set()
+    for d in bridge.list_drivers():
+        did = d.get("id") or d.get("user_id")
+        if d.get("company_id") == company_id and did:
+            ids.add(did)
+    return ids or None
+
+
+async def list_drivers(company_id: str | None = None):
+    drivers = _source().list_drivers()
+    if not settings.DEMO_MODE and company_id:
+        drivers = [d for d in drivers if d.get("company_id") == company_id]
+    return {"drivers": drivers, "demo": settings.DEMO_MODE}
 
 
 async def get_driver(driver_id: str) -> dict:
@@ -78,8 +94,12 @@ async def driver_events(driver_id: str, limit: int = 100) -> dict:
     return {"driver_id": driver_id, "events": events}
 
 
-async def list_alerts():
-    return {"alerts": _source().list_alerts()}
+async def list_alerts(company_id: str | None = None):
+    alerts = _source().list_alerts()
+    ids = _company_driver_ids(company_id)
+    if ids is not None:
+        alerts = [a for a in alerts if (a.get("driver_id") or a.get("user_id")) in ids]
+    return {"alerts": alerts}
 
 
 async def acknowledge_alert(alert_id: str, user: dict) -> dict:
@@ -150,6 +170,7 @@ async def query_impacts(
     date_to: Optional[str] = None,
     days: Optional[int] = None,
     limit: int = 500,
+    company_id: str | None = None,
 ) -> dict:
     if settings.DEMO_MODE:
         rows = []
@@ -174,4 +195,7 @@ async def query_impacts(
         q=q, severity=severity, status=status,
         date_from=date_from, date_to=date_to, days=days, limit=limit,
     )
+    ids = _company_driver_ids(company_id)
+    if ids is not None:
+        rows = [r for r in rows if (r.get("driver_id") or r.get("user_id")) in ids]
     return {"impacts": rows, "demo": False}

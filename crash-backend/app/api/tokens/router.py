@@ -23,7 +23,8 @@ async def create_monitor_token(company_id: str, body: dict, _=Depends(get_curren
         raise HTTPException(404, "Empresa no encontrada")
     plan = await get_plan(company.get("plan_id")) if company.get("plan_id") else None
     if not plan:
-        plan = await get_db().plans.find_one({"name": "Basic"})
+        db = await get_db()
+        plan = await db.plans.find_one({"name": "Basic"})
     tok = await tokens_service.create_monitor_token(company, plan, cycle)
     return {
         "token": tok["token"],

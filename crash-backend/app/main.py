@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -176,6 +177,59 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             messages.append(err.get("msg", "Dato inválido"))
     text = "; ".join(dict.fromkeys(messages)) or "Datos inválidos."
     return JSONResponse(status_code=422, content={"detail": text, "message": text})
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Respuestas HTTP coherentes (JSON) para errores 401/403/404/409/etc.
+
+    Nunca devolvemos la página de error por defecto de Starlette.
+    """
+    detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": detail, "message": detail},
+    )
+
+
+_reported_errors = set()
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Captura cualquier excepción no manejada, la registra y envía una
+    alerta premium al equipo de soporte (Slack/WhatsApp). Devuelve JSON limpio
+    en lugar del traceback por defecto.
+    """
+    import traceback
+
+    tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, "".join(tb))
+
+    # Evita inundar los canales de soporte con el mismo error en ráfaga.
+    err_key = f"{type(exc).__name__}:{request.url.path}"
+    if err_key not in _reported_errors:
+        _reported_errors.add(err_key)
+        try:
+            from app.infrastructure.notifications import notify_support_team
+
+            await notify_support_team(
+                "C.R.A.S.H. · Error no manejado",
+                f"{type(exc).__name__}: {exc}\nRuta: {request.method} {request.url.path}",
+            )
+        except Exception as notify_err:  # noqa: BLE001
+            logger.error("Fallo al notificar error al soporte: %s", notify_err)
+        # Limpia la caché de errores reportados tras 60s para volver a avisar.
+        try:
+            loop = asyncio.get_event_loop()
+            loop.call_later(60, _reported_errors.discard, err_key)
+        except Exception:
+            pass
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Ocurrió un error inesperado. El equipo técnico ha sido notificado.", "message": "Error interno del servidor"},
+    )
 
 allowed = settings.ALLOWED_ORIGINS
 if allowed == ["*"]:

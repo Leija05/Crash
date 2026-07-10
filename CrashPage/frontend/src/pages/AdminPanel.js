@@ -516,7 +516,9 @@ function CompaniesTab() {
     if (!pendingDelete) return;
     setDeleting(true);
     try {
+      const name = pendingDelete.name || "la empresa";
       await api.delete(`/companies/${pendingDelete.id}`);
+      ok(`Empresa "${name}" y sus tokens eliminados correctamente.`);
       setPendingDelete(null);
       load();
     } catch (err) { toast.error(formatApiError(err)); setDeleting(false); }

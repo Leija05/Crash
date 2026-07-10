@@ -23,8 +23,8 @@ router = APIRouter(prefix="/monitor", tags=["monitor"])
 
 
 @router.get("/drivers")
-async def get_drivers(_: dict = Depends(get_current_monitor_user)):
-    return await list_drivers()
+async def get_drivers(user: dict = Depends(get_current_monitor_user)):
+    return await list_drivers(user.get("company_id"))
 
 
 @router.get("/drivers/{driver_id}")
@@ -55,14 +55,14 @@ async def list_all_impacts(
     date_to: Optional[str] = None,
     days: Optional[int] = None,
     limit: int = 500,
-    _: dict = Depends(get_current_monitor_user),
+    user: dict = Depends(get_current_monitor_user),
 ):
-    return await query_impacts(q, severity, status, date_from, date_to, days, limit)
+    return await query_impacts(q, severity, status, date_from, date_to, days, limit, user.get("company_id"))
 
 
 @router.get("/alerts")
-async def get_alerts(_: dict = Depends(get_current_monitor_user)):
-    return await list_alerts()
+async def get_alerts(user: dict = Depends(get_current_monitor_user)):
+    return await list_alerts(user.get("company_id"))
 
 
 @router.post("/alerts/{alert_id}/acknowledge")
