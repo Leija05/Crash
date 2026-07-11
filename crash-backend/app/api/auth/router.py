@@ -10,6 +10,7 @@ from app.api.auth.service import (
     verify_site_token,
     register_monitor_with_token,
     link_driver_company,
+    assign_driver_company,
     associate_monitor_company,
     create_superadmin,
     list_superadmins,
@@ -79,7 +80,7 @@ async def superadmin_check(_=Depends(get_current_superadmin)):
 
 @router.post("/assign-driver-token")
 async def assign_driver_token(body: dict, user: dict = Depends(get_current_rider)):
-    return await link_driver_company(user["id"], body.get("token", ""))
+    return await assign_driver_company(user["id"], body.get("token", ""))
 
 
 @router.post("/link-company")
