@@ -66,7 +66,12 @@ api.interceptors.response.use(
         window.location.href = "/login";
       }
     }
-    if (err.code === "ECONNABORTED" && err.config && !err.config._retry) {
+    if (
+      err.code === "ECONNABORTED" &&
+      err.config &&
+      !err.config._retry &&
+      (err.config.method || "get").toLowerCase() === "get"
+    ) {
       err.config._retry = true;
       return api(err.config);
     }

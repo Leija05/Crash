@@ -27,22 +27,31 @@ async function apiRequest(path: string, options: FetchOptions = {}, retries = 1)
     }
 
     const res = await fetch(`${API_BASE}/api${path}`, config);
-    const data = await res.json();
+    let data: any = null;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      data = await res.json().catch(() => null);
+    } else {
+      await res.text().catch(() => null);
+    }
 
     if (!res.ok) {
-      let message = 'Error en la solicitud';
-      if (typeof data.detail === 'string') message = data.detail;
-      else if (Array.isArray(data.detail)) {
-        message = data.detail
-          .map((e: any) => (e && e.msg ? e.msg : null))
-          .filter(Boolean)
-          .join(' ');
-      } else if (data.message) message = data.message;
+      let message = `Error ${res.status} en la solicitud`;
+      if (data) {
+        if (typeof data.detail === 'string') message = data.detail;
+        else if (Array.isArray(data.detail)) {
+          message = data.detail
+            .map((e: any) => (e && e.msg ? e.msg : null))
+            .filter(Boolean)
+            .join(' ');
+        } else if (data.message) message = data.message;
+      }
       throw new Error(message);
     }
     return data;
   } catch (e: any) {
-    if (retries > 0 && e.name === 'AbortError') {
+    const isNetworkError = e?.name === 'AbortError' || e instanceof TypeError;
+    if (retries > 0 && isNetworkError) {
       return apiRequest(path, options, retries - 1);
     }
     throw e;

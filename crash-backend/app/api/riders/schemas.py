@@ -19,6 +19,7 @@ class ContactInput(BaseModel):
 
 class ThresholdInput(BaseModel):
     alert_threshold: float = 5.0
+    countdown_seconds: Optional[float] = 8.0
     auto_call: Optional[bool] = True
     auto_whatsapp: Optional[bool] = True
     location_tracking_enabled: Optional[bool] = True

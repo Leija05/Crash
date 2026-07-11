@@ -33,6 +33,7 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
   const [deviceName, setDeviceName] = useState('C.R.A.S.H. Module');
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intentionalDisconnect = useRef(false);
   const nativeAvailable = bluetoothService.isNativeAvailable();
 
   useEffect(() => {
@@ -50,8 +51,9 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
         const label = nextDevice.name || 'C.R.A.S.H. Module';
         setDeviceName(label);
         reconnectAttempts.current = 0;
+        intentionalDisconnect.current = false;
         await AsyncStorage.setItem(LAST_DEVICE_KEY, JSON.stringify({ id: nextDevice.id, name: label }));
-      } else if (nativeAvailable) {
+      } else if (nativeAvailable && !intentionalDisconnect.current) {
         const raw = await AsyncStorage.getItem(LAST_DEVICE_KEY);
         if (raw && !reconnectTimeout.current) {
           const saved = JSON.parse(raw);
@@ -94,7 +96,10 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
     }
     return ok;
   }, []);
-  const disconnect = useCallback(() => bluetoothService.disconnect(), []);
+  const disconnect = useCallback(async () => {
+    intentionalDisconnect.current = true;
+    await bluetoothService.disconnect();
+  }, []);
 
   return (
     <BluetoothContext.Provider value={{

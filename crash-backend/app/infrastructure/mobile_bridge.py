@@ -125,7 +125,7 @@ class MobileBridge:
     async def _refresh_drivers(self) -> None:
         users = await self._db.users.find(
             {"role": "user"},
-            {"_id": 1, "email": 1, "name": 1, "created_at": 1},
+            {"_id": 1, "email": 1, "name": 1, "created_at": 1, "company_id": 1},
         ).to_list(500)
         now = datetime.now(timezone.utc)
         active_ids = set()

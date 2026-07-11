@@ -44,13 +44,7 @@ async def send_whatsapp_message(phone: str, message: str, template_params: list[
     async with httpx.AsyncClient() as http_client:
         resp = await http_client.post(url, json=payload, headers=headers)
         logger.info(f"WhatsApp response: {resp.status_code} - {resp.text}")
-        response_json = resp.json() if resp.text else {}
-        error_code = (((response_json or {}).get("error") or {}).get("code"))
-
-        if resp.status_code >= 400 and error_code == 131047:
-            raise HTTPException(status_code=resp.status_code, detail=f"WhatsApp 24h window error: {resp.text}")
-
-        if resp.status_code >= 400 and using_template and settings.WHATSAPP_TEMPLATE_FALLBACK_ON_24H and error_code not in (131047,):
+        if resp.status_code >= 400 and using_template and settings.WHATSAPP_TEMPLATE_FALLBACK_ON_24H:
             fallback_payload = {
                 "messaging_product": "whatsapp",
                 "to": phone,
@@ -61,6 +55,7 @@ async def send_whatsapp_message(phone: str, message: str, template_params: list[
             logger.info(f"WhatsApp fallback response: {fallback_resp.status_code} - {fallback_resp.text}")
             if fallback_resp.status_code < 400:
                 return fallback_resp.json()
+
         if resp.status_code >= 400:
             raise HTTPException(status_code=resp.status_code, detail=f"WhatsApp API error: {resp.text}")
         return resp.json()

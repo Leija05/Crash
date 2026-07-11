@@ -47,8 +47,8 @@ async def add_contact(user_id: str, body) -> dict:
         "name": body.name.strip(),
         "phone": body.phone.strip(),
         "relationship": body.relationship.strip() if body.relationship else "",
-        "verified": True,
-        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "verified": bool(whatsapp_validation.get("is_whatsapp_user")),
+        "verified_at": datetime.now(timezone.utc).isoformat() if whatsapp_validation.get("is_whatsapp_user") else None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "whatsapp_validation": whatsapp_validation,
     }
@@ -69,6 +69,7 @@ async def get_settings(user_id: str) -> dict:
     if not settings:
         settings = {
             "user_id": user_id, "alert_threshold": 5.0,
+            "countdown_seconds": 8.0,
             "auto_call": True, "auto_whatsapp": True,
             "location_tracking_enabled": True,
         }

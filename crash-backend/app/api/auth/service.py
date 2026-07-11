@@ -276,6 +276,14 @@ async def link_driver_company(user_id: str, token: str) -> dict:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
     company_name = company.get("name", "")
 
+    max_drivers = company.get("max_drivers", 0)
+    driver_count = company.get("driver_count", 0)
+    if max_drivers and driver_count >= max_drivers:
+        raise HTTPException(
+            status_code=409,
+            detail=f"La empresa '{company_name}' alcanzó su límite de conductores ({max_drivers}).",
+        )
+
     await db.users.update_one(
         {"_id": ObjectId(user_id)},
         {"$set": {"company_id": company_id, "company_name": company_name}},

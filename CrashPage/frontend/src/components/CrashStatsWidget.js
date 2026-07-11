@@ -73,7 +73,7 @@ function CrashStatsWidget() {
   const trendChart = useMemo(() => {
     const map = new Map();
     for (let i = 6; i >= 0; i -= 1) { const d = new Date(); d.setDate(d.getDate() - i); map.set(d.toISOString().slice(0, 10), 0); }
-    impacts.forEach((i) => { const k = (i.ts || "").slice(0, 10); if (map.has(k)) map.set(k, map.get(k) + 1); });
+    impacts.forEach((i) => { const k = (i.created_at || i.ts || "").slice(0, 10); if (map.has(k)) map.set(k, map.get(k) + 1); });
     return [...map.entries()].map(([date, total]) => ({ day: date.slice(5).replace("-", "/"), total }));
   }, [impacts]);
 

@@ -34,7 +34,7 @@ function AnimatedRoutes() {
   const location = useLocation();
   return (
     <div className="min-h-screen">
-      <Routes location={location} key={location.pathname}>
+      <Routes location={location}>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route
