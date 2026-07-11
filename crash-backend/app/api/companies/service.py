@@ -17,7 +17,16 @@ async def _resolve_plan(db, plan_id: str = None) -> dict:
     return await db.plans.find_one({"name": "Basic"})
 
 
-async def create_company(name: str, email: str, phone: str = "", plan_id: str = None, cycle: str = "Mensual") -> dict:
+async def create_company(
+    name: str,
+    email: str,
+    phone: str = "",
+    plan_id: str = None,
+    cycle: str = "Mensual",
+    *,
+    provision_tokens: bool = True,
+    status: str = "active",
+) -> dict:
     db = await get_db()
     existing = await db.companies.find_one({"email": email})
     if existing:
@@ -31,10 +40,12 @@ async def create_company(name: str, email: str, phone: str = "", plan_id: str = 
         "name": name, "email": email, "phone": phone,
         "plan_id": str(plan["_id"]) if plan else None,
         "plan_name": plan.get("name", "Basic") if plan else "Basic",
+        "requested_plan_id": plan_id if not provision_tokens else None,
+        "requested_cycle": cycle if not provision_tokens else None,
         "max_drivers": max_drivers,
         "max_monitors": max_monitors,
         "has_token": False,
-        "status": "active",
+        "status": status,
         "monitor_count": 0, "driver_count": 0,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -45,7 +56,7 @@ async def create_company(name: str, email: str, phone: str = "", plan_id: str = 
     await log_admin_action("create_company", f"Empresa {name} ({plan.get('name','Basic') if plan else 'Basic'})")
     doc["id"] = company_id
 
-    if plan:
+    if plan and provision_tokens:
         await tokens_service.create_company_token(doc, plan, cycle)
         await tokens_service.create_monitor_token(doc, plan, cycle)
         await db.companies.update_one(
@@ -340,6 +351,38 @@ async def set_report_schedule(company_id: str, data: dict) -> dict:
     if r.matched_count == 0:
         raise HTTPException(404, "Empresa no encontrada")
     return cfg
+
+
+async def approve_company(company_id: str, plan_id: str = None, cycle: str = None) -> dict:
+    """Aprueba una empresa 'pending' del registro público: aprovisiona tokens y la activa."""
+    db = await get_db()
+    company = await get_company(company_id)
+    if not company:
+        raise HTTPException(404, "Empresa no encontrada")
+    plan_id = plan_id or company.get("requested_plan_id") or company.get("plan_id")
+    cycle = cycle or company.get("requested_cycle") or company.get("cycle") or "Mensual"
+    if not plan_id:
+        raise HTTPException(400, "La empresa no tiene un plan asignado para aprobar")
+    result = await buy_package(company_id, plan_id, cycle)
+    try:
+        company_query = {"_id": ObjectId(company_id)}
+    except Exception:
+        company_query = {"id": company_id}
+    await db.companies.update_one(
+        company_query,
+        {"$set": {
+            "status": "active",
+            "has_token": True,
+            "requested_plan_id": None,
+            "requested_cycle": None,
+            "cycle": cycle,
+            "subscription_expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    from app.api.admin.service import log_admin_action
+    await log_admin_action("approve_company", f"Empresa {company_id} aprobada y aprovisionada")
+    return {"status": "active", "tokens": result}
 
 
 async def extend_subscription(company_id: str, days: int = 30) -> dict:

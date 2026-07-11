@@ -32,13 +32,13 @@ class Settings:
     WHATSAPP_TEMPLATE_FALLBACK_ON_24H: bool = os.environ.get("WHATSAPP_TEMPLATE_FALLBACK_ON_24H", "true").lower() == "true"
 
     SUPERADMIN_EMAIL: str = os.environ.get("SUPERADMIN_EMAIL", "superadmin@crash.io")
-    SUPERADMIN_PASSWORD: str = os.environ.get("SUPERADMIN_PASSWORD", "SuperAdmin2024!")
+    SUPERADMIN_PASSWORD: str = os.environ["SUPERADMIN_PASSWORD"]
     ADMIN_EMAIL: str = os.environ.get("ADMIN_EMAIL", "admin@crash.io")
-    ADMIN_PASSWORD: str = os.environ.get("ADMIN_PASSWORD", "admin123")
+    ADMIN_PASSWORD: str = os.environ["ADMIN_PASSWORD"]
     MONITOR_EMAIL: str = os.environ.get("MONITOR_EMAIL", "monitor@crash.io")
-    MONITOR_PASSWORD: str = os.environ.get("MONITOR_PASSWORD", "monitor123")
+    MONITOR_PASSWORD: str = os.environ["MONITOR_PASSWORD"]
     MOBILE_ADMIN_EMAIL: str = os.environ.get("MOBILE_ADMIN_EMAIL", "admin@crash.com")
-    MOBILE_ADMIN_PASSWORD: str = os.environ.get("MOBILE_ADMIN_PASSWORD", "CrashAdmin2024!")
+    MOBILE_ADMIN_PASSWORD: str = os.environ["MOBILE_ADMIN_PASSWORD"]
 
     DEMO_MODE: bool = os.environ.get("DEMO_MODE", "false").lower() == "true"
 

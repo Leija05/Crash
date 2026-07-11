@@ -181,13 +181,36 @@ async def get_current_admin(request: Request) -> dict:
         user["token_version"] = payload.get("ver", 1)
         return user
 
-    # Monitor operators (incl. those with admin role)
+    # Monitor operators (only those with admin role may access admin endpoints)
     monitor = await db.monitor_operators.find_one({"id": payload["sub"]}, {"_id": 0, "password_hash": 0})
     if monitor:
+        if monitor.get("role") not in ("admin", "superadmin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
         monitor["token_version"] = payload.get("ver", 1)
         return monitor
 
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+
+async def get_current_company_admin(
+    company_id: str,
+    user: dict = Depends(get_current_admin),
+) -> dict:
+    """Admin access scoped to a single company (prevents cross-company IDOR).
+
+    SuperAdmins may access any company; company admins are restricted to their own.
+    """
+    if user.get("role") == "superadmin":
+        return user
+    if user.get("company_id") != company_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No autorizado para esta empresa",
+        )
+    return user
 
 
 async def get_current_superadmin(request: Request) -> dict:

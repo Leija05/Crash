@@ -170,7 +170,7 @@ async def send_emergency_alerts(user: dict, impact: dict, profile: dict | None, 
 
 def verify_webhook_signature(raw_body: bytes, signature: str) -> bool:
     if not settings.WHATSAPP_APP_SECRET or not signature.startswith("sha256="):
-        return True
+        return False
     expected_hash = hmac.new(
         settings.WHATSAPP_APP_SECRET.encode("utf-8"),
         raw_body,

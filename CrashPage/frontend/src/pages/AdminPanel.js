@@ -552,6 +552,15 @@ function CompaniesTab() {
     load();
   }, [buyOpen, loadTokens, load]);
 
+  const handleApprove = useCallback(async (id) => {
+    try {
+      await api.post(`/companies/${id}/approve`, {});
+      toast.success("Empresa aprobada y aprovisionada");
+      loadTokens(id);
+      load();
+    } catch (err) { toast.error(formatApiError(err)); }
+  }, [loadTokens, load]);
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
 
   return (
@@ -574,7 +583,7 @@ function CompaniesTab() {
                     <div className="flex items-center gap-2 mb-1">
                       <Building2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                       <h3 className="font-bold text-lg truncate">{c.name}</h3>
-                      <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full ${c.status === "active" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-red-500/15 text-red-300 border border-red-500/30"}`}>{c.status || "active"}</span>
+                      <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full ${c.status === "active" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : c.status === "pending" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" : "bg-red-500/15 text-red-300 border border-red-500/30"}`}>{c.status || "active"}</span>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-neutral-400 mt-2">
                       <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{c.email}</span>
@@ -594,6 +603,11 @@ function CompaniesTab() {
                   <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full ${c.has_token ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "bg-amber-500/15 text-amber-300 border border-amber-500/30"}`}>
                     {c.has_token ? "Con tokens" : "Sin token"}
                   </span>
+                  {c.status === "pending" && (
+                    <button onClick={() => handleApprove(c.id || c._id)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg px-3 py-1.5 transition-all">
+                      <Package className="h-3.5 w-3.5" /> Aprobar registro
+                    </button>
+                  )}
                   {!c.has_token && (
                     <button onClick={() => setBuyOpen(c)} className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg px-3 py-1.5 transition-all">
                       <Package className="h-3.5 w-3.5" /> Comprar paquete

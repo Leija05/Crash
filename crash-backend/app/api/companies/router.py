@@ -1,14 +1,20 @@
+import re
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.api.companies.service import (
     create_company, list_companies, get_company, update_company, delete_company,
     buy_package, get_company_tokens, get_company_drivers,
-    create_support_request, extend_subscription,
+    create_support_request, extend_subscription, approve_company,
     get_company_webhooks, set_company_webhooks, test_company_webhook,
     set_report_schedule,
 )
-from app.core.security import get_current_superadmin, get_current_monitor_user, get_current_admin
+from app.core.security import (
+    get_current_superadmin,
+    get_current_monitor_user,
+    get_current_admin,
+    get_current_company_admin,
+)
 
 router = APIRouter(prefix="/companies", tags=["companies"])
 
@@ -27,7 +33,7 @@ async def list_public_companies():
     return docs
 
 @router.get("/{company_id}")
-async def get_company_detail(company_id: str, _=Depends(get_current_admin)):
+async def get_company_detail(company_id: str, _=Depends(get_current_company_admin)):
     return await get_company(company_id)
 
 @router.post("")
@@ -37,12 +43,30 @@ async def create(data: dict, _=Depends(get_current_superadmin)):
         phone=data.get("phone", ""), plan_id=data.get("plan_id"), cycle=data.get("cycle", "Mensual"),
     )
 
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
 @router.post("/public/register")
 async def public_register(data: dict):
-    return await create_company(
-        name=data.get("name"), email=data.get("email"),
-        phone=data.get("phone", ""), plan_id=data.get("plan_id"), cycle=data.get("cycle", "Mensual"),
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    phone = (data.get("phone") or "").strip()
+    if not (2 <= len(name) <= 120):
+        raise HTTPException(400, "Nombre inválido")
+    if not _EMAIL_RE.match(email) or len(email) > 254:
+        raise HTTPException(400, "Email inválido")
+    if phone and not re.match(r"^[+\d][\d\s\-()]{5,24}$", phone):
+        raise HTTPException(400, "Teléfono inválido")
+    company = await create_company(
+        name=name, email=email,
+        phone=phone, plan_id=data.get("plan_id"), cycle=data.get("cycle", "Mensual"),
+        provision_tokens=False, status="pending",
     )
+    return {
+        "status": "pending",
+        "message": "Registro recibido. Un administrador aprobará tu empresa y te enviará el acceso.",
+        "company": {"id": company.get("id"), "name": company.get("name"), "email": company.get("email")},
+    }
 
 @router.put("/{company_id}")
 async def update(company_id: str, data: dict, _=Depends(get_current_superadmin)):
@@ -56,12 +80,17 @@ async def delete(company_id: str, _=Depends(get_current_superadmin)):
 async def buy(company_id: str, data: dict, _=Depends(get_current_superadmin)):
     return await buy_package(company_id, data.get("plan_id"), data.get("cycle", "Mensual"))
 
+@router.post("/{company_id}/approve")
+async def approve(company_id: str, data: dict = None, _=Depends(get_current_superadmin)):
+    data = data or {}
+    return await approve_company(company_id, data.get("plan_id"), data.get("cycle"))
+
 @router.get("/{company_id}/tokens")
 async def tokens(company_id: str, _=Depends(get_current_superadmin)):
     return await get_company_tokens(company_id)
 
 @router.get("/{company_id}/monitors")
-async def company_monitors(company_id: str, _=Depends(get_current_admin)):
+async def company_monitors(company_id: str, _=Depends(get_current_company_admin)):
     from app.core.database import get_db
     db = await get_db()
     cursor = db.monitor_operators.find({"company_id": company_id}, {"_id": 0, "password_hash": 0})
@@ -69,7 +98,7 @@ async def company_monitors(company_id: str, _=Depends(get_current_admin)):
 
 
 @router.get("/{company_id}/drivers")
-async def company_drivers(company_id: str, _=Depends(get_current_admin)):
+async def company_drivers(company_id: str, _=Depends(get_current_company_admin)):
     return await get_company_drivers(company_id)
 
 
@@ -97,7 +126,7 @@ async def extend_sub(company_id: str, data: dict = None, _=Depends(get_current_s
 
 
 @router.get("/{company_id}/webhooks")
-async def company_webhooks_get(company_id: str, _=Depends(get_current_admin)):
+async def company_webhooks_get(company_id: str, _=Depends(get_current_company_admin)):
     return await get_company_webhooks(company_id)
 
 

@@ -70,7 +70,11 @@ async def list_monitors(user: dict = Depends(get_current_monitor_user)):
     from app.core.database import get_db
     db = await get_db()
     company_id = user.get("company_id")
-    query = {"company_id": company_id} if company_id else {}
+    if not company_id:
+        # Sin empresa asociada: solo se muestra el propio operador.
+        query = {"id": user.get("id")}
+    else:
+        query = {"company_id": company_id}
     cursor = db.monitor_operators.find(query, {"_id": 0, "password_hash": 0})
     return await cursor.to_list(100)
 

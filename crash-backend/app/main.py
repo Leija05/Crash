@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -283,20 +285,17 @@ async def custom_swagger_ui():
 @app.get("/api/health")
 async def health(request: Request):
     db_status = "unknown"
-    db_detail = ""
     try:
         db = await get_db()
         await db.command("ping")
         db_status = "connected"
-    except Exception as e:
+    except Exception:
         db_status = "error"
-        db_detail = str(e)
 
     cache_stats = cache.stats()
     return {
         "status": "healthy" if db_status == "connected" else "degraded",
         "database": db_status,
-        "database_detail": db_detail,
         "demo_mode": settings.DEMO_MODE,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "uptime_seconds": round(time.time() - app.state.startup_time) if hasattr(app.state, "startup_time") else 0,
@@ -316,7 +315,7 @@ async def whatsapp_webhook_verify(request: Request):
     token = request.query_params.get("hub.verify_token")
     challenge = request.query_params.get("hub.challenge")
 
-    if mode == "subscribe" and token == settings.WHATSAPP_WEBHOOK_VERIFY_TOKEN and challenge:
+    if mode == "subscribe" and hmac.compare_digest(token, settings.WHATSAPP_WEBHOOK_VERIFY_TOKEN) and challenge:
         logger.info("WhatsApp webhook verificado correctamente")
         return PlainTextResponse(content=challenge)
     logger.warning("Intento de verificación webhook inválido")
@@ -432,10 +431,8 @@ async def _seed_superadmin() -> None:
         site_token = existing.get("site_token", "")
 
     logger.info("=" * 50)
-    logger.info("SUPERADMIN CREDENTIALS")
-    logger.info("  Email : %s", email)
-    logger.info("  Pass  : %s", settings.SUPERADMIN_PASSWORD)
-    logger.info("  Token : %s", site_token)
+    logger.info("SUPERADMIN listo: %s", email)
+    logger.info("  (Las credenciales y el token de sitio NO se registran en logs por seguridad)")
     logger.info("  Panel : http://localhost:3000/admin")
     logger.info("=" * 50)
 
