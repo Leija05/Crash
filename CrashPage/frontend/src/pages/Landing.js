@@ -1,10 +1,11 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   Smartphone, Cpu, Monitor, Lock, Network, Siren, Navigation,
   WifiOff, MessagesSquare, Database, ShoppingCart, X, MessageCircle, Mail,
   Check, ArrowRight, MapPin, History, Signal, Users, Building2,
+  Gauge, Brain, ShieldAlert, Zap, Activity, Radar, ChevronDown,
 } from "lucide-react";
 import { api } from "../lib/api";
 
@@ -103,6 +104,137 @@ function CrashLogo({ className = "h-9 w-9" }) {
   );
 }
 
+/* ── Scroll reveal ───────────────────────────────────────────── */
+function Reveal({ children, className = "", delay = 0, style, as: Tag = "div" }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach((e) => { if (e.isIntersecting) { setVisible(true); obs.unobserve(e.target); } }),
+      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const d = delay >= 1 && delay <= 5 ? ` reveal-delay-${delay}` : "";
+  return (
+    <Tag ref={ref} style={style} className={`reveal ${visible ? "is-visible" : ""}${d} ${className}`}>
+      {children}
+    </Tag>
+  );
+}
+
+/* ── Animated count-up ───────────────────────────────────────── */
+function Counter({ to, prefix = "", suffix = "", decimals = 0, duration = 1600 }) {
+  const ref = useRef(null);
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let raf, start;
+    const obs = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      obs.disconnect();
+      const tick = (t) => {
+        if (!start) start = t;
+        const p = Math.min(1, (t - start) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setVal(to * eased);
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, { threshold: 0.4 });
+    obs.observe(el);
+    return () => { obs.disconnect(); if (raf) cancelAnimationFrame(raf); };
+  }, [to, duration]);
+  const display = decimals > 0 ? val.toFixed(decimals) : Math.round(val).toLocaleString("es-MX");
+  return <span ref={ref} className="tabular-nums">{prefix}{display}{suffix}</span>;
+}
+
+/* ── Interactive impact simulator (innovative tool) ──────────── */
+function ImpactSimulator() {
+  const [g, setG] = useState(2);
+  const tiers = [
+    { min: 0, max: 3, key: "none", label: "Sin impacto", color: "text-zinc-400", hex: "#71717a", ai: "Sin fuerza significativa. El sistema permanece en modo vigilancia." },
+    { min: 3, max: 6, key: "mild", label: "Leve", color: "text-emerald-400", hex: "#10b981", ai: "Golpe leve detectado. Se registra en la caja negra; sin alerta automática." },
+    { min: 6, max: 10, key: "moderate", label: "Moderado", color: "text-amber-400", hex: "#f59e0b", ai: "Impacto moderado. Se notifica al conductor y se inicia cuenta regresiva de confirmación." },
+    { min: 10, max: 15, key: "severe", label: "Severo", color: "text-orange-400", hex: "#fb923c", ai: "Triaje IA: posible traumatismo. Alerta a contactos y centro de control en 8s." },
+    { min: 15, max: 99, key: "critical", label: "Crítico", color: "text-red-500", hex: "#ef4444", ai: "Colisión crítica. Despliegue inmediato de emergencia con GPS y diagnóstico IA." },
+  ];
+  const tier = tiers.find((t) => g >= t.min && g < t.max) || tiers[tiers.length - 1];
+  const pct = Math.min(100, (g / 20) * 100);
+  const etaMin = g >= 15 ? 4 : g >= 10 ? 8 : g >= 6 ? 20 : 45;
+  const lesionPct = Math.min(98, Math.round(Math.pow(g, 1.7) * 1.4));
+
+  return (
+    <div className="card-premium p-6 sm:p-8 lg:p-10 relative overflow-hidden" style={{ borderRadius: 22 }}>
+      <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-red-500/10 blur-[110px] pointer-events-none" />
+      <div className="relative grid lg:grid-cols-2 gap-8 items-center">
+        <div>
+          <div className="inline-flex items-center gap-2 text-red-400 text-xs font-mono uppercase tracking-[0.2em] mb-4">
+            <Radar size={16} className="animate-spin-slow" /> Demostración interactiva
+          </div>
+          <h3 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">Simulador de Impacto en vivo</h3>
+          <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+            Arrastra para simular la fuerza-G de un impacto. La IA de C.R.A.S.H. clasifica la gravedad,
+            estima la probabilidad de lesión y define el protocolo de respuesta en milisegundos.
+          </p>
+
+          <div className="flex items-center gap-4 mb-3">
+            <Gauge size={22} className="text-white shrink-0" />
+            <input
+              type="range" min={0} max={20} step={0.5} value={g}
+              onChange={(e) => setG(parseFloat(e.target.value))}
+              className="w-full accent-red-500 h-2 rounded-full bg-white/10 appearance-none cursor-pointer"
+              aria-label="Fuerza G del impacto"
+            />
+          </div>
+          <div className="flex items-end justify-between mb-6">
+            <div className="font-mono">
+              <span className="text-4xl font-bold">{g.toFixed(1)}</span>
+              <span className="text-zinc-500 text-sm ml-1">G</span>
+            </div>
+            <div className={`font-bold text-lg font-mono ${tier.color}`}>{tier.label}</div>
+          </div>
+
+          <div className="h-2.5 rounded-full bg-white/10 overflow-hidden mb-6">
+            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: tier.hex, boxShadow: `0 0 16px ${tier.hex}66` }} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="text-[11px] uppercase tracking-wider text-zinc-500">Prob. de lesión</div>
+              <div className="font-mono font-bold text-lg" style={{ color: tier.hex }}>{lesionPct}%</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="text-[11px] uppercase tracking-wider text-zinc-500">Respuesta estimada</div>
+              <div className="font-mono font-bold text-lg">{etaMin}s</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center justify-center gap-4">
+          <div className={`relative w-44 h-44 rounded-full flex items-center justify-center ${g >= 10 ? "live-ring" : ""}`}>
+            <div
+              className={g >= 10 ? "helmet-shake" : ""}
+              key={g >= 10 ? Math.round(g) : "idle"}
+              style={{ color: tier.hex }}
+            >
+              <CrashLogo className="h-28 w-28" />
+            </div>
+          </div>
+          <div className={`rounded-xl border px-4 py-3 text-sm text-center max-w-xs ${tier.key === "critical" ? "border-red-500/40 bg-red-500/10 text-red-200" : "border-white/10 bg-white/[0.03] text-zinc-300"}`}>
+            <Brain size={15} className="inline mr-1.5 -mt-0.5" />
+            {tier.ai}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Landing() {
   const [plans, setPlans] = useState([]);
   const [cycle, setCycle] = useState("Mensual");
@@ -174,12 +306,14 @@ function Landing() {
     window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Pedido C.R.A.S.H.")}&body=${encodeURIComponent(body)}`;
   };
 
+  const TRUST = ["IA de Triaje", "WhatsApp Business", "WebSockets en vivo", "Caja Negra IMU", "Geocercas", "NOM-115", "ISO 45001", "Modo Offline"];
+
   return (
     <div className="page-enter bg-[#050505] text-white min-h-screen relative">
-      <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-red-500/10 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-[120px]" />
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.04] grid-pan" style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-red-500/10 blur-[120px] orb-float" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-[120px] orb-float-2" />
       </div>
 
       <div className="relative z-10">
@@ -209,7 +343,7 @@ function Landing() {
               </button>
               <Link
                 to="/login"
-                className="text-sm bg-white text-black font-bold px-4 py-2 rounded-xl hover:bg-zinc-200 transition-all hover-lift"
+                className="text-sm bg-white text-black font-bold px-4 py-2 rounded-xl hover:bg-zinc-200 transition-all hover:-translate-y-0.5 shadow-lg shadow-white/10"
               >
                 Acceso monitoristas
               </Link>
@@ -217,10 +351,11 @@ function Landing() {
           </div>
         </header>
 
+        {/* HERO */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
             <img src={HERO} alt="Motociclista de noche" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/75" />
+            <div className="absolute inset-0 bg-black/78" />
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 40%,#050505)" }} />
           </div>
           <div className="relative max-w-6xl mx-auto px-4 py-28 lg:py-40">
@@ -242,44 +377,85 @@ function Landing() {
                 Centro de control
               </Link>
             </div>
+
+            <div className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl fade-up" style={{ animationDelay: "0.4s" }}>
+              {[
+                { icon: Activity, v: 20, suffix: "ms", l: "Detección" },
+                { icon: Zap, v: 99, suffix: "%", l: "Precisión IA" },
+                { icon: Users, v: 386000, l: "Usuarios moto" },
+                { icon: ShieldAlert, v: 61869, l: "Accidentes/año" },
+              ].map((s) => (
+                <div key={s.l} className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-4 py-3">
+                  <div className="font-mono font-bold text-2xl"><Counter to={s.v} suffix={s.suffix || ""} /></div>
+                  <div className="text-[11px] text-zinc-500 mt-0.5 uppercase tracking-wide">{s.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="relative flex justify-center pb-8 pointer-events-none">
+            <ChevronDown size={26} className="text-zinc-500 animate-bounce" />
           </div>
         </section>
 
+        {/* MARQUEE */}
+        <div className="marquee-mask overflow-hidden border-y border-white/[0.04] py-4 bg-white/[0.015]">
+          <div className="marquee-track">
+            {[...TRUST, ...TRUST].map((t, i) => (
+              <span key={i} className="inline-flex items-center gap-2 px-6 text-sm text-zinc-500 font-mono uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" /> {t}
+              </span>
+            ))}
+          </div>
+        </div>
+
         <section className="max-w-6xl mx-auto px-4 py-24">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Los 3 componentes</div>
-          <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">Un ecosistema sincronizado</h2>
+          <Reveal>
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Los 3 componentes</div>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">Un ecosistema sincronizado</h2>
+          </Reveal>
           <div className="grid md:grid-cols-3 gap-5">
             {HERO_SUB.map((c, i) => (
-              <div key={c.t} className="card-premium p-8 hover-lift fade-up" style={{ animationDelay: `${0.1 * i}s`, borderRadius: 20 }}>
+              <Reveal key={c.t} delay={(i % 3) + 1} className="card-premium p-8 hover-lift" style={{ borderRadius: 20 }}>
                 <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-5">
                   <c.icon size={26} className="text-white" />
                 </div>
                 <div className="font-bold font-mono text-lg">{c.t}</div>
                 <div className="text-red-500 text-xs font-mono uppercase tracking-wider mb-3 mt-1">{c.s}</div>
                 <p className="text-zinc-400 text-sm leading-relaxed">{c.d}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
         <section className="max-w-6xl mx-auto px-4 py-10">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Características</div>
-          <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">Protección en cada kilómetro</h2>
+          <Reveal>
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Características</div>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">Protección en cada kilómetro</h2>
+          </Reveal>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f, i) => (
-              <div key={f.t} className="card-premium p-6 hover-lift fade-up" style={{ animationDelay: `${0.05 * i}s`, borderRadius: 16 }}>
+              <Reveal key={f.t} delay={(i % 3) + 1} className="card-premium p-6 hover-lift" style={{ borderRadius: 16 }}>
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
                   <f.icon size={22} className="text-emerald-400" />
                 </div>
                 <div className="font-bold mb-1.5 text-[15px]">{f.t}</div>
                 <p className="text-zinc-400 text-sm leading-relaxed">{f.d}</p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
+        {/* INNOVATIVE TOOL: impact simulator */}
         <section className="max-w-6xl mx-auto px-4 py-24">
-          <div className="card-premium p-8 lg:p-12 relative overflow-hidden hover-lift" style={{ borderRadius: 20 }}>
+          <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Inteligencia Artificial</Reveal>
+          <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Prueba el cerebro de C.R.A.S.H.</Reveal>
+          <Reveal delay={2}>
+            <ImpactSimulator />
+          </Reveal>
+        </section>
+
+        <section className="max-w-6xl mx-auto px-4 py-10">
+          <Reveal className="card-premium p-8 lg:p-12 relative overflow-hidden hover-lift" style={{ borderRadius: 20 }}>
             <Network size={160} className="absolute -right-8 -bottom-8 text-emerald-500/10" />
             <div className="relative">
               <div className="inline-flex items-center gap-2 text-emerald-400 text-xs font-mono uppercase tracking-[0.2em] mb-4">
@@ -305,13 +481,13 @@ function Landing() {
                 ))}
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <section className="max-w-6xl mx-auto px-4 py-24">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Demo en vivo</div>
-          <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Vélo en acción</h2>
-          <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video card-premium" style={{ borderRadius: 20 }}>
+          <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Demo en vivo</Reveal>
+          <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Vélo en acción</Reveal>
+          <Reveal delay={2} className="relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video card-premium" style={{ borderRadius: 20 }}>
             <video
               className="w-full h-full object-cover"
               autoPlay
@@ -326,11 +502,11 @@ function Landing() {
             >
               Tu navegador no soporta el elemento de video.
             </video>
-          </div>
+          </Reveal>
         </section>
 
         <section className="max-w-6xl mx-auto px-4 py-10">
-          <div className="card-premium p-8 lg:p-12 relative overflow-hidden" style={{ borderRadius: 20 }}>
+          <Reveal className="card-premium p-8 lg:p-12 relative overflow-hidden" style={{ borderRadius: 20 }}>
             <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-red-500/10 blur-[100px]" />
             <div className="relative">
               <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">El Proyecto C.R.A.S.H.</div>
@@ -398,16 +574,18 @@ function Landing() {
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         <section id="planes" className="max-w-6xl mx-auto px-4 py-24">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Suscripciones</div>
-          <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">Planes y precios</h2>
-          <p className="text-zinc-400 mb-6 text-sm max-w-2xl">
-            El precio a empresas (B2B) es superior al del usuario final (B2C) porque incluye dashboard corporativo,
-            telemetría de flotilla e instalación. Elige tu perfil para ver precios en MXN.
-          </p>
+          <Reveal>
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Suscripciones</div>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">Planes y precios</h2>
+            <p className="text-zinc-400 mb-6 text-sm max-w-2xl">
+              El precio a empresas (B2B) es superior al del usuario final (B2C) porque incluye dashboard corporativo,
+              telemetría de flotilla e instalación. Elige tu perfil para ver precios en MXN.
+            </p>
+          </Reveal>
 
           <div className="inline-flex gap-1 border border-white/10 rounded-xl p-1 mb-6 bg-white/[0.02]">
             <button
@@ -502,7 +680,7 @@ function Landing() {
                 {plans.map((p) => (
                   <div
                     key={p.name}
-                    className={`card-premium p-6 flex flex-col transition-all duration-300 hover-lift ${p.popular ? "border-white/20 ring-1 ring-white/10 scale-[1.02]" : ""}`}
+                    className={`card-premium p-6 flex flex-col transition-all duration-300 hover-lift ${p.popular ? "border-white/20 ring-1 ring-white/10 scale-[1.02] shimmer-border" : ""}`}
                     style={{ borderRadius: 20 }}
                   >
                     {p.popular && (
