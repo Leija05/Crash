@@ -104,6 +104,31 @@ function CrashLogo({ className = "h-9 w-9" }) {
   );
 }
 
+/* ── Premium brand lockup ────────────────────────────────────── */
+function Brand({ compact = false }) {
+  return (
+    <span className="flex items-center gap-3 group select-none">
+      <span className="relative shrink-0">
+        <span className="absolute -inset-1.5 rounded-2xl bg-gradient-to-br from-red-500/40 via-red-500/10 to-emerald-500/40 blur-md opacity-70 group-hover:opacity-100 transition-opacity duration-500" />
+        <span className="relative w-10 h-10 rounded-2xl bg-black border border-white/15 flex items-center justify-center shadow-lg shadow-black/40 overflow-hidden">
+          <span className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-emerald-500/10" />
+          <CrashLogo className="h-6 w-6 relative" />
+        </span>
+      </span>
+      <span className="leading-none">
+        <span className="flex items-center gap-0.5 font-bold font-mono text-lg tracking-tight">
+          <span className="text-gradient">C.R.A.S.H</span><span className="text-red-500">.</span>
+        </span>
+        {!compact && (
+          <span className="block text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-mono mt-1 whitespace-nowrap">
+            Critical Response Alert
+          </span>
+        )}
+      </span>
+    </span>
+  );
+}
+
 /* ── Scroll reveal ───────────────────────────────────────────── */
 function Reveal({ children, className = "", delay = 0, style, as: Tag = "div" }) {
   const ref = useRef(null);
@@ -320,12 +345,7 @@ function Landing() {
         <header className="sticky top-0 z-50 bg-black/70 backdrop-blur-2xl border-b border-white/[0.06]">
           <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-white/5">
-                <CrashLogo className="h-5 w-5" />
-              </div>
-              <span className="font-bold font-mono text-lg tracking-tight">
-                C.R.A.S.H<span className="text-red-500">.</span>
-              </span>
+              <Brand />
             </Link>
             <div className="flex items-center gap-4">
               <a href="#planes" className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors font-medium">Planes</a>
@@ -733,10 +753,7 @@ function Landing() {
         <footer className="border-t border-white/[0.04] py-12 text-center">
           <div className="max-w-6xl mx-auto px-4">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center">
-                <CrashLogo className="h-4 w-4" />
-              </div>
-              <span className="font-bold font-mono tracking-tight">C.R.A.S.H<span className="text-red-500">.</span></span>
+              <Brand compact />
             </div>
             <p className="text-zinc-600 text-sm font-mono">
               Critical Response Alert System for Helmets · Hecho en México
