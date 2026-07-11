@@ -53,7 +53,8 @@
           "backgroundColor": "#000000"
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "./plugins/withAutolinkingCacheCleanup.js"
     ],
     "experiments": {
       "typedRoutes": true
