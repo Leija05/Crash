@@ -212,7 +212,7 @@ function Dashboard() {
               </button>
             ) : null}
             <div className="mt-3 flex-shrink-0">
-              <SystemHealthPanel drivers={drivers} wsStatus={status} />
+              <SystemHealthPanel drivers={visibleDrivers} wsStatus={status} />
             </div>
           </div>
         </aside>
