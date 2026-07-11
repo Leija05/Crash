@@ -1,13 +1,14 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from math import radians, sin, cos, sqrt, atan2
 
 from fastapi import APIRouter, Depends, HTTPException
 from pymongo.errors import DuplicateKeyError
 
 from app.api.impacts.service import classify_severity
-from app.api.telemetry.schemas import TelemetryInput, LocationInput
+from app.api.geofences.service import evaluate_zone
+from app.api.telemetry.schemas import TelemetryInput, LocationInput, BatchTelemetryInput
 from app.core.database import get_db
+from app.core.geo import haversine_m
 from app.core.security import get_current_rider
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
@@ -33,6 +34,7 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
         "acceleration": {"x": body.acceleration_x, "y": body.acceleration_y, "z": body.acceleration_z},
         "gyroscope": {"x": body.gyroscope_x, "y": body.gyroscope_y, "z": body.gyroscope_z},
         "g_force": body.g_force,
+        "speed_kmh": body.speed_kmh,
         "helmet_connected": body.helmet_connected,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
@@ -46,6 +48,14 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
             "location_tracking_enabled": track_location,
         }
 
+    # Geocercas de riesgo: detectar modo Precaución y cronometrar tiempo en zona.
+    caution = {"in_zone": False, "caution": False}
+    if location:
+        try:
+            caution = await evaluate_zone(user["id"], location["latitude"], location["longitude"])
+        except Exception:
+            caution = {"in_zone": False, "caution": False}
+
     if location:
         latest_live = await db.user_live_locations.find_one({"user_id": user["id"]}, {"_id": 0})
         await db.user_live_locations.update_one(
@@ -55,6 +65,8 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
                 "location": location,
                 "helmet_connected": body.helmet_connected,
                 "g_force": body.g_force,
+                "speed_kmh": body.speed_kmh,
+                "caution": caution,
                 "timestamp": doc["timestamp"],
             }},
             upsert=True,
@@ -70,12 +82,7 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
             curr_lat = location.get("latitude")
             curr_lon = location.get("longitude")
             if prev_lat is not None and prev_lon is not None and curr_lat is not None and curr_lon is not None:
-                r = 6371000.0
-                dlat = radians(curr_lat - prev_lat)
-                dlon = radians(curr_lon - prev_lon)
-                a = sin(dlat / 2) ** 2 + cos(radians(prev_lat)) * cos(radians(curr_lat)) * sin(dlon / 2) ** 2
-                c = 2 * atan2(sqrt(a), sqrt(1 - a))
-                distance_m = r * c
+                distance_m = haversine_m(prev_lat, prev_lon, curr_lat, curr_lon)
                 should_store_history = distance_m >= 25
 
                 prev_ts_raw = latest_live.get("timestamp")
@@ -103,7 +110,67 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
         "g_force": body.g_force,
         "severity": classify_severity(body.g_force),
         "location_tracking_enabled": track_location,
+        "caution": caution,
     }
+
+
+@router.post("/batch")
+async def receive_telemetry_batch(body: BatchTelemetryInput, user: dict = Depends(get_current_rider)):
+    """Ingesta en ráfaga de la Caja Negra del Casco.
+
+    Recibe muestras almacenadas localmente mientras no había señal y las
+    persiste conservando su marca de tiempo original. No re-dispara alertas
+    (el evento ya ocurrió); solo preserva la telemetría para la caja negra.
+    """
+    db = await get_db()
+    if not body.samples:
+        return {"status": "ok", "stored": 0, "duplicates": 0}
+
+    settings = await db.user_settings.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
+    track_location = settings.get("location_tracking_enabled", True)
+
+    stored = 0
+    duplicates = 0
+    latest = None
+    for s in body.samples:
+        ts = s.occurred_at or datetime.now(timezone.utc).isoformat()
+        location = None
+        if track_location and s.latitude is not None and s.longitude is not None:
+            location = {
+                "latitude": s.latitude,
+                "longitude": s.longitude,
+                "gps_accuracy_m": s.gps_accuracy_m,
+            }
+        doc = {
+            "user_id": user["id"],
+            "client_event_id": s.client_event_id or f"blackbox-{uuid.uuid4()}",
+            "acceleration": {"x": s.acceleration_x, "y": s.acceleration_y, "z": s.acceleration_z},
+            "gyroscope": {"x": s.gyroscope_x, "y": s.gyroscope_y, "z": s.gyroscope_z},
+            "g_force": s.g_force,
+            "speed_kmh": s.speed_kmh,
+            "helmet_connected": s.helmet_connected,
+            "location": location,
+            "from_blackbox": True,
+            "timestamp": ts,
+        }
+        try:
+            await db.telemetry.insert_one(doc)
+            stored += 1
+            if location:
+                await db.location_history.insert_one({
+                    "user_id": user["id"],
+                    "location": location,
+                    "helmet_connected": s.helmet_connected,
+                    "g_force": s.g_force,
+                    "from_blackbox": True,
+                    "timestamp": ts,
+                })
+            if latest is None or ts > latest["timestamp"]:
+                latest = doc
+        except DuplicateKeyError:
+            duplicates += 1
+
+    return {"status": "ok", "stored": stored, "duplicates": duplicates}
 
 
 @router.post("/location")
@@ -120,6 +187,11 @@ async def update_live_location(body: LocationInput, user: dict = Depends(get_cur
     }
     ts = datetime.now(timezone.utc).isoformat()
 
+    try:
+        caution = await evaluate_zone(user["id"], body.latitude, body.longitude)
+    except Exception:
+        caution = {"in_zone": False, "caution": False}
+
     previous = await db.user_live_locations.find_one({"user_id": user["id"]}, {"_id": 0})
     await db.user_live_locations.update_one(
         {"user_id": user["id"]},
@@ -128,6 +200,7 @@ async def update_live_location(body: LocationInput, user: dict = Depends(get_cur
             "location": location,
             "helmet_connected": bool(body.helmet_connected),
             "g_force": None,
+            "caution": caution,
             "timestamp": ts,
         }},
         upsert=True,
@@ -141,12 +214,7 @@ async def update_live_location(body: LocationInput, user: dict = Depends(get_cur
         prev_lat = prev.get("latitude")
         prev_lon = prev.get("longitude")
         if prev_lat is not None and prev_lon is not None:
-            r = 6371000.0
-            dlat = radians(body.latitude - prev_lat)
-            dlon = radians(body.longitude - prev_lon)
-            a = sin(dlat / 2) ** 2 + cos(radians(prev_lat)) * cos(radians(body.latitude)) * sin(dlon / 2) ** 2
-            c = 2 * atan2(sqrt(a), sqrt(1 - a))
-            distance_m = r * c
+            distance_m = haversine_m(prev_lat, prev_lon, body.latitude, body.longitude)
             if distance_m >= 25:
                 should_store_history = True
             else:

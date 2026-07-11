@@ -2,6 +2,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
+from math import exp
 
 from fastapi import HTTPException
 
@@ -30,18 +31,78 @@ def severity_label(sev: str) -> str:
     return {"low": "Bajo", "medium": "Medio", "high": "Alto", "critical": "Crítico"}.get(sev, sev)
 
 
+def compute_injury_probability(
+    g_force: float,
+    speed_kmh: float = None,
+    zone_risk: int = 0,
+) -> float:
+    """Estima la probabilidad de lesión (0-100) para el triaje médico.
+
+    Combina la fuerza-G del impacto (curva de saturación), la velocidad
+    estimada y el riesgo de la zona (geocerca) donde ocurrió.
+    """
+    g = max(0.0, float(g_force or 0.0))
+    # Curva base de saturación: ~30% a 5G, ~50% a 10G, ~65% a 15G, ~75% a 20G.
+    base = 100.0 * (1.0 - exp(-0.07 * g))
+    # Velocidad: hasta +20 puntos (a ~120 km/h).
+    speed_factor = 0.0
+    if speed_kmh:
+        speed_factor = min(20.0, max(0.0, float(speed_kmh)) / 6.0)
+    # Riesgo de zona: hasta +10 puntos.
+    zone_factor = min(10.0, max(0, int(zone_risk or 0)) * 3.0)
+    prob = base + speed_factor + zone_factor
+    return round(min(99.0, max(0.0, prob)), 1)
+
+
+def triage_level(injury_probability: float) -> dict:
+    """Nivel de triaje a partir de la probabilidad de lesión."""
+    p = injury_probability
+    if p >= 80:
+        return {"level": "critico", "label": "Crítico", "priority": 1}
+    if p >= 55:
+        return {"level": "grave", "label": "Grave", "priority": 2}
+    if p >= 25:
+        return {"level": "moderado", "label": "Moderado", "priority": 3}
+    return {"level": "leve", "label": "Leve", "priority": 4}
+
+
 async def create_impact(user: dict, body) -> dict:
     db = await get_db()
     severity = classify_severity(body.g_force)
     impact_id = str(uuid.uuid4())
+
+    # Triaje: riesgo de la zona (geocerca) donde ocurrió el impacto.
+    zone_risk = 0
+    zone_info = None
+    if body.latitude is not None and body.longitude is not None:
+        try:
+            from app.api.geofences.service import get_active_geofences, zone_containing
+            zones = await get_active_geofences(user.get("company_id"))
+            z = zone_containing(body.latitude, body.longitude, zones)
+            if z:
+                zone_risk = z.get("risk_weight", 0)
+                zone_info = {"id": z["id"], "name": z.get("name", ""), "type": z.get("type", "")}
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"Zone lookup failed: {e}")
+
+    speed_kmh = getattr(body, "speed_kmh", None)
+    injury_probability = compute_injury_probability(body.g_force, speed_kmh, zone_risk)
+    triage = triage_level(injury_probability)
+
     impact_doc = {
         "id": impact_id,
         "user_id": user["id"],
         "acceleration": {"x": body.acceleration_x, "y": body.acceleration_y, "z": body.acceleration_z},
         "gyroscope": {"x": body.gyroscope_x, "y": body.gyroscope_y, "z": body.gyroscope_z},
         "g_force": body.g_force,
+        "speed_kmh": speed_kmh,
         "severity": severity,
         "severity_label": severity_label(severity),
+        "injury_probability": injury_probability,
+        "triage_level": triage["level"],
+        "triage_label": triage["label"],
+        "triage_priority": triage["priority"],
+        "risk_zone": zone_info,
         "location": {"latitude": body.latitude, "longitude": body.longitude} if body.latitude else None,
         "ai_diagnosis": None,
         "alerts_sent": False,

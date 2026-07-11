@@ -10,5 +10,6 @@ class ImpactInput(BaseModel):
     gyroscope_y: float
     gyroscope_z: float
     g_force: float
+    speed_kmh: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
