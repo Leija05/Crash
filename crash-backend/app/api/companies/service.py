@@ -196,7 +196,8 @@ async def create_support_request(
     await db.support_requests.insert_one(doc)
     from app.api.admin.service import log_admin_action
     await log_admin_action("support_request", f"{company.get('name','')}: {rtype}")
-    return {"id": str(doc["_id"]), **doc}
+    doc["id"] = str(doc.pop("_id", ""))
+    return doc
 
 
 async def list_support_requests() -> list:
