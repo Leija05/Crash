@@ -81,12 +81,12 @@ const HERO_SUB = [
 ];
 
 const FEATURES = [
-  { icon: Lock, t: "Bloqueo por conducción", d: "Sobre 5 km/h la app prioriza la ruta y oculta distracciones. Si el conductor abre redes sociales, se genera reporte automático." },
-  { icon: Navigation, t: "HUD Nocturno", d: "Pantalla de alto contraste con modo reflejo para parabrisas en rutas nocturnas de alto riesgo." },
-  { icon: MessagesSquare, t: "Chat con bloqueo", d: "En movimiento solo respuestas rápidas con un toque. El texto libre se desbloquea a 0 km/h." },
-  { icon: Database, t: "Caja Negra del Casco", d: "Almacena telemetría IMU local y envía en ráfaga al recuperar la señal en zonas muertas." },
-  { icon: Siren, t: "Pánico Silencioso", d: "Patrón de botones que activa protocolo silencioso, comparte ubicación y manda alerta roja." },
-  { icon: WifiOff, t: "Detección de pérdida de señal", d: "Si pierde conexión fuera de una zona muerta conocida, se asume emergencia y alerta al centro." },
+  { icon: Cpu, t: "Detección de impacto por IA", d: "El módulo MPU-6050 con red neuronal de clasificación detecta la fuerza-G del impacto y categoriza la gravedad en milisegundos." },
+  { icon: Brain, t: "Triaje automatizado", d: "La IA discrimina entre un golpe leve y una colisión crítica, estimando la probabilidad de lesión para priorizar la respuesta médica." },
+  { icon: MessagesSquare, t: "Alertas automáticas a contactos", d: "WhatsApp Business difunde ubicación GPS y diagnóstico del impacto a tus contactos y al centro de monitoreo de inmediato." },
+  { icon: Monitor, t: "Monitoreo en vivo", d: "Centro de Control con WebSockets muestra la flotilla, telemetría y estado de cada conductor en tiempo real." },
+  { icon: MapPin, t: "Geocercas de riesgo", d: "Zonas peligrosas (curvas, túneles, escolares) activan modo Precaución y cronometran el tiempo exacto en la zona." },
+  { icon: Database, t: "Caja Negra del Casco", d: "Almacena telemetría IMU local y la envía en ráfaga al recuperar la señal en zonas muertas, sin perder datos." },
 ];
 
 function CrashLogo({ className = "h-9 w-9" }) {
