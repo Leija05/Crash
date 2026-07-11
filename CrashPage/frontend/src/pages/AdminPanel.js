@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { useAuth } from "../auth/AuthContext";
-import { api, formatApiError, superAdminAPI, adminAPI, companyAPI } from "../lib/api";
+import { api, formatApiError, superAdminAPI, adminAPI, companyAPI, analyticsAPI } from "../lib/api";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import PremiumModal from "../components/ui/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PromptDialog from "../components/PromptDialog";
@@ -15,7 +16,7 @@ import {
   AlertCircle, Settings, BarChart3, Clock, Eye, Package, TrendingUp,
   UserPlus, ScrollText, LifeBuoy, Map as MapIcon, Bell, Webhook,
   CalendarClock, Send, CheckCircle2, CalendarPlus, Slack,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, LineChart as LineChartIcon, Globe,
 } from "lucide-react";
 
 const err = (e) => toast.error(formatApiError(e));
@@ -1151,8 +1152,132 @@ function SupportTab() {
   );
 }
 
+function AnalyticsTab() {
+  const [days, setDays] = useState(30);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    analyticsAPI.overview(days)
+      .then((r) => { if (!cancelled) setData(r.data); })
+      .catch((e) => { if (!cancelled) err(e); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [days]);
+
+  const series = useMemo(
+    () => (data?.views_by_day || []).map((d) => ({
+      label: d.day.slice(5).replace("-", "/"),
+      views: d.views,
+      unique: d.unique,
+    })),
+    [data]
+  );
+  const topPages = data?.top_pages || [];
+  const referrers = data?.referrers || [];
+  const maxRef = Math.max(1, ...referrers.map((r) => r.views));
+  const selCls = "bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none";
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-xl font-bold">Analítica de visitas</h2>
+          <p className="text-xs text-neutral-500 mt-1">Tráfico del sitio web público y del panel.</p>
+        </div>
+        <select value={days} onChange={(e) => setDays(Number(e.target.value))} className={selCls}>
+          <option value={7}>Últimos 7 días</option>
+          <option value={30}>Últimos 30 días</option>
+          <option value={90}>Últimos 90 días</option>
+          <option value={365}>Último año</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>
+      ) : (
+        <>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard icon={Eye} label="Vistas hoy" value={data?.views_today || 0} accent="emerald" />
+            <StatsCard icon={Users} label="Visitantes únicos hoy" value={data?.unique_today || 0} accent="blue" />
+            <StatsCard icon={BarChart3} label={`Vistas (${days}d)`} value={data?.total_views || 0} accent="emerald" />
+            <StatsCard icon={Globe} label={`Visitantes únicos (${days}d)`} value={data?.unique_visitors || 0} accent="blue" />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold flex items-center gap-2"><LineChartIcon className="h-4 w-4 text-emerald-400" /> Vistas por día</h3>
+              <span className="text-xs text-neutral-500">Promedio: <strong className="text-white">{data?.avg_views_per_day || 0}</strong>/día</span>
+            </div>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gViews" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gUnique" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                  <XAxis dataKey="label" stroke="#a3a3a3" fontSize={11} interval="preserveStartEnd" minTickGap={20} />
+                  <YAxis stroke="#a3a3a3" fontSize={11} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: "#0f1114", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }} />
+                  <Area type="monotone" dataKey="views" name="Vistas" stroke="#10b981" strokeWidth={2} fill="url(#gViews)" />
+                  <Area type="monotone" dataKey="unique" name="Únicos" stroke="#3b82f6" strokeWidth={2} fill="url(#gUnique)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="mt-6 grid lg:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-4">Páginas más visitadas</h4>
+              {topPages.length === 0 ? <div className="text-xs text-neutral-500">Sin datos en el periodo.</div> : (
+                <div className="space-y-3">
+                  {topPages.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-mono text-xs text-neutral-300 truncate">{p.path}</span>
+                      <span className="text-xs whitespace-nowrap"><strong className="text-white">{p.views}</strong> vistas · {p.unique} únicos</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-4">Orígenes de tráfico</h4>
+              {referrers.length === 0 ? <div className="text-xs text-neutral-500">Sin datos en el periodo.</div> : (
+                <div className="space-y-3">
+                  {referrers.map((r, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between gap-3 text-sm mb-1">
+                        <span className="text-xs text-neutral-300 truncate">{r.source}</span>
+                        <span className="text-xs text-white font-semibold">{r.views}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-500/70" style={{ width: `${Math.round((r.views / maxRef) * 100)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 const TABS = [
   { id: "overview", label: "Resumen", icon: LayoutDashboard, Tab: OverviewTab },
+  { id: "analytics", label: "Analítica", icon: LineChartIcon, Tab: AnalyticsTab },
   { id: "companies", label: "Empresas", icon: Building2, Tab: CompaniesTab },
   { id: "heatmap", label: "Mapa de Calor", icon: MapIcon, Tab: HeatmapTab },
   { id: "support", label: "Centro de Ayudas", icon: LifeBuoy, Tab: SupportTab },

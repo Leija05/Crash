@@ -28,6 +28,7 @@ from app.api.monitor.websockets import manager
 from app.api.riders.router import router as riders_router
 from app.api.telemetry.router import router as telemetry_router
 from app.api.sales.router import router as sales_router
+from app.api.analytics.router import router as analytics_router
 from app.core.config import settings
 from app.core.database import get_db, close_db
 from app.core.security import decode_token, hash_password, verify_password
@@ -265,6 +266,7 @@ app.include_router(telemetry_router, prefix="/api")
 app.include_router(riders_router, prefix="/api")
 app.include_router(monitor_router, prefix="/api")
 app.include_router(sales_router, prefix="/api")
+app.include_router(analytics_router, prefix="/api")
 
 
 @app.get("/api/")
@@ -519,6 +521,8 @@ async def on_startup() -> None:
     await db.user_live_locations.create_index("user_id", unique=True)
     await db.user_profiles.create_index("user_id")
     await db.user_settings.create_index("user_id")
+    await db.page_views.create_index("day")
+    await db.page_views.create_index("created_at")
 
     if settings.DEMO_MODE:
         await db.drivers.create_index("id", unique=True)

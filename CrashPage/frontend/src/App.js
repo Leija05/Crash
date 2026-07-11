@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import "./App.css";
+import { analyticsAPI } from "./lib/api";
 import { AuthProvider } from "./auth/AuthContext";
 import { I18nProvider } from "./i18n";
 import { SettingsProvider } from "./context/SettingsContext";
@@ -32,6 +33,9 @@ function LoadingFallback() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  useEffect(() => {
+    analyticsAPI.track(location.pathname);
+  }, [location.pathname]);
   return (
     <div className="min-h-screen">
       <Routes location={location}>

@@ -128,3 +128,30 @@ export const companyAPI = {
 export const monitorAPI = {
   heatmap: (params) => api.get("/monitor/heatmap", { params }),
 };
+
+// ── Analítica de visitas del sitio ──
+const VISITOR_KEY = "crash_visitor_id";
+
+export function getVisitorId() {
+  try {
+    let id = localStorage.getItem(VISITOR_KEY);
+    if (!id) {
+      id = (crypto.randomUUID && crypto.randomUUID()) ||
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(VISITOR_KEY, id);
+    }
+    return id;
+  } catch {
+    return "anon";
+  }
+}
+
+export const analyticsAPI = {
+  track: (path) =>
+    api.post("/analytics/track", {
+      path,
+      visitor_id: getVisitorId(),
+      referrer: document.referrer || "",
+    }).catch(() => {}),
+  overview: (days = 30) => api.get("/analytics/overview", { params: { days } }),
+};
