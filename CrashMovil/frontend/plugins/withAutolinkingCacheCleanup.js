@@ -6,25 +6,31 @@ const { withSettingsGradle } = require('@expo/config-plugins');
  * the EAS build cache on the Linux builder with Windows absolute paths. That
  * makes every autolinked native module resolve with "No variants exist".
  *
- * Deleting the cache on non-Windows builders forces Expo autolinking to
- * regenerate it with correct (Linux) paths on each build.
+ * The cache must be deleted on non-Windows builders before Expo autolinking
+ * reads it. This must be injected AFTER the `plugins {}` block (Gradle forbids
+ * arbitrary statements before it), but still before autolinking runs.
  */
 module.exports = function withAutolinkingCacheCleanup(config) {
   return withSettingsGradle(config, (cfg) => {
-    const marker = 'autolinkingCacheDir';
+    const marker = 'autolinkingCacheCleanup';
     if (cfg.modResults.contents.includes(marker)) {
       return cfg;
     }
-    const snippet = `// Force-delete the autolinking cache so it always regenerates with correct paths
-// on the build machine. Prevents a Windows-path cache from reaching the Linux EAS
-// builder (see https://github.com/expo/expo/issues/46886).
-def autolinkingCacheDir = new File(rootDir, "build/generated/autolinking")
+    const snippet = `
+// [autolinkingCacheCleanup] Delete stale autolinking cache (Windows paths) on
+// non-Windows builders. See https://github.com/expo/expo/issues/46886
+def autolinkingCacheCleanupDir = new File(rootDir, "build/generated/autolinking")
 if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
-  autolinkingCacheDir.deleteDir()
+  autolinkingCacheCleanupDir.deleteDir()
 }
-
 `;
-    cfg.modResults.contents = snippet + cfg.modResults.contents;
+    const anchor = 'id("expo-autolinking-settings")\n}';
+    if (cfg.modResults.contents.includes(anchor)) {
+      cfg.modResults.contents = cfg.modResults.contents.replace(anchor, anchor + snippet);
+    } else {
+      // Fallback (non-standard template): prepend if the anchor isn't found.
+      cfg.modResults.contents = snippet + "\n" + cfg.modResults.contents;
+    }
     return cfg;
   });
 };
