@@ -6,6 +6,7 @@ import { AuthProvider } from '../src/context/AuthContext';
 import { AppSettingsProvider } from '../src/context/AppSettingsContext';
 import { BluetoothProvider } from '../src/context/BluetoothContext';
 import { AlertProvider } from '../src/context/AlertContext';
+import { LocationProvider } from '../src/context/LocationContext';
 import { I18nProvider } from '../src/i18n';
 import { COLORS } from '../src/theme';
 
@@ -16,6 +17,7 @@ export default function RootLayout() {
         <AppSettingsProvider>
           <AuthProvider>
             <BluetoothProvider>
+              <LocationProvider>
               <AlertProvider>
                 <StatusBar style="light" translucent />
               <View style={styles.ambientGlow} pointerEvents="none" />
@@ -27,6 +29,7 @@ export default function RootLayout() {
                 }}
               />
               </AlertProvider>
+              </LocationProvider>
             </BluetoothProvider>
           </AuthProvider>
         </AppSettingsProvider>

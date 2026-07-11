@@ -91,8 +91,15 @@ export const settingsAPI = {
 
 export const telemetryAPI = {
   send: (token: string, data: any) => apiRequest('/telemetry', { method: 'POST', body: data, token }),
+  location: (token: string, data: { latitude: number; longitude: number; gps_accuracy_m?: number | null; helmet_connected?: boolean }) =>
+    apiRequest('/telemetry/location', { method: 'POST', body: data, token }),
   history: (token: string, impactId: string, beforeMinutes = 5, afterMinutes = 5) =>
     apiRequest(`/telemetry/history?impact_id=${impactId}&before_minutes=${beforeMinutes}&after_minutes=${afterMinutes}`, { token }),
+};
+
+export const locationAPI = {
+  send: (token: string, data: { latitude: number; longitude: number; gps_accuracy_m?: number | null; helmet_connected?: boolean }) =>
+    apiRequest('/telemetry/location', { method: 'POST', body: data, token }),
 };
 
 export const falseAlarmAPI = {

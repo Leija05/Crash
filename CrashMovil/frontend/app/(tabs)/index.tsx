@@ -13,6 +13,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useAlert } from '../../src/context/AlertContext';
+import { useLocation } from '../../src/context/LocationContext';
 import { contactsAPI, impactsAPI, settingsAPI, telemetryAPI } from '../../src/services/api';
 import { foregroundService } from '../../src/services/foregroundService';
 
@@ -49,6 +50,10 @@ export default function DashboardScreen() {
     connected, telemetry, statusDetail, deviceName, batteryLevel,
     disconnect, nativeAvailable,
   } = useBluetooth();
+  const {
+    permissionGranted, grantedLocation, currentLocation, isTracking,
+    requestPermission,
+  } = useLocation();
 
   const [refreshing, setRefreshing] = useState(false);
   const [peakG, setPeakG] = useState(0);
@@ -458,11 +463,25 @@ export default function DashboardScreen() {
           </View>
           <View style={[styles.bentoCard, styles.bentoHalf]}>
             <Text style={styles.coordsTitle}>UBICACIÓN GPS</Text>
-            <Text style={styles.coordsGeoBig}>
-              {locationTrackingEnabled && telemetryForDisplay
-                ? `${telemetryForDisplay.latitude?.toFixed(5) ?? '--'}\n${telemetryForDisplay.longitude?.toFixed(5) ?? '--'}`
-                : 'No disponible'}
-            </Text>
+            {permissionGranted === false ? (
+              <TouchableOpacity style={styles.locationEnableBtn} onPress={requestPermission} activeOpacity={0.8}>
+                <Ionicons name="location-outline" size={16} color={COLORS.accent} />
+                <Text style={styles.locationEnableText}>Activar ubicación</Text>
+              </TouchableOpacity>
+            ) : (
+              <View>
+                <Text style={styles.coordsGeoBig}>
+                  {grantedLocation
+                    ? `${grantedLocation.latitude.toFixed(5)}\n${grantedLocation.longitude.toFixed(5)}`
+                    : 'Obteniendo…'}
+                </Text>
+                <Text style={styles.coordsGeoSub}>
+                  {isTracking
+                    ? `EN VIVO · ${currentLocation?.latitude.toFixed(5) ?? '--'}, ${currentLocation?.longitude.toFixed(5) ?? '--'}`
+                    : 'Permiso concedido'}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -755,6 +774,13 @@ const styles = StyleSheet.create({
   },
   bentoHalf: { flex: 1 },
   coordsGeoBig: { color: COLORS.textDim, fontSize: 13, textAlign: 'center', letterSpacing: 0.5, marginTop: 4, lineHeight: 20 },
+  coordsGeoSub: { color: COLORS.textSec, fontSize: 10, textAlign: 'center', letterSpacing: 0.5, marginTop: 8 },
+  locationEnableBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginTop: 10, paddingVertical: 10, borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(204,255,0,0.08)', borderWidth: 1, borderColor: 'rgba(204,255,0,0.18)',
+  },
+  locationEnableText: { color: COLORS.accent, fontWeight: '800', fontSize: 13, letterSpacing: 0.5 },
 
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2 },

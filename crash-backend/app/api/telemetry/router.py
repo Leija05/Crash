@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pymongo.errors import DuplicateKeyError
 
 from app.api.impacts.service import classify_severity
-from app.api.telemetry.schemas import TelemetryInput
+from app.api.telemetry.schemas import TelemetryInput, LocationInput
 from app.core.database import get_db
 from app.core.security import get_current_rider
 
@@ -104,6 +104,71 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
         "severity": classify_severity(body.g_force),
         "location_tracking_enabled": track_location,
     }
+
+
+@router.post("/location")
+async def update_live_location(body: LocationInput, user: dict = Depends(get_current_rider)):
+    db = await get_db()
+    settings = await db.user_settings.find_one({"user_id": user["id"]}, {"_id": 0}) or {}
+    if not settings.get("location_tracking_enabled", True):
+        return {"status": "disabled"}
+
+    location = {
+        "latitude": body.latitude,
+        "longitude": body.longitude,
+        "gps_accuracy_m": body.gps_accuracy_m,
+    }
+    ts = datetime.now(timezone.utc).isoformat()
+
+    previous = await db.user_live_locations.find_one({"user_id": user["id"]}, {"_id": 0})
+    await db.user_live_locations.update_one(
+        {"user_id": user["id"]},
+        {"$set": {
+            "user_id": user["id"],
+            "location": location,
+            "helmet_connected": bool(body.helmet_connected),
+            "g_force": None,
+            "timestamp": ts,
+        }},
+        upsert=True,
+    )
+
+    should_store_history = False
+    if not previous or not previous.get("location"):
+        should_store_history = True
+    else:
+        prev = previous["location"]
+        prev_lat = prev.get("latitude")
+        prev_lon = prev.get("longitude")
+        if prev_lat is not None and prev_lon is not None:
+            r = 6371000.0
+            dlat = radians(body.latitude - prev_lat)
+            dlon = radians(body.longitude - prev_lon)
+            a = sin(dlat / 2) ** 2 + cos(radians(prev_lat)) * cos(radians(body.latitude)) * sin(dlon / 2) ** 2
+            c = 2 * atan2(sqrt(a), sqrt(1 - a))
+            distance_m = r * c
+            if distance_m >= 25:
+                should_store_history = True
+            else:
+                prev_ts_raw = previous.get("timestamp")
+                if prev_ts_raw:
+                    try:
+                        elapsed_seconds = (datetime.fromisoformat(ts) - datetime.fromisoformat(prev_ts_raw)).total_seconds()
+                        if elapsed_seconds >= 60:
+                            should_store_history = True
+                    except Exception:
+                        pass
+
+    if should_store_history:
+        await db.location_history.insert_one({
+            "user_id": user["id"],
+            "location": location,
+            "helmet_connected": bool(body.helmet_connected),
+            "g_force": None,
+            "timestamp": ts,
+        })
+
+    return {"status": "ok"}
 
 
 @router.get("/history")

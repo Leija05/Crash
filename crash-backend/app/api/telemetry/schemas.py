@@ -15,3 +15,10 @@ class TelemetryInput(BaseModel):
     gps_accuracy_m: Optional[float] = None
     helmet_connected: Optional[bool] = None
     client_event_id: Optional[str] = None
+
+
+class LocationInput(BaseModel):
+    latitude: float
+    longitude: float
+    gps_accuracy_m: Optional[float] = None
+    helmet_connected: Optional[bool] = None
