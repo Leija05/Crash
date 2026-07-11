@@ -45,6 +45,29 @@ async def ensure_general_company() -> None:
     if not await db.site_tokens.find_one({"company_id": GENERAL_COMPANY_ID, "role": "monitorista", "active": True}):
         await create_monitor_token({"id": GENERAL_COMPANY_ID, "name": GENERAL_COMPANY_NAME}, plan, "Anual")
 
+    # Reasociar al monitoreo general a todo conductor que no tenga un vínculo
+    # válido con una empresa (company_id nulo, vacío, o que no corresponda a
+    # una empresa existente). Así, si no hay empresas registradas, el
+    # "Monitoreo General" siempre captura los conductores sin vincular.
+    valid_ids = set()
+    async for c in db.companies.find({}, {"id": 1, "_id": 1}):
+        valid_ids.add(str(c.get("id") or c.get("_id")))
+    await db.users.update_many(
+        {
+            "role": "user",
+            "$or": [
+                {"company_id": {"$in": [None, ""]}},
+                {"company_id": {"$exists": False}},
+                {"company_id": {"$nin": list(valid_ids)}},
+            ],
+        },
+        {"$set": {
+            "company_id": GENERAL_COMPANY_ID,
+            "company_name": GENERAL_COMPANY_NAME,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+
 
 def _check_bruteforce(identifier: str) -> None:
     now = time.monotonic()

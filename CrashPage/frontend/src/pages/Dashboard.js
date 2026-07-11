@@ -82,10 +82,11 @@ function Dashboard() {
 
   const [roster, setRoster] = useState([]);
 
+  const GENERAL_COMPANY_ID = "general";
   const isMonitor = user?.role === "monitor" && !!user?.company_id;
-  // Monitorista "general": monitor sin empresa asignada. Ve los conductores
-  // independientes (sin empresa) en el monitoreo general.
-  const isGeneralMonitor = user?.role === "monitor" && !user?.company_id;
+  // Monitorista "general": monitor de la empresa "Monitoreo General" (o sin
+  // empresa asignada). Ve los conductores independientes / sin vincular.
+  const isGeneralMonitor = user?.role === "monitor" && (!user?.company_id || user?.company_id === GENERAL_COMPANY_ID);
 
   const [heatOn, setHeatOn] = useState(false);
   const [heatDays, setHeatDays] = useState(30);
@@ -119,7 +120,7 @@ function Dashboard() {
     const out = {};
     for (const [k, v] of Object.entries(drivers || {})) {
       if (isMonitor && v.company_id === user.company_id) out[k] = v;
-      else if (isGeneralMonitor && !v.company_id) out[k] = v;
+      else if (isGeneralMonitor && (!v.company_id || v.company_id === GENERAL_COMPANY_ID)) out[k] = v;
     }
     return out;
   }, [drivers, isMonitor, isGeneralMonitor, user?.company_id]);

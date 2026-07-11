@@ -1,5 +1,5 @@
 import { memo, useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { api, formatApiError } from "../lib/api";
 import {
@@ -17,7 +17,7 @@ function TokenGate({ onVerified }) {
     e.preventDefault();
     setBusy(true); setError("");
     try {
-      const { data } = await api.post("/auth/verify-site-token", { token: tokenInput.trim() });
+      const { data } = await api.post("/auth/verify-site-token", { token: tokenInput.trim() }, { __authProbe: true });
       setTokenInfo(data);
       localStorage.setItem("crash_site_token", tokenInput.trim());
       setVerified(true);
@@ -374,7 +374,7 @@ function Login() {
     setChecking(true);
     (async () => {
       try {
-        const { data } = await api.post("/auth/verify-site-token", { token: saved });
+        const { data } = await api.post("/auth/verify-site-token", { token: saved }, { __authProbe: true });
         if (cancelled) return;
         // El token de empresa inicia el flujo de monitorista (se asocia a la empresa).
         if (data.role === "empresa") {
@@ -403,8 +403,8 @@ function Login() {
   }
 
   if (user) {
-    if (user.role === "superadmin") return <Link to="/admin" />;
-    return <Link to="/dashboard" />;
+    if (user.role === "superadmin") return <Navigate to="/admin" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (checking) {
