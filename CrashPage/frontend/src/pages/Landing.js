@@ -120,7 +120,7 @@ function Brand({ compact = false }) {
           <span className="text-gradient">C.R.A.S.H</span><span className="text-red-500">.</span>
         </span>
         {!compact && (
-          <span className="block text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-mono mt-1 whitespace-nowrap">
+          <span className="hidden sm:block text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-mono mt-1 whitespace-nowrap">
             Critical Response Alert
           </span>
         )}
@@ -378,7 +378,7 @@ function Landing() {
             <div className="absolute inset-0 bg-black/78" />
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 40%,#050505)" }} />
           </div>
-          <div className="relative max-w-6xl mx-auto px-4 py-28 lg:py-40">
+          <div className="relative max-w-6xl mx-auto px-4 py-20 sm:py-28 lg:py-40">
             <div className="inline-flex items-center gap-2 border border-white/15 rounded-full px-3.5 py-1.5 text-xs font-mono text-zinc-300 mb-6 fade-up">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-safe" />
               Ecosistema de cascos · Monitoreo en vivo
@@ -428,7 +428,7 @@ function Landing() {
           </div>
         </div>
 
-        <section className="max-w-6xl mx-auto px-4 py-24">
+        <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <Reveal>
             <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Los 3 componentes</div>
             <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">Un ecosistema sincronizado</h2>
@@ -466,7 +466,7 @@ function Landing() {
         </section>
 
         {/* INNOVATIVE TOOL: impact simulator */}
-        <section className="max-w-6xl mx-auto px-4 py-24">
+        <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Inteligencia Artificial</Reveal>
           <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Prueba el cerebro de C.R.A.S.H.</Reveal>
           <Reveal delay={2}>
@@ -504,7 +504,7 @@ function Landing() {
           </Reveal>
         </section>
 
-        <section className="max-w-6xl mx-auto px-4 py-24">
+        <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Demo en vivo</Reveal>
           <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Vélo en acción</Reveal>
           <Reveal delay={2} className="relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video card-premium" style={{ borderRadius: 20 }}>
@@ -597,7 +597,7 @@ function Landing() {
           </Reveal>
         </section>
 
-        <section id="planes" className="max-w-6xl mx-auto px-4 py-24">
+        <section id="planes" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <Reveal>
             <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Suscripciones</div>
             <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">Planes y precios</h2>
