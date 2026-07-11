@@ -170,7 +170,7 @@ function History() {
     <div className="min-h-screen lg:h-screen bg-[#0A0A0A] text-white p-4 lg:p-6 flex flex-col gap-4 lg:overflow-hidden">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link to="/" data-testid="back-to-dashboard" className="h-10 w-10 rounded-xl border border-white/10 hover:border-white/30 flex items-center justify-center transition-all hover-lift">
+          <Link to="/dashboard" data-testid="back-to-dashboard" className="h-10 w-10 rounded-xl border border-white/10 hover:border-white/30 flex items-center justify-center transition-all hover-lift">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>

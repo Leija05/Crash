@@ -83,6 +83,9 @@ function Dashboard() {
   const [roster, setRoster] = useState([]);
 
   const isMonitor = user?.role === "monitor" && !!user?.company_id;
+  // Monitorista "general": monitor sin empresa asignada. Ve los conductores
+  // independientes (sin empresa) en el monitoreo general.
+  const isGeneralMonitor = user?.role === "monitor" && !user?.company_id;
 
   const [heatOn, setHeatOn] = useState(false);
   const [heatDays, setHeatDays] = useState(30);
@@ -112,13 +115,14 @@ function Dashboard() {
   }, [isMonitor, user?.company_id]);
 
   const visibleDrivers = useMemo(() => {
-    if (!isMonitor) return drivers || {};
+    if (!isMonitor && !isGeneralMonitor) return drivers || {};
     const out = {};
     for (const [k, v] of Object.entries(drivers || {})) {
-      if (v.company_id === user.company_id) out[k] = v;
+      if (isMonitor && v.company_id === user.company_id) out[k] = v;
+      else if (isGeneralMonitor && !v.company_id) out[k] = v;
     }
     return out;
-  }, [drivers, isMonitor, user?.company_id]);
+  }, [drivers, isMonitor, isGeneralMonitor, user?.company_id]);
 
   // Flota consolidada: conductores en vivo + los asociados a la empresa
   // (registrados aunque estén desconectados). Solo para monitoristas.

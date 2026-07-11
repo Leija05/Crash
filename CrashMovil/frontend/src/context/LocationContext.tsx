@@ -51,6 +51,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const watchRef = useRef<Location.LocationSubscription | null>(null);
   const lastSentAtRef = useRef(0);
   const startedByCircuitRef = useRef(false);
+  const connectedRef = useRef(connected);
+  connectedRef.current = connected;
 
   const capturePosition = useCallback(async (): Promise<GeoPoint | null> => {
     try {
@@ -96,12 +98,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         latitude: point.latitude,
         longitude: point.longitude,
         gps_accuracy_m: point.accuracy ?? null,
-        helmet_connected: connected,
+        helmet_connected: connectedRef.current,
       });
     } catch (e) {
       console.warn('No se pudo enviar la ubicación en vivo', e);
     }
-  }, [token, connected]);
+  }, [token]);
 
   const startLiveTracking = useCallback(async () => {
     if (isTracking || watchRef.current) return;
@@ -173,15 +175,16 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [token]);
 
-  // Cuando el circuito se conecta, empezar a mandar la ubicación en tiempo real
+  // Enviar la ubicación en tiempo real en cuanto se concede el permiso y
+  // está habilitado el rastreo, sin depender de que el casco Bluetooth esté
+  // conectado (el flag helmet_connected sí usa 'connected' al enviar).
   useEffect(() => {
-    if (connected && permissionGranted !== false && trackingEnabled) {
-      startedByCircuitRef.current = true;
+    if (permissionGranted === true && trackingEnabled) {
       startLiveTracking();
-    } else if (!connected && startedByCircuitRef.current) {
+    } else if (permissionGranted === false || trackingEnabled === false) {
       stopLiveTracking();
     }
-  }, [connected, permissionGranted, trackingEnabled, startLiveTracking, stopLiveTracking]);
+  }, [permissionGranted, trackingEnabled, startLiveTracking, stopLiveTracking]);
 
   // Limpiar rastreo al desmontar
   useEffect(() => {
