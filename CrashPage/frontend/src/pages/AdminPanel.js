@@ -67,7 +67,7 @@ function CompanyModal({ company, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const isEdit = !!company;
   useCloseOnBrowserBack(true, onClose);
-  const close = () => closeModalViaHistory(onClose);
+  const close = useCallback(() => closeModalViaHistory(onClose), [onClose]);
 
   useEffect(() => {
     (async () => {
@@ -92,7 +92,7 @@ function CompanyModal({ company, onClose, onSaved }) {
       toast.error(formatApiError(err));
     }
     setBusy(false);
-  }, [name, email, phone, planId, cycle, isEdit, company, onClose, onSaved]);
+  }, [name, email, phone, planId, cycle, isEdit, company, close, onSaved]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={close}>
@@ -224,7 +224,7 @@ function BuyPackageModal({ company, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const cid = company?.id || company?._id;
   useCloseOnBrowserBack(true, onClose);
-  const close = () => closeModalViaHistory(onClose);
+  const close = useCallback(() => closeModalViaHistory(onClose), [onClose]);
 
   useEffect(() => {
     (async () => {
@@ -242,7 +242,7 @@ function BuyPackageModal({ company, onClose, onSaved }) {
       toast.error(formatApiError(err));
     }
     setBusy(false);
-  }, [planId, cycle, cid, onSaved, onClose]);
+  }, [planId, cycle, cid, close, onSaved]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={close}>
