@@ -1500,6 +1500,8 @@ function GeofencesTab() {
         confirmLabel="Eliminar"
         onConfirm={() => remove(confirmId)}
         onClose={() => setConfirmId(null)}
+        danger
+        testId="confirm-delete-geofence"
       />
     </div>
   );
@@ -1898,7 +1900,7 @@ function SuperAdminsTab() {
         ))}
       </div>
 
-      <PremiumModal open={!!createdToken} onClose={() => setCreatedToken(null)} title="SuperAdmin creado">
+      <PremiumModal open={!!createdToken} onClose={() => setCreatedToken(null)} title="SuperAdmin creado" testId="superadmin-created-modal">
         {createdToken && (
           <div className="space-y-4">
             <p className="text-sm text-neutral-300">
