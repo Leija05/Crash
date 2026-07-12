@@ -66,5 +66,10 @@ class Settings:
     # Intervalo del scheduler de reportes/alertas en minutos
     SCHEDULER_INTERVAL_MINUTES: int = int(os.environ.get("SCHEDULER_INTERVAL_MINUTES", "15"))
 
+    # Uploads (APK, etc.)
+    UPLOAD_DIR: str = os.environ.get("UPLOAD_DIR", "uploads/versions")
+    MAX_UPLOAD_SIZE_MB: int = int(os.environ.get("MAX_UPLOAD_SIZE_MB", "500"))
+    ALLOWED_EXTENSIONS: list[str] = [".apk"]
+
 
 settings = Settings()

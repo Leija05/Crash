@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import PlainTextResponse, JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -271,6 +272,11 @@ app.include_router(sales_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
 app.include_router(geofences_router, prefix="/api")
 app.include_router(versions_router, prefix="/api")
+
+
+# Servir archivos subidos (APK, etc.)
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 @app.get("/api/")

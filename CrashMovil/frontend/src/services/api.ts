@@ -1,4 +1,4 @@
-const API_BASE =
+export const API_BASE =
   process.env.EXPO_PUBLIC_BACKEND_URL || 'https://crashmovil-backend.onrender.com';
 const REQUEST_TIMEOUT = 30000;
 

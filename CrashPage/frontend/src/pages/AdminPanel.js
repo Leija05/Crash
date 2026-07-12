@@ -1510,7 +1510,9 @@ function GeofencesTab() {
 function VersionsTab() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ version: "", platform: "android", download_url: "", notes: "", mandatory: false, published: true });
+  const [form, setForm] = useState({ version: "", platform: "android", download_url: "", notes: "", mandatory: false, published: true, size_mb: null });
+  const [apkFile, setApkFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -1527,14 +1529,22 @@ function VersionsTab() {
   }, [load]);
 
   const handleCreate = useCallback(async (e) => {
-    e.preventDefault(); setBusy(true); setError("");
+    e.preventDefault(); setBusy(true); setUploading(true); setError("");
     try {
-      await versionsAPI.create(form);
+      let download_url = form.download_url;
+      let size_mb = form.size_mb;
+      if (apkFile) {
+        const { data } = await versionsAPI.uploadApk(apkFile);
+        download_url = data.url;
+        if (!size_mb && data.size_mb) size_mb = data.size_mb;
+      }
+      await versionsAPI.create({ ...form, download_url, size_mb });
       setForm({ version: "", platform: "android", download_url: "", notes: "", mandatory: false, published: true });
+      setApkFile(null);
       load(); ok("Versión publicada");
     } catch (er) { setError(formatApiError(er)); }
-    setBusy(false);
-  }, [form, load]);
+    setBusy(false); setUploading(false);
+  }, [form, apkFile, load]);
 
   const togglePublish = useCallback(async (v) => {
     try { await versionsAPI.update(v.id, { published: !v.published }); load(); ok(v.published ? "Versión ocultada" : "Versión publicada"); }
@@ -1559,7 +1569,7 @@ function VersionsTab() {
   return (
     <div>
       <h2 className="text-xl font-bold mb-2">Versiones de la App</h2>
-      <p className="text-xs text-neutral-500 mb-6">Publica el APK pegando su enlace de descarga (Drive, GitHub Releases, tu servidor, etc.). La versión publicada más alta se ofrece en la web y notifica a la app móvil.</p>
+      <p className="text-xs text-neutral-500 mb-6">Sube el archivo APK directamente o pega un enlace de descarga externo. La versión publicada más alta se ofrece en la web y notifica a la app móvil.</p>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 mb-6">
         <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Publicar nueva versión</h3>
@@ -1570,12 +1580,20 @@ function VersionsTab() {
             <option value="ios">iOS</option>
             <option value="all">Todas</option>
           </select>
-          <input value={form.download_url} onChange={(e) => setForm(f => ({ ...f, download_url: e.target.value }))} placeholder="https://enlace-de-descarga-del-apk" required className="md:col-span-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <div className="md:col-span-2 space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500">Subir APK</label>
+            <input type="file" accept=".apk" onChange={(e) => { setApkFile(e.target.files[0] || null); setForm(f => ({ ...f, size_mb: e.target.files[0] ? Math.round(e.target.files[0].size / (1024 * 1024) * 100) / 100 : null })); }} className="block w-full text-sm text-neutral-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-300 hover:file:bg-emerald-500/20 file:cursor-pointer cursor-pointer" />
+            {apkFile && <p className="text-xs text-emerald-400">{apkFile.name} ({(apkFile.size / (1024 * 1024)).toFixed(2)} MB)</p>}
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500 mb-1">O enlace externo</label>
+            <input value={form.download_url} onChange={(e) => setForm(f => ({ ...f, download_url: e.target.value }))} placeholder="https://enlace-de-descarga-del-apk" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
+          </div>
           <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Novedades / changelog (opcional)" rows={3} className="md:col-span-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none resize-none" />
           <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={form.mandatory} onChange={(e) => setForm(f => ({ ...f, mandatory: e.target.checked }))} className="accent-emerald-500" /> Actualización obligatoria</label>
           <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={form.published} onChange={(e) => setForm(f => ({ ...f, published: e.target.checked }))} className="accent-emerald-500" /> Publicar de inmediato</label>
           <div className="md:col-span-2">
-            <button disabled={busy || !form.version || !form.download_url} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? "Publicando..." : "Publicar versión"}</button>
+            <button disabled={busy || !form.version || (!apkFile && !form.download_url)} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? (uploading ? "Subiendo APK..." : "Publicando...") : "Publicar versión"}</button>
           </div>
         </form>
         {error && <div className="mt-3 text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-xl px-3 py-2.5">{error}</div>}
@@ -1597,7 +1615,9 @@ function VersionsTab() {
                   {v.mandatory && <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300">Obligatoria</span>}
                 </div>
                 {v.notes && <div className="text-xs text-neutral-500 truncate max-w-md">{v.notes}</div>}
-                <a href={v.download_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> Enlace de descarga</a>
+                {v.download_url?.startsWith("/uploads/")
+                  ? <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90"><Download className="h-3 w-3" /> {v.download_url.split("/").pop()}</span>
+                  : <a href={v.download_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> Enlace de descarga</a>}
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 
 from app.api.versions.service import (
     create_version,
@@ -6,6 +6,7 @@ from app.api.versions.service import (
     update_version,
     delete_version,
     get_latest_version,
+    upload_apk,
 )
 from app.core.security import get_current_superadmin
 
@@ -21,6 +22,11 @@ async def versions_latest(platform: str = Query("android")):
 @router.get("")
 async def versions_list(_: dict = Depends(get_current_superadmin)):
     return await list_versions()
+
+
+@router.post("/upload")
+async def versions_upload(file: UploadFile = File(...), _: dict = Depends(get_current_superadmin)):
+    return await upload_apk(file)
 
 
 @router.post("")

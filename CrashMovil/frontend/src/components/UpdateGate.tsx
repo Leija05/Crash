@@ -4,7 +4,7 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PremiumModal from './PremiumModal';
 import GlassButton from './GlassButton';
-import { versionsAPI } from '../services/api';
+import { API_BASE, versionsAPI } from '../services/api';
 import { useI18n } from '../i18n';
 import { COLORS } from '../theme';
 
@@ -67,7 +67,10 @@ export default function UpdateGate() {
   }, [localVersion]);
 
   const handleUpdate = () => {
-    if (info?.download_url) Linking.openURL(info.download_url).catch(() => {});
+    if (info?.download_url) {
+      const url = info.download_url.startsWith('/') ? `${API_BASE}${info.download_url}` : info.download_url;
+      Linking.openURL(url).catch(() => {});
+    }
   };
 
   const handleLater = async () => {

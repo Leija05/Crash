@@ -1,11 +1,13 @@
 import logging
+import os
 import re
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 
 from app.core.database import get_db
+from app.core.config import settings
 
 logger = logging.getLogger("crash.versions")
 
@@ -29,9 +31,30 @@ def _version_tuple(v: str) -> tuple:
 
 def _validate_url(url: str) -> str:
     url = _clean_str(url, 1000)
-    if not url or not re.match(r"^https?://", url, re.IGNORECASE):
-        raise HTTPException(400, "La URL de descarga debe iniciar con http:// o https://")
+    if not url:
+        raise HTTPException(400, "La URL de descarga es requerida")
+    if not re.match(r"^(https?://|/uploads/)", url, re.IGNORECASE):
+        raise HTTPException(400, "La URL de descarga debe iniciar con http://, https:// o /uploads/")
     return url
+
+
+async def upload_apk(file: UploadFile) -> dict:
+    if not file.filename or not any(file.filename.lower().endswith(ext) for ext in settings.ALLOWED_EXTENSIONS):
+        raise HTTPException(400, f"Solo se permiten archivos: {', '.join(settings.ALLOWED_EXTENSIONS)}")
+    content = await file.read()
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    if len(content) > max_bytes:
+        raise HTTPException(400, f"El archivo excede el tamaño máximo de {settings.MAX_UPLOAD_SIZE_MB} MB")
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1] or ".apk"
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(settings.UPLOAD_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(content)
+    url = f"/uploads/versions/{filename}"
+    size_mb = round(len(content) / (1024 * 1024), 2)
+    logger.info("APK subido: %s (%s MB)", filename, size_mb)
+    return {"url": url, "filename": filename, "size_mb": size_mb}
 
 
 async def create_version(data: dict) -> dict:
