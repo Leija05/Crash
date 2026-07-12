@@ -166,7 +166,7 @@ function History() {
       });
     }, 750);
     return () => clearInterval(timer);
-  }, [replayPlaying, replayFrames.length]);
+  }, [replayPlaying, replayFrames]);
 
   const replayPoint = replayFrames[replayIndex];
   const hasMapContent = path.length > 0 || eventsWithGps.length > 0;

@@ -2,8 +2,8 @@ import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
-  Smartphone, Cpu, Monitor, Lock, Network, Siren, Navigation,
-  WifiOff, MessagesSquare, Database, ShoppingCart, X, MessageCircle, Mail,
+  Smartphone, Cpu, Monitor, Lock, Network,
+  MessagesSquare, Database, ShoppingCart, X, MessageCircle, Mail,
   Check, ArrowRight, MapPin, History, Signal, Users, Building2,
   Gauge, Brain, ShieldAlert, Zap, Activity, Radar, ChevronDown, Download,
 } from "lucide-react";

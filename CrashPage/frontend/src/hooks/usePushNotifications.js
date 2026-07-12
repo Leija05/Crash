@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useSettings } from "../context/SettingsContext";
 
 export function usePushNotifications(alerts = []) {
-  const { pushEnabled, soundEnabled } = useSettings();
+  const { pushEnabled } = useSettings();
   const notifiedRef = useRef(new Set());
   const permissionRef = useRef(null);
 
