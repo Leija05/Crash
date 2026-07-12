@@ -116,6 +116,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
   const sendLiveLocation = useCallback(async (point: GeoPoint) => {
     if (!token) return;
+    if (!connectedRef.current) return; // Solo rastreo continuo si el casco está conectado
     const now = Date.now();
     if (now - lastSentAtRef.current < 2000) return;
     lastSentAtRef.current = now;
@@ -124,7 +125,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         latitude: point.latitude,
         longitude: point.longitude,
         gps_accuracy_m: point.accuracy ?? null,
-        helmet_connected: connectedRef.current,
+        helmet_connected: true,
       });
     } catch (e) {
       console.warn('No se pudo enviar la ubicación en vivo', e);
@@ -141,7 +142,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       const point = await capturePosition();
       if (point) {
         setCurrentLocation(point);
-        await sendLiveLocation(point);
+        if (connectedRef.current) await sendLiveLocation(point);
       }
       watchRef.current = await Location.watchPositionAsync(WATCH_OPTIONS, (pos) => {
         const next: GeoPoint = {
@@ -151,7 +152,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           timestamp: pos.timestamp,
         };
         setCurrentLocation(next);
-        sendLiveLocation(next);
+        if (connectedRef.current) sendLiveLocation(next);
       });
       setIsTracking(true);
     } catch (e) {
@@ -211,14 +212,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [token]);
 
-  // Iniciar rastreo cuando haya permiso y tracking activado (con o sin BLE)
+  // Iniciar rastreo continuo solo cuando el casco BLE esté conectado
   useEffect(() => {
-    if (permissionGranted === true && trackingEnabled) {
+    if (permissionGranted === true && trackingEnabled && connected) {
       startLiveTracking();
-    } else {
+    } else if (!connected) {
       stopLiveTracking();
     }
-  }, [permissionGranted, trackingEnabled, startLiveTracking, stopLiveTracking]);
+  }, [permissionGranted, trackingEnabled, connected, startLiveTracking, stopLiveTracking]);
 
   // Limpiar al desmontar
   useEffect(() => {
