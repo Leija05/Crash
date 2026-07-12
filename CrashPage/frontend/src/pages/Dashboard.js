@@ -128,10 +128,12 @@ function Dashboard() {
   const [roster, setRoster] = useState([]);
 
   const GENERAL_COMPANY_ID = "general";
-  const isMonitor = user?.role === "monitor" && !!user?.company_id;
-  // Monitorista "general": monitor de la empresa "Monitoreo General" (o sin
-  // empresa asignada). Ve los conductores independientes / sin vincular.
-  const isGeneralMonitor = user?.role === "monitor" && (!user?.company_id || user?.company_id === GENERAL_COMPANY_ID);
+  const hasCompanyRole = user?.role === "monitor" || user?.role === "admin";
+  const hasSpecificCompany = !!user?.company_id && user?.company_id !== GENERAL_COMPANY_ID;
+  // Usuario de empresa con compañía específica: filtra conductores
+  const isCompanyUser = hasCompanyRole && hasSpecificCompany;
+  // Usuario "general": monitoreo general (sin empresa o con company_id "general")
+  const isGeneralView = hasCompanyRole && (!user?.company_id || user?.company_id === GENERAL_COMPANY_ID);
 
   const [heatOn, setHeatOn] = useState(false);
   const [heatDays, setHeatDays] = useState(30);
@@ -139,16 +141,16 @@ function Dashboard() {
 
   // Mapa de calor histórico de impactos de la empresa del monitorista.
   useEffect(() => {
-    if (!isMonitor || !heatOn) { setHeatPoints(null); return; }
+    if (!hasSpecificCompany || !heatOn) { setHeatPoints(null); return; }
     let cancelled = false;
     monitorAPI.heatmap({ days: heatDays })
       .then((r) => { if (!cancelled) setHeatPoints(r.data?.points || []); })
       .catch(() => { if (!cancelled) setHeatPoints([]); });
     return () => { cancelled = true; };
-  }, [isMonitor, heatOn, heatDays]);
+  }, [hasSpecificCompany, heatOn, heatDays]);
 
   useEffect(() => {
-    if (!isMonitor) { setRoster([]); return; }
+    if (!user?.company_id) { setRoster([]); return; }
     let cancelled = false;
     const load = () => {
       api.get(`/companies/${user.company_id}/drivers`)
@@ -158,26 +160,26 @@ function Dashboard() {
     load();
     const id = setInterval(load, 8000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [isMonitor, user?.company_id]);
+  }, [user?.company_id]);
 
   const visibleDrivers = useMemo(() => {
-    // No monitor: ve todos los conductores
-    if (!isMonitor && !isGeneralMonitor) return drivers || {};
+    // Sin filtro: superadmins y usuarios sin compañía ven todo
+    if (!isCompanyUser && !isGeneralView) return drivers || {};
     const out = {};
     for (const [k, v] of Object.entries(drivers || {})) {
       const dc = v.company_id;
-      // Monitor de empresa: sus conductores + los independientes (company_id === "general")
-      if (isMonitor && (dc === user.company_id || !dc || dc === GENERAL_COMPANY_ID)) out[k] = v;
-      // Monitor general: ve todos los conductores (sin filtrar)
-      else if (isGeneralMonitor) out[k] = v;
+      // Usuario de empresa específica: sus conductores + los independientes (company_id === "general")
+      if (isCompanyUser && (dc === user.company_id || !dc || dc === GENERAL_COMPANY_ID)) out[k] = v;
+      // Vista general: ve todos los conductores
+      else if (isGeneralView) out[k] = v;
     }
     return out;
-  }, [drivers, isMonitor, isGeneralMonitor, user?.company_id]);
+  }, [drivers, isCompanyUser, isGeneralView, user?.company_id]);
 
   // Flota consolidada: conductores en vivo + los asociados a la empresa
-  // (registrados aunque estén desconectados). Solo para monitoristas.
+  // (registrados aunque estén desconectados). Solo para usuarios con compañía.
   const fleetDrivers = useMemo(() => {
-    if (!isMonitor) return visibleDrivers;
+    if (!user?.company_id) return visibleDrivers;
     const merged = { ...visibleDrivers };
     for (const d of roster) {
       const key = d.id || d.email;
@@ -197,13 +199,13 @@ function Dashboard() {
       }
     }
     return merged;
-  }, [isMonitor, visibleDrivers, roster, user?.company_id, t]);
+  }, [user?.company_id, visibleDrivers, roster, t]);
 
   const visibleAlerts = useMemo(() => {
-    if (!isMonitor) return alerts;
+    if (!hasSpecificCompany) return alerts;
     const ids = new Set(Object.keys(visibleDrivers));
     return (alerts || []).filter((a) => ids.has(a.driver_id));
-  }, [alerts, isMonitor, visibleDrivers]);
+  }, [alerts, hasSpecificCompany, visibleDrivers]);
 
   const driverList = useMemo(() => Object.values(fleetDrivers || {}), [fleetDrivers]);
 
@@ -269,7 +271,7 @@ function Dashboard() {
               />
             </motion.div>
             <AnimatePresence>
-              {isMonitor ? (
+              {hasSpecificCompany ? (
                 <motion.button
                   key="support-btn"
                   initial={{ opacity: 0, y: 12 }}
@@ -317,7 +319,7 @@ function Dashboard() {
               onSelect={handleSelectId}
               heatPoints={heatOn ? heatPoints : null}
             />
-            {isMonitor && (
+            {hasSpecificCompany && (
               <motion.div
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
