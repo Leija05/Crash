@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker, Circle, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Crosshair } from "lucide-react";
+import { Crosshair, Navigation } from "lucide-react";
 import { useI18n } from "../i18n";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -49,15 +49,22 @@ function clusterDangerZones(points) {
   return clusters.sort((a, b) => b.count - a.count || b.maxG - a.maxG).slice(0, 5);
 }
 
-function FocusController({ focusDriver }) {
+function FocusController({ focusDriver, nonce }) {
   const map = useMap();
   const lastFocusedRef = useRef(null);
+  const nonceRef = useRef(0);
   useEffect(() => {
-    if (focusDriver && hasCoords(focusDriver) && focusDriver.id && lastFocusedRef.current !== focusDriver.id) {
+    const shouldFly = (
+      focusDriver && hasCoords(focusDriver) && focusDriver.id && (
+        lastFocusedRef.current !== focusDriver.id || nonce !== nonceRef.current
+      )
+    );
+    if (shouldFly) {
       map.flyTo([focusDriver.lat, focusDriver.lng], 15, { duration: 0.8 });
       lastFocusedRef.current = focusDriver.id;
+      nonceRef.current = nonce ?? 0;
     }
-  }, [focusDriver, map]);
+  }, [focusDriver, nonce, map]);
   return null;
 }
 
@@ -115,6 +122,7 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
   const { t } = useI18n();
   const [theme, setTheme] = useState(() => document.body.dataset.theme || "dark");
   const [focusNonce, setFocusNonce] = useState(0);
+  const [driverFocusNonce, setDriverFocusNonce] = useState(0);
 
   useEffect(() => {
     const updateTheme = () => setTheme(document.body.dataset.theme || "dark");
@@ -138,9 +146,11 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
 
   const center = positioned[0] ? [positioned[0].lat, positioned[0].lng] : [19.4326, -99.1332];
   const focus = selectedId ? drivers[selectedId] : null;
+  const hasFocusCoords = focus && hasCoords(focus);
   const noGpsCount = driverList.length - positioned.length;
   const handleSelect = useCallback((id) => onSelect?.(id), [onSelect]);
   const handleFocusImpact = useCallback(() => setFocusNonce((n) => n + 1), []);
+  const handleFocusDriver = useCallback(() => setDriverFocusNonce((n) => n + 1), []);
 
   return (
     <div className="relative h-full w-full" data-testid="live-map">
@@ -158,7 +168,7 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
             ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"}
         />
-        <FocusController focusDriver={focus} />
+        <FocusController focusDriver={focus} nonce={driverFocusNonce} />
         <FocusPointController point={latestImpact ? [latestImpact.lat, latestImpact.lng] : null} nonce={focusNonce} />
 
         {dangerZones.map((z, idx) => (
@@ -208,17 +218,30 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
         <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-neutral-600" /> Offline</div>
       </div>
 
-      {latestImpact ? (
-        <button
-          type="button"
-          onClick={handleFocusImpact}
-          className="absolute top-4 left-4 z-[400] rounded-xl border border-red-500/40 bg-red-500/15 hover:bg-red-500/25 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-red-200 flex items-center gap-2 transition-colors"
-          data-testid="focus-latest-impact"
-        >
-          <Crosshair className="h-3.5 w-3.5" />
-          {t("liveMap.centerRecentImpact", "Centrar accidente reciente")}
-        </button>
-      ) : null}
+      <div className="absolute top-4 left-4 z-[400] flex items-center gap-2">
+        {hasFocusCoords ? (
+          <button
+            type="button"
+            onClick={handleFocusDriver}
+            className="rounded-xl border border-emerald-500/40 bg-emerald-500/15 hover:bg-emerald-500/25 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-emerald-200 flex items-center gap-2 transition-colors"
+            data-testid="focus-selected-driver"
+          >
+            <Navigation className="h-3.5 w-3.5" />
+            {t("liveMap.centerDriver", "Centrar")}
+          </button>
+        ) : null}
+        {latestImpact ? (
+          <button
+            type="button"
+            onClick={handleFocusImpact}
+            className="rounded-xl border border-red-500/40 bg-red-500/15 hover:bg-red-500/25 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-red-200 flex items-center gap-2 transition-colors"
+            data-testid="focus-latest-impact"
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+            {t("liveMap.centerRecentImpact", "Accidente")}
+          </button>
+        ) : null}
+      </div>
 
       {dangerZones.length > 0 ? (
         <div className="absolute bottom-4 right-4 z-[400] rounded-xl border border-red-500/25 bg-black/40 backdrop-blur-xl p-3 text-[10px] uppercase tracking-[0.2em] text-red-200 space-y-1.5">
