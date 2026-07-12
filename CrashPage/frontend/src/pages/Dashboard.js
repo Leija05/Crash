@@ -168,8 +168,8 @@ function Dashboard() {
     const out = {};
     for (const [k, v] of Object.entries(drivers || {})) {
       const dc = v.company_id;
-      // Usuario de empresa específica: sus conductores + los independientes (company_id === "general")
-      if (isCompanyUser && (dc === user.company_id || !dc || dc === GENERAL_COMPANY_ID)) out[k] = v;
+      // Usuario de empresa específica: solo sus conductores
+      if (isCompanyUser && dc === user.company_id) out[k] = v;
       // Vista general: ve todos los conductores
       else if (isGeneralView) out[k] = v;
     }
