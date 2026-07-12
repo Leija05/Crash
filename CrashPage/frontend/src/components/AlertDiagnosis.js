@@ -1,9 +1,11 @@
 import { memo, useCallback, useState } from "react";
 import { Stethoscope, ChevronDown, ChevronUp } from "lucide-react";
+import { useI18n } from "../i18n";
 
 function AlertDiagnosis({ diagnosis }) {
   const [open, setOpen] = useState(false);
   const toggle = useCallback(() => setOpen((v) => !v), []);
+  const { t } = useI18n();
 
   if (!diagnosis || typeof diagnosis !== "object") return null;
 
@@ -30,7 +32,7 @@ function AlertDiagnosis({ diagnosis }) {
       >
         <div className="flex items-center gap-2 min-w-0">
           <Stethoscope className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-          <span className="text-[10px] uppercase tracking-[0.25em] text-neutral-300">Diagnóstico IA</span>
+          <span className="text-[10px] uppercase tracking-[0.25em] text-neutral-300">{t("alertDiagnosis.title", "Diagnóstico IA")}</span>
           <span className={`text-[9px] font-semibold uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border ${priorityTone}`}>
             {diagnosis.priority_level || "—"}
           </span>
@@ -43,19 +45,19 @@ function AlertDiagnosis({ diagnosis }) {
           {summary ? <p className="text-neutral-200 leading-relaxed">{summary}</p> : null}
           {injuries.length > 0 ? (
             <div>
-              <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500 mb-1">Lesiones posibles</div>
+              <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500 mb-1">{t("alertDiagnosis.possibleInjuries", "Lesiones posibles")}</div>
               <ul className="list-disc pl-4 space-y-0.5 text-neutral-300">{injuries.map((it, i) => <li key={i}>{it}</li>)}</ul>
             </div>
           ) : null}
           {firstAid.length > 0 ? (
             <div>
-              <div className="text-[9px] uppercase tracking-[0.25em] text-emerald-400 mb-1">Primeros auxilios</div>
+              <div className="text-[9px] uppercase tracking-[0.25em] text-emerald-400 mb-1">{t("alertDiagnosis.firstAid", "Primeros auxilios")}</div>
               <ol className="list-decimal pl-4 space-y-0.5 text-neutral-200 font-medium">{firstAid.map((it, i) => <li key={i}>{it}</li>)}</ol>
             </div>
           ) : null}
           {recs.length > 0 ? (
             <div>
-              <div className="text-[9px] uppercase tracking-[0.25em] text-amber-400 mb-1">Recomendaciones</div>
+              <div className="text-[9px] uppercase tracking-[0.25em] text-amber-400 mb-1">{t("alertDiagnosis.recommendations", "Recomendaciones")}</div>
               <ul className="list-disc pl-4 space-y-0.5 text-neutral-300">{recs.map((it, i) => <li key={i}>{it}</li>)}</ul>
             </div>
           ) : null}

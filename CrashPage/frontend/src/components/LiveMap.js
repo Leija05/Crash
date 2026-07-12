@@ -2,6 +2,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker, Circle, P
 import L from "leaflet";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Crosshair, Flame } from "lucide-react";
+import { useI18n } from "../i18n";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -61,6 +62,7 @@ function FocusController({ focusDriver }) {
 }
 
 function DriverMarkers({ positioned, onSelect }) {
+  const { t } = useI18n();
   return positioned.map((d) => {
     const recentPath = (d.recent_path || d.route || [])
       .map((p) => [p.lat, p.lng])
@@ -77,7 +79,7 @@ function DriverMarkers({ positioned, onSelect }) {
             <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{d.id?.slice?.(-8)}</div>
             <div className="font-semibold text-base mb-2">{d.name}</div>
             <div className="grid grid-cols-2 gap-2 font-mono text-xs">
-              <div><div className="text-[10px] uppercase text-neutral-500">Velocidad</div><div className="text-emerald-400">{d.speed != null ? `${Math.round(d.speed)} km/h` : "—"}</div></div>
+              <div><div className="text-[10px] uppercase text-neutral-500">{t("liveMap.speed", "Velocidad")}</div><div className="text-emerald-400">{d.speed != null ? `${Math.round(d.speed)} km/h` : "—"}</div></div>
               <div><div className="text-[10px] uppercase text-neutral-500">G-Force</div><div className={d.gforce > 3 ? "text-red-400" : "text-white"}>{d.gforce != null ? d.gforce.toFixed(2) : "—"}G</div></div>
               <div className="col-span-2"><div className="text-[10px] uppercase text-neutral-500">GPS</div><div>{d.lat.toFixed(5)}, {d.lng.toFixed(5)}</div></div>
             </div>
@@ -110,6 +112,7 @@ function HeatLayer({ points }) {
 }
 
 function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
+  const { t } = useI18n();
   const [theme, setTheme] = useState(() => document.body.dataset.theme || "dark");
   const [focusNonce, setFocusNonce] = useState(0);
 
@@ -165,7 +168,7 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
             radius={180 + z.count * 55}
             pathOptions={{ color: z.count > 1 ? "#ef4444" : "#f97316", fillColor: z.count > 1 ? "#ef4444" : "#f97316", fillOpacity: Math.min(0.22, 0.08 + z.count * 0.04), opacity: 0.35, weight: 1 }}
           >
-            <Popup><div className="text-xs"><div className="font-semibold">Zona peligrosa</div><div>{z.count} impacto{z.count > 1 ? "s" : ""} registrado{z.count > 1 ? "s" : ""}</div><div>G máx: {z.maxG ? z.maxG.toFixed(2) : "—"}</div></div></Popup>
+            <Popup><div className="text-xs"><div className="font-semibold">{t("liveMap.dangerZone", "Zona peligrosa")}</div><div>{z.count} {t("liveMap.impact", "impacto")}{z.count > 1 ? "s" : ""} {t("liveMap.registered", "registrado")}{z.count > 1 ? "s" : ""}</div><div>G máx: {z.maxG ? z.maxG.toFixed(2) : "—"}</div></div></Popup>
           </Circle>
         ))}
 
@@ -176,7 +179,7 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
             radius={Math.min(18, 6 + (p.gforce || 1) * 2)}
             pathOptions={{ color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.42, weight: 1, opacity: 0.55 }}
           >
-            <Popup><div className="text-xs"><div className="font-semibold">Impacto histórico</div><div>{p.driver || "Conductor"}</div><div>{p.gforce != null ? `${p.gforce.toFixed(2)}G` : "G-Force no reportada"}</div></div></Popup>
+            <Popup><div className="text-xs"><div className="font-semibold">{t("liveMap.historicalImpact", "Impacto histórico")}</div><div>{p.driver || t("liveMap.conductor", "Conductor")}</div><div>{p.gforce != null ? `${p.gforce.toFixed(2)}G` : t("liveMap.gForceNotReported", "G-Force no reportada")}</div></div></Popup>
           </CircleMarker>
         ))}
 
@@ -199,9 +202,9 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
       </MapContainer>
 
       <div className="absolute bottom-4 left-4 z-[400] rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl p-3 text-[10px] uppercase tracking-[0.2em] text-neutral-300 space-y-1.5">
-        <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.7)]" /> Activo</div>
-        <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.7)]" /> Accidente</div>
-        <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Advertencia</div>
+        <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.7)]" /> {t("liveMap.active", "Activo")}</div>
+        <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.7)]" /> {t("liveMap.accident", "Accidente")}</div>
+        <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> {t("liveMap.warning", "Advertencia")}</div>
         <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-neutral-600" /> Offline</div>
       </div>
 
@@ -213,20 +216,20 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
           data-testid="focus-latest-impact"
         >
           <Crosshair className="h-3.5 w-3.5" />
-          Centrar accidente reciente
+          {t("liveMap.centerRecentImpact", "Centrar accidente reciente")}
         </button>
       ) : null}
 
       {dangerZones.length > 0 ? (
         <div className="absolute bottom-4 right-4 z-[400] rounded-xl border border-red-500/25 bg-black/40 backdrop-blur-xl p-3 text-[10px] uppercase tracking-[0.2em] text-red-200 space-y-1.5">
-          <div className="font-semibold">Heatmap activo</div>
-          <div className="text-neutral-400 normal-case tracking-normal">{dangerZones.length} zona{dangerZones.length > 1 ? "s" : ""} con impactos</div>
+          <div className="font-semibold">{t("liveMap.heatmapActive", "Heatmap activo")}</div>
+          <div className="text-neutral-400 normal-case tracking-normal">{dangerZones.length} {t("liveMap.zone", "zona")}{dangerZones.length > 1 ? "s" : ""} {t("liveMap.withImpacts", "con impactos")}</div>
         </div>
       ) : null}
 
       {noGpsCount > 0 ? (
         <div data-testid="no-gps-banner" className="absolute top-4 right-4 z-[400] max-w-[280px] rounded-xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-amber-300">
-          {noGpsCount} sin GPS — el mobile aún no envía coordenadas en /api/telemetry
+          {noGpsCount} {t("liveMap.withoutGps", "sin GPS")} — {t("liveMap.noCoordsMsg", "el mobile aún no envía coordenadas en /api/telemetry")}
         </div>
       ) : null}
     </div>

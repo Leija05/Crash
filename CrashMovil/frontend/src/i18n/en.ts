@@ -76,6 +76,14 @@ const en = {
     network: "Connection error",
     timeout: "The request timed out",
   },
+  update: {
+    eyebrow: "New version",
+    title: "Update available",
+    optionalDesc: "A new version of C.R.A.S.H. is available to download.",
+    mandatoryDesc: "This update is required to keep using C.R.A.S.H.",
+    download: "Update",
+    later: "Later",
+  },
 };
 export default en;
 export type Locale = typeof en;

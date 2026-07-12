@@ -76,6 +76,14 @@ const es = {
     network: "Error de conexión",
     timeout: "La solicitud tardó demasiado",
   },
+  update: {
+    eyebrow: "Nueva versión",
+    title: "Actualización disponible",
+    optionalDesc: "Hay una nueva versión de C.R.A.S.H. disponible para descargar.",
+    mandatoryDesc: "Esta actualización es obligatoria para seguir usando C.R.A.S.H.",
+    download: "Actualizar",
+    later: "Más tarde",
+  },
 };
 export default es;
 export type Locale = typeof es;

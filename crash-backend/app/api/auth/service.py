@@ -164,6 +164,7 @@ async def login_rider(email: str, password: str) -> dict:
         "user": {
             "id": user_id, "email": user["email"], "name": user["name"],
             "role": user["role"], "created_at": user.get("created_at", ""),
+            "is_root": user.get("email", "").lower() == settings.SUPERADMIN_EMAIL.lower(),
         },
     }
 
@@ -395,35 +396,63 @@ async def associate_monitor_company(token: str, monitor_user: dict) -> dict:
     return {"company_id": company_id, "company_name": company_name}
 
 
+def _generate_site_token() -> str:
+    return uuid.uuid4().hex[:12].upper()
+
+
 async def create_superadmin(email: str, password: str, name: str = "SuperAdmin") -> dict:
     db = await get_db()
     email = email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Correo inválido")
+    if not password or len(password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
     existing = await db.users.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
+
+    # Cada superadmin creado recibe su propio token de acceso (supertoken) para
+    # ingresar por la puerta de tokens del panel e iniciar sesión con su cuenta.
+    site_token = _generate_site_token()
+    while await db.users.find_one({"site_token": site_token}):
+        site_token = _generate_site_token()
+
     now = datetime.now(timezone.utc).isoformat()
     user_doc = {
         "email": email,
         "name": name.strip() or "SuperAdmin",
         "password_hash": hash_password(password),
         "role": "superadmin",
+        "site_token": site_token,
+        "is_root": False,
         "created_at": now,
         "updated_at": now,
     }
     res = await db.users.insert_one(user_doc)
     from app.api.admin.service import log_admin_action
     await log_admin_action("create_superadmin", f"SuperAdmin {email}")
-    return {"id": str(res.inserted_id), "email": email, "name": user_doc["name"], "role": "superadmin"}
+    return {
+        "id": str(res.inserted_id),
+        "email": email,
+        "name": user_doc["name"],
+        "role": "superadmin",
+        "site_token": site_token,
+    }
 
 
 async def list_superadmins() -> list:
     db = await get_db()
-    cursor = db.users.find({"role": "superadmin"}, {"_id": 0, "password_hash": 0})
-    return await cursor.to_list(100)
+    root_email = settings.SUPERADMIN_EMAIL.lower()
+    cursor = db.users.find({"role": "superadmin"}, {"password_hash": 0})
+    items = []
+    for d in await cursor.to_list(100):
+        d["id"] = str(d.pop("_id"))
+        d["is_root"] = d.get("email", "").lower() == root_email
+        items.append(d)
+    return items
 
 
 async def delete_superadmin(user_id: str) -> dict:
-    from app.core.config import settings
     db = await get_db()
     if not user_id or user_id in ("undefined", "null", "None"):
         raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
@@ -439,4 +468,6 @@ async def delete_superadmin(user_id: str) -> dict:
     r = await db.users.delete_one({"_id": oid})
     if r.deleted_count == 0:
         raise HTTPException(status_code=404, detail="SuperAdmin no encontrado")
+    from app.api.admin.service import log_admin_action
+    await log_admin_action("delete_superadmin", f"SuperAdmin {target.get('email', user_id)}")
     return {"ok": True}

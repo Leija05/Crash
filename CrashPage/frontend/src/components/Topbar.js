@@ -9,16 +9,15 @@ import { useSettings } from "../context/SettingsContext";
 import { useI18n } from "../i18n";
 import { Switch } from "./ui/switch";
 
-const STATUS_LABEL = {
-  connecting: "Conectando...",
-  open: "En vivo",
-  closed: "Reconectando...",
-};
-
 function Topbar({ status, alertCount, onOpenHistory }) {
   const { user, logout } = useAuth();
   const { t } = useI18n();
   const { theme, setTheme } = useSettings();
+  const STATUS_LABEL = {
+    connecting: t("topbar.statusConnecting", "Conectando..."),
+    open: t("topbar.statusLive", "En vivo"),
+    closed: t("topbar.statusReconnecting", "Reconectando..."),
+  };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
@@ -61,9 +60,9 @@ function Topbar({ status, alertCount, onOpenHistory }) {
           </button>
 
           <label className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-[9px] uppercase tracking-[0.15em] text-neutral-200 hidden md:flex">
-            Claro
+            {t("topbar.light", "Claro")}
             <Switch checked={theme === "dark"} onCheckedChange={handleThemeChange} />
-            Oscuro
+            {t("topbar.dark", "Oscuro")}
           </label>
 
           <CrashStatsWidget />

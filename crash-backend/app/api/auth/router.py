@@ -16,7 +16,12 @@ from app.api.auth.service import (
     list_superadmins,
     delete_superadmin,
 )
-from app.core.security import get_current_monitor_user, get_current_rider, get_current_superadmin
+from app.core.security import (
+    get_current_monitor_user,
+    get_current_rider,
+    get_current_superadmin,
+    get_current_root_superadmin,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -43,9 +48,11 @@ async def monitor_logout(_: dict = Depends(get_current_monitor_user)):
 
 @router.get("/me")
 async def get_me(user: dict = Depends(get_current_rider)):
+    from app.core.config import settings as _settings
     return {
         "id": user["id"], "email": user["email"], "name": user["name"],
         "role": user["role"], "created_at": user.get("created_at", ""),
+        "is_root": user.get("email", "").lower() == _settings.SUPERADMIN_EMAIL.lower(),
     }
 
 
@@ -98,7 +105,7 @@ async def monitor_associate(body: dict, user: dict = Depends(get_current_monitor
 
 
 @router.post("/superadmin")
-async def create_sa(body: dict, _=Depends(get_current_superadmin)):
+async def create_sa(body: dict, _=Depends(get_current_root_superadmin)):
     return await create_superadmin(body.get("email", ""), body.get("password", ""), body.get("name", "SuperAdmin"))
 
 
@@ -108,7 +115,7 @@ async def list_sa(_=Depends(get_current_superadmin)):
 
 
 @router.delete("/superadmin/{user_id}")
-async def delete_sa(user_id: str, _=Depends(get_current_superadmin)):
+async def delete_sa(user_id: str, _=Depends(get_current_root_superadmin)):
     return await delete_superadmin(user_id)
 
 @router.post("/remove-driver-token")

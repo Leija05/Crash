@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { Bike, Bluetooth, BluetoothOff, History, UserSquare } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useI18n } from "../i18n";
 
 const STATUS_TONE = {
   active:   { dot: "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.7)]", text: "text-emerald-400", label: "Activo" },
@@ -13,6 +14,13 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
   const tone = STATUS_TONE[d.status] || STATUS_TONE.offline;
   const sel = selectedId === d.id;
   const speedTxt = typeof d.speed === "number" ? Math.round(d.speed) : "—";
+  const { t } = useI18n();
+  const statusLabel = {
+    active: t("driverList.statusActive", "Activo"),
+    critical: t("driverList.statusCritical", "Accidente"),
+    warning: t("driverList.statusWarning", "Advertencia"),
+    offline: t("driverList.statusOffline", "Offline"),
+  };
 
   return (
     <div
@@ -42,7 +50,7 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
         </div>
         <div className="text-right">
           <div className={`text-[10px] uppercase tracking-[0.2em] ${tone.text}`}>
-            {tone.label}
+            {statusLabel[d.status] || statusLabel.offline}
           </div>
           <div className="font-mono text-xs text-white mt-0.5">
             {speedTxt}
@@ -58,8 +66,8 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
           ) : (
             <BluetoothOff className="h-3 w-3 text-red-400" />
           )}
-          <span className="text-neutral-400">
-            {d.helmet_connected ? "Casco BT" : "Sin telemetría"}
+           <span className="text-neutral-400">
+            {d.helmet_connected ? t("driverList.helmetBt", "Casco BT") : t("driverList.noTelemetry", "Sin telemetría")}
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -68,7 +76,7 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
             onClick={(e) => { e.stopPropagation(); onOpenDetail?.(d.id); }}
             className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-neutral-500 hover:text-emerald-400 transition-colors"
           >
-            <UserSquare className="h-3 w-3" /> Ficha
+            <UserSquare className="h-3 w-3" /> {t("driverList.sheet", "Ficha")}
           </button>
           <Link
             to={`/history/${d.id}`}
@@ -76,7 +84,7 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
             className="flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-neutral-500 hover:text-white transition-colors"
             data-testid={`driver-history-${d.id}`}
           >
-            <History className="h-3 w-3" /> Historial
+            <History className="h-3 w-3" /> {t("driverList.history", "Historial")}
           </Link>
         </div>
       </div>
@@ -87,6 +95,7 @@ function DriverItem({ d, selectedId, onSelect, onOpenDetail }) {
 const MemoDriverItem = memo(DriverItem);
 
 function DriverList({ drivers, selectedId, onSelect, onOpenDetail }) {
+  const { t } = useI18n();
   const list = useMemo(() => {
     return Object.values(drivers || {}).sort((a, b) => {
       const order = { critical: 0, warning: 1, active: 2, offline: 3 };
@@ -98,10 +107,10 @@ function DriverList({ drivers, selectedId, onSelect, onOpenDetail }) {
     <div className="flex flex-col h-full" data-testid="driver-list">
       <div className="flex items-center justify-between px-1 mb-3">
         <h3 className="text-[11px] uppercase tracking-[0.3em] text-neutral-400">
-          Flota · <span className="text-white font-mono">{list.length}</span>
+          {t("driverList.fleet", "Flota")} · <span className="text-white font-mono">{list.length}</span>
         </h3>
         <div className="text-[10px] font-mono text-emerald-400">
-          {list.filter((d) => d.status === "active").length} en línea
+           {list.filter((d) => d.status === "active").length} {t("driverList.online", "en línea")}
         </div>
       </div>
 
@@ -111,10 +120,10 @@ function DriverList({ drivers, selectedId, onSelect, onOpenDetail }) {
             <Bike className="h-5 w-5 text-neutral-500" />
           </div>
           <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">
-            Sin conductores
+            {t("driverList.noDrivers", "Sin conductores")}
           </div>
           <p className="text-xs text-neutral-600 leading-relaxed">
-            Cuando un conductor vincule su cuenta a la empresa desde la app, aparecerá aquí en tu flota.
+            {t("driverList.noDriversHint", "Cuando un conductor vincule su cuenta a la empresa desde la app, aparecerá aquí en tu flota.")}
           </p>
         </div>
       ) : (

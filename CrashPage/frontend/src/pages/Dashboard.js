@@ -13,12 +13,13 @@ import PremiumModal from "../components/ui/Modal";
 import { useCrashSocket } from "../lib/ws";
 import { useAuth } from "../auth/AuthContext";
 import { api, companyAPI, monitorAPI, formatApiError } from "../lib/api";
+import { useI18n } from "../i18n";
 
 const SUPPORT_TYPES = [
-  { id: "password_reset", label: "Reiniciar contraseña" },
-  { id: "remove_token", label: "Quitar token de una cuenta" },
-  { id: "billing", label: "Facturación / suscripción" },
-  { id: "otro", label: "Otro" },
+  { id: "password_reset", key: "passwordReset", label: "Reiniciar contraseña" },
+  { id: "remove_token", key: "removeToken", label: "Quitar token de una cuenta" },
+  { id: "billing", key: "billing", label: "Facturación / suscripción" },
+  { id: "otro", key: "other", label: "Otro" },
 ];
 
 function SupportModal({ onClose }) {
@@ -26,12 +27,14 @@ function SupportModal({ onClose }) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const { t } = useI18n();
+
   const submit = useCallback(async (e) => {
     e.preventDefault();
     setBusy(true);
     try {
       await companyAPI.createSupport(type, message);
-      toast.success("Reporte enviado a soporte");
+      toast.success(t("dashboardPage.reportSent", "Reporte enviado a soporte"));
       onClose();
     } catch (err) { toast.error(formatApiError(err)); }
     setBusy(false);
@@ -41,30 +44,30 @@ function SupportModal({ onClose }) {
     <PremiumModal
       open
       onClose={onClose}
-      title="Reportar a soporte"
-      eyebrow="Centro de Ayudas"
+      title={t("dashboardPage.reportToSupport", "Reportar a soporte")}
+      eyebrow={t("dashboardPage.helpCenter", "Centro de Ayudas")}
       icon={LifeBuoy}
       size="md"
       testId="support-modal"
       footer={
         <div className="flex items-center justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/30 text-neutral-300 text-sm transition-all">Cancelar</button>
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/30 text-neutral-300 text-sm transition-all">{t("dashboardPage.cancel", "Cancelar")}</button>
           <button form="support-form" type="submit" disabled={busy} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all flex items-center justify-center gap-2">
-            <Send className="h-4 w-4" /> {busy ? "Enviando..." : "Enviar reporte"}
+            <Send className="h-4 w-4" /> {busy ? t("dashboardPage.sending", "Enviando...") : t("dashboardPage.sendReport", "Enviar reporte")}
           </button>
         </div>
       }
     >
       <form id="support-form" onSubmit={submit} className="space-y-4">
         <div>
-          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Tipo de solicitud</label>
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("dashboardPage.requestType", "Tipo de solicitud")}</label>
           <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
-            {SUPPORT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            {SUPPORT_TYPES.map((t) =>             <option key={t.id} value={t.id}>{t(`dashboardPage.support.${t.key}`, t.label)}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Detalle</label>
-          <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} required placeholder="Describe qué necesitas (cuenta afectada, motivo, etc.)" className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all resize-none" />
+          <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("dashboardPage.detail", "Detalle")}</label>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} required placeholder={t("dashboardPage.detailPlaceholder", "Describe qué necesitas (cuenta afectada, motivo, etc.)")} className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all resize-none" />
         </div>
       </form>
     </PremiumModal>
@@ -79,6 +82,8 @@ function Dashboard() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+
+  const { t } = useI18n();
 
   const [roster, setRoster] = useState([]);
 
@@ -139,7 +144,7 @@ function Dashboard() {
       if (!liveMatch) {
         merged[key] = {
           id: d.id || key,
-          name: d.name || d.email || "Conductor",
+          name: d.name || d.email || t("dashboardPage.driver", "Conductor"),
           email: d.email || "",
           status: "offline",
           helmet_connected: false,
@@ -207,9 +212,9 @@ function Dashboard() {
               <button
                 onClick={() => setSupportOpen(true)}
                 className="mt-3 flex-shrink-0 inline-flex items-center justify-center gap-2 border border-white/10 hover:bg-white/10 rounded-xl px-3 py-2.5 text-xs text-neutral-300 transition-all"
-                title="Reportar a soporte"
+                title={t("dashboardPage.reportToSupport", "Reportar a soporte")}
               >
-                <LifeBuoy className="h-4 w-4 text-emerald-400" /> Reportar a soporte
+                <LifeBuoy className="h-4 w-4 text-emerald-400" /> {t("dashboardPage.reportToSupport", "Reportar a soporte")}
               </button>
             ) : null}
             <div className="mt-3 flex-shrink-0">
@@ -235,20 +240,20 @@ function Dashboard() {
                     onChange={(e) => setHeatDays(Number(e.target.value))}
                     className="rounded-lg border border-white/10 bg-black/50 backdrop-blur-xl px-2 py-1.5 text-[10px] uppercase tracking-[0.15em] text-neutral-300 outline-none"
                   >
-                    <option value={7}>7 días</option>
-                    <option value={30}>30 días</option>
-                    <option value={90}>90 días</option>
-                    <option value={365}>1 año</option>
+                    <option value={7}>{t("dashboardPage.days7", "7 días")}</option>
+                    <option value={30}>{t("dashboardPage.days30", "30 días")}</option>
+                    <option value={90}>{t("dashboardPage.days90", "90 días")}</option>
+                    <option value={365}>{t("dashboardPage.year1", "1 año")}</option>
                   </select>
                 )}
                 <button
                   type="button"
                   onClick={() => setHeatOn((v) => !v)}
                   className={`rounded-xl border backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 transition-colors ${heatOn ? "border-orange-500/50 bg-orange-500/20 text-orange-200" : "border-white/10 bg-black/40 text-neutral-300 hover:bg-white/10"}`}
-                  title="Mapa de calor de impactos"
+                  title={t("dashboardPage.heatmapTitle", "Mapa de calor de impactos")}
                 >
                   <Flame className="h-3.5 w-3.5" />
-                  Mapa de calor
+                  {t("dashboardPage.heatmap", "Mapa de calor")}
                 </button>
               </div>
             )}

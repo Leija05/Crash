@@ -42,7 +42,7 @@ export default function ExportModal({ open, onClose }) {
       open
       onClose={onClose}
       title={t("export.title")}
-      eyebrow="C.R.A.S.H. · Exportar"
+      eyebrow={`C.R.A.S.H. · ${t("exportModal.export", "Exportar")}`}
       icon={FileText}
       accent="emerald"
       size="sm"
@@ -61,7 +61,7 @@ export default function ExportModal({ open, onClose }) {
               onChange={(e) => setDays(Number(e.target.value))}
               className="w-full accent-emerald-500"
             />
-            <div className="text-center text-sm font-mono text-neutral-300 mt-1">{days} d&iacute;as</div>
+            <div className="text-center text-sm font-mono text-neutral-300 mt-1">{days} {t("exportModal.days", "días")}</div>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-neutral-400">

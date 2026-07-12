@@ -100,6 +100,15 @@ export const superAdminAPI = {
   audit: () => api.get("/admin/audit"),
 };
 
+// Gestión de versiones de la app (APK). Publicación y descarga pública.
+export const versionsAPI = {
+  list: () => api.get("/versions"),
+  create: (payload) => api.post("/versions", payload),
+  update: (id, payload) => api.put(`/versions/${id}`, payload),
+  remove: (id) => api.delete(`/versions/${id}`),
+  latest: (platform = "android") => api.get("/versions/latest", { params: { platform } }),
+};
+
 // Centro de Ayudas, alertas de tokens y mapa de calor (superadmin).
 export const adminAPI = {
   tokenAlerts: () => api.get("/admin/token-alerts"),
@@ -154,4 +163,13 @@ export const analyticsAPI = {
       referrer: document.referrer || "",
     }).catch(() => {}),
   overview: (days = 30) => api.get("/analytics/overview", { params: { days } }),
+};
+
+// Geocercas de riesgo (superadmin).
+export const geofencesAPI = {
+  list: () => api.get("/geofences"),
+  create: (data) => api.post("/geofences", data),
+  update: (id, data) => api.put(`/geofences/${id}`, data),
+  remove: (id) => api.delete(`/geofences/${id}`),
+  stats: (days = 30) => api.get("/geofences/stats", { params: { days } }),
 };

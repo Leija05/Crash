@@ -239,4 +239,16 @@ async def get_current_superadmin(request: Request) -> dict:
     user["id"] = str(user["_id"])
     user.pop("_id", None)
     user.pop("password_hash", None)
+    user["is_root"] = user.get("email", "").lower() == settings.SUPERADMIN_EMAIL.lower()
+    return user
+
+
+async def get_current_root_superadmin(request: Request) -> dict:
+    """Solo la cuenta principal (la del .env) puede gestionar superadmins."""
+    user = await get_current_superadmin(request)
+    if not user.get("is_root"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo el SuperAdmin principal puede gestionar otras cuentas de SuperAdmin",
+        )
     return user

@@ -21,6 +21,7 @@ export interface TelemetryData {
   timestamp: number;
   latitude?: number | null;
   longitude?: number | null;
+  speed_kmh?: number | null;
 }
 
 export interface ScanDevice {
@@ -257,6 +258,15 @@ class BluetoothTelemetryService {
         this.batteryLevel = battery ?? null;
         const g = n[6];
         const critical = raw.startsWith('CRASH') || g >= 5;
+
+        // Campos opcionales del circuito real (hardware con GPS a bordo):
+        // ...gForce, battery, latitude, longitude, speed_kmh
+        const lat = n.length >= 10 && !Number.isNaN(n[8]) && !Number.isNaN(n[9]) ? n[8] : null;
+        const lng = n.length >= 10 && !Number.isNaN(n[8]) && !Number.isNaN(n[9]) ? n[9] : null;
+        const validLat = lat !== null && lat >= -90 && lat <= 90 ? lat : null;
+        const validLng = lng !== null && lng >= -180 && lng <= 180 ? lng : null;
+        const speed = n.length >= 11 && !Number.isNaN(n[10]) && n[10] >= 0 ? n[10] : null;
+
         return {
           acceleration_x: n[0],
           acceleration_y: n[1],
@@ -267,6 +277,9 @@ class BluetoothTelemetryService {
           g_force: g,
           battery,
           critical,
+          latitude: validLat,
+          longitude: validLng,
+          speed_kmh: speed,
           timestamp: Date.now()
         };
       }

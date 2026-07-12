@@ -125,9 +125,11 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try { await api.post("/auth/monitor/logout"); } catch { }
-    // El token de monitorista es de un solo uso: NO se elimina del dispositivo
-    // para que el acceso quede resguardado en este navegador. Solo se cierra
-    // la sesión en memoria; el token persistirá para futuros accesos.
+    // Cierre de sesión completo: se elimina el JWT y las credenciales
+    // recordadas. NO se elimina el token de acceso al sitio (crash_site_token)
+    // para que no tengan que volver a ingresarlo en la puerta de acceso.
+    clearToken();
+    clearRememberedCredentials();
     setUser(false);
   };
 

@@ -5,6 +5,7 @@ import { api, formatApiError } from "../lib/api";
 import {
   ShieldCheck, Key, CheckCircle2, ArrowLeft, Eye, EyeOff, Lock, Mail, LogIn, AlertCircle,
 } from "lucide-react";
+import { useI18n } from "../i18n";
 
 function TokenGate({ onVerified }) {
   const [tokenInput, setTokenInput] = useState("");
@@ -12,6 +13,8 @@ function TokenGate({ onVerified }) {
   const [busy, setBusy] = useState(false);
   const [verified, setVerified] = useState(false);
   const [tokenInfo, setTokenInfo] = useState(null);
+
+  const { t } = useI18n();
 
   const submitToken = async (e) => {
     e.preventDefault();
@@ -50,7 +53,7 @@ function TokenGate({ onVerified }) {
             </div>
             <div>
               <span className="font-bold font-mono text-xl tracking-tight text-white block">C.R.A.S.H<span className="text-red-500">.</span></span>
-              <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-mono">Token Verificado</span>
+              <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-mono">{t("loginPage.tokenVerified", "Token Verificado")}</span>
             </div>
           </div>
 
@@ -60,39 +63,39 @@ function TokenGate({ onVerified }) {
                 <CheckCircle2 size={18} className={role === "superadmin" ? "text-red-400" : role === "empresa" ? "text-amber-400" : "text-emerald-400"} />
               </div>
               <div>
-                <h2 className="font-bold font-mono text-lg">{tokenInfo?.company_name || tokenInfo?.email || "Token verificado"}</h2>
+                <h2 className="font-bold font-mono text-lg">{tokenInfo?.company_name || tokenInfo?.email || t("loginPage.tokenVerifiedDefault", "Token verificado")}</h2>
                 <p className="text-zinc-500 text-xs">
-                  {role === "superadmin" ? "Acceso de SuperAdministrador validado" : role === "empresa" ? "Token de empresa validado" : "Token de monitorista validado correctamente"}
+                  {role === "superadmin" ? t("loginPage.accessSuperadminValidated", "Acceso de SuperAdministrador validado") : role === "empresa" ? t("loginPage.accessCompanyValidated", "Token de empresa validado") : t("loginPage.accessMonitorValidated", "Token de monitorista validado correctamente")}
                 </p>
               </div>
             </div>
 
             <div className={`text-[11px] font-bold uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg self-start inline-flex ${role === "superadmin" ? "bg-red-500/10 text-red-300" : role === "empresa" ? "bg-amber-500/10 text-amber-300" : "bg-emerald-500/10 text-emerald-300"}`}>
-              {role === "superadmin" ? "SuperAdmin" : role === "empresa" ? "Empresa" : "Monitorista"}
+              {role === "superadmin" ? t("loginPage.roleSuperadmin", "SuperAdmin") : role === "empresa" ? t("loginPage.roleCompany", "Empresa") : t("loginPage.roleMonitor", "Monitorista")}
             </div>
 
             {role === "empresa" ? (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4">
                 <div className="flex items-center gap-2 text-emerald-300 text-sm font-medium mb-1">
-                  <AlertCircle size={16} /> Token de empresa
+                  <AlertCircle size={16} /> {t("loginPage.companyTokenTitle", "Token de empresa")}
                 </div>
                 <p className="text-zinc-400 text-xs leading-relaxed">
-                  Este token te permitira <b className="text-white">crear</b> tu cuenta de monitorista (o vincular una existente) asociada a <b className="text-white">{tokenInfo?.company_name || "tu empresa"}</b>. Al iniciar sesion solo veras los conductores de esa empresa.
+                  {t("loginPage.companyTokenIntro", "Este token te permitira ")}<b className="text-white">crear</b>{t("loginPage.companyTokenMid", " tu cuenta de monitorista (o vincular una existente) asociada a ")}<b className="text-white">{tokenInfo?.company_name || t("loginPage.yourCompany", "tu empresa")}</b>{t("loginPage.companyTokenEnd", ". Al iniciar sesion solo veras los conductores de esa empresa.")}
                 </p>
-                <div className="text-[11px] text-zinc-500 mt-2">Usos: {tokenInfo?.use_count || 0} / {tokenInfo?.max_uses || 0}</div>
+                <div className="text-[11px] text-zinc-500 mt-2">{t("loginPage.uses", "Usos: ")}{tokenInfo?.use_count || 0} / {tokenInfo?.max_uses || 0}</div>
               </div>
             ) : (
               <p className="text-sm text-zinc-500 text-center py-1">
-                {role === "superadmin" ? "Continua para entrar al panel de administracion." : "Continua para iniciar sesion en el monitoreo."}
+                {role === "superadmin" ? t("loginPage.continueToAdmin", "Continua para entrar al panel de administracion.") : t("loginPage.continueToMonitor", "Continua para iniciar sesion en el monitoreo.")}
               </p>
             )}
             
             <div className="flex items-center gap-2 pt-2">
               <button onClick={() => onVerified(role === "empresa" ? "monitor" : role, tokenInfo)} className="flex-1 bg-white text-black font-bold py-2.5 rounded-xl hover:bg-zinc-200 transition-all text-sm">
-                {role === "empresa" ? "Continuar y gestionar mi empresa" : "Continuar al inicio de sesion"}
+                {role === "empresa" ? t("loginPage.continueManageCompany", "Continuar y gestionar mi empresa") : t("loginPage.continueToLogin", "Continuar al inicio de sesion")}
               </button>
               <button onClick={clearAndRetry} className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs border border-zinc-700/50 transition-all">
-                Usar otro token
+                {t("loginPage.useAnotherToken", "Usar otro token")}
               </button>
             </div>
           </div>
@@ -118,7 +121,7 @@ function TokenGate({ onVerified }) {
           </div>
           <div>
             <span className="font-bold font-mono text-xl tracking-tight text-white block">C.R.A.S.H<span className="text-red-500">.</span></span>
-            <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-mono">Acceso Monitorista</span>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-mono">{t("loginPage.monitorAccess", "Acceso Monitorista")}</span>
           </div>
         </div>
 
@@ -128,14 +131,14 @@ function TokenGate({ onVerified }) {
               <Key size={18} className="text-red-500" />
             </div>
             <div>
-              <h1 className="font-bold font-mono text-lg tracking-tight">Token de Acceso</h1>
-              <p className="text-zinc-500 text-xs">Ingresa el token proporcionado por tu proveedor.</p>
+              <h1 className="font-bold font-mono text-lg tracking-tight">{t("loginPage.accessToken", "Token de Acceso")}</h1>
+              <p className="text-zinc-500 text-xs">{t("loginPage.enterTokenPrompt", "Ingresa el token proporcionado por tu proveedor.")}</p>
             </div>
           </div>
 
           <form onSubmit={submitToken} className="space-y-4">
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">Token unico</label>
+                <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">{t("loginPage.uniqueToken", "Token unico")}</label>
               <input
                 type="text"
                 value={tokenInput}
@@ -158,12 +161,12 @@ function TokenGate({ onVerified }) {
               {busy ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Verificando...
+                  {t("loginPage.verifying", "Verificando...")}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <CheckCircle2 size={18} />
-                  Validar acceso
+                  {t("loginPage.validateAccess", "Validar acceso")}
                 </span>
               )}
             </button>
@@ -181,6 +184,7 @@ function TokenGate({ onVerified }) {
 function LoginForm({ token, role, initialEmail = "" }) {
   const { login, loginWithToken, loginSuperAdmin, associateMonitor } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [email, setEmail] = useState(initialEmail || "");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -236,18 +240,18 @@ function LoginForm({ token, role, initialEmail = "" }) {
           </div>
           <div>
             <span className="font-bold font-mono text-xl tracking-tight text-white block">C.R.A.S.H<span className="text-red-500">.</span></span>
-            <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-mono">{role === "superadmin" ? "Centro de Admin" : "Centro de Control"}</span>
+            <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-mono">{role === "superadmin" ? t("loginPage.adminCenter", "Centro de Admin") : t("loginPage.controlCenter", "Centro de Control")}</span>
           </div>
         </div>
 
         <div className="card-glass-strong p-6 rounded-2xl">
-          <h1 className="font-bold font-mono text-2xl tracking-tight mb-1">Bienvenido</h1>
-          <p className="text-zinc-500 text-sm mb-6">{role === "superadmin" ? "Acceso exclusivo para SuperAdministrador." : "Acceso exclusivo para monitoristas autorizados."}</p>
+          <h1 className="font-bold font-mono text-2xl tracking-tight mb-1">{t("loginPage.welcome", "Bienvenido")}</h1>
+          <p className="text-zinc-500 text-sm mb-6">{role === "superadmin" ? t("loginPage.exclusiveSuperadmin", "Acceso exclusivo para SuperAdministrador.") : t("loginPage.exclusiveMonitor", "Acceso exclusivo para monitoristas autorizados.")}</p>
 
           <form onSubmit={submit} className="space-y-4">
             {registerMode && role !== "superadmin" && (
               <div>
-                <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">Nombre completo</label>
+                <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">{t("loginPage.fullName", "Nombre completo")}</label>
                 <div className="relative">
                   <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                   <input
@@ -255,14 +259,14 @@ function LoginForm({ token, role, initialEmail = "" }) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    placeholder="Nombre del monitor"
+                    placeholder={t("loginPage.monitorNamePlaceholder", "Nombre del monitor")}
                     className="w-full bg-[#0d0d0d] border border-white/10 focus:border-white/30 rounded-xl pl-9 pr-3 py-2.5 text-white text-sm outline-none transition-all font-mono"
                   />
                 </div>
               </div>
             )}
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">Correo electronico</label>
+                <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">{t("loginPage.email", "Correo electronico")}</label>
               <div className="relative">
                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                 <input
@@ -277,12 +281,12 @@ function LoginForm({ token, role, initialEmail = "" }) {
               </div>
               {role === "superadmin" && email && (
                 <p className="text-[11px] text-emerald-400/80 mt-1.5 flex items-center gap-1.5">
-                  <CheckCircle2 size={12} /> Correo autocompletado desde tu token. Solo escribe tu contrasena.
+                  <CheckCircle2 size={12} /> {t("loginPage.emailAutofilled", "Correo autocompletado desde tu token. Solo escribe tu contrasena.")}
                 </p>
               )}
             </div>
             <div>
-              <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">Contrasena</label>
+                <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 block mb-1.5">{t("loginPage.password", "Contrasena")}</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                 <input
@@ -319,7 +323,7 @@ function LoginForm({ token, role, initialEmail = "" }) {
                 </span>
               </span>
               <span className="text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                Mantener sesión iniciada en este dispositivo
+                {t("loginPage.keepSession", "Mantener sesión iniciada en este dispositivo")}
               </span>
             </label>
             <button
@@ -330,12 +334,12 @@ function LoginForm({ token, role, initialEmail = "" }) {
               {busy ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  Verificando...
+                  {t("loginPage.verifying", "Verificando...")}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <LogIn size={18} />
-                  {role === "superadmin" ? "Entrar al panel" : registerMode ? "Crear cuenta y acceder" : "Ingresar al panel"}
+                  {role === "superadmin" ? t("loginPage.enterPanel", "Entrar al panel") : registerMode ? t("loginPage.createAccount", "Crear cuenta y acceder") : t("loginPage.loginToPanel", "Ingresar al panel")}
                 </span>
               )}
             </button>
@@ -348,14 +352,14 @@ function LoginForm({ token, role, initialEmail = "" }) {
                 onClick={() => setRegisterMode((m) => !m)}
                 className="text-xs text-zinc-500 hover:text-emerald-300 transition-colors"
               >
-                {registerMode ? "¿Ya tienes cuenta? Iniciar sesion" : "¿Eres nuevo? Crear cuenta de monitorista"}
+                {registerMode ? t("loginPage.alreadyHaveAccount", "¿Ya tienes cuenta? Iniciar sesion") : t("loginPage.areYouNew", "¿Eres nuevo? Crear cuenta de monitorista")}
               </button>
             </div>
           )}
         </div>
 
         <p className="text-zinc-700 text-xs mt-6 font-mono text-center flex items-center justify-center gap-1.5">
-          <Lock size={12} /> Protegido por cifrado de extremo a extremo.
+          <Lock size={12} /> {t("loginPage.encrypted", "Protegido por cifrado de extremo a extremo.")}
         </p>
       </div>
     </div>
@@ -364,6 +368,7 @@ function LoginForm({ token, role, initialEmail = "" }) {
 
 function Login() {
   const { user, initializing } = useAuth();
+  const { t } = useI18n();
   const [gate, setGate] = useState(null);
   const [checking, setChecking] = useState(false);
 
@@ -396,7 +401,7 @@ function Login() {
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <span className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          <span className="text-zinc-500 text-sm font-mono">Restaurando sesión...</span>
+          <span className="text-zinc-500 text-sm font-mono">{t("loginPage.restoringSession", "Restaurando sesión...")}</span>
         </div>
       </div>
     );
@@ -412,7 +417,7 @@ function Login() {
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <span className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-          <span className="text-zinc-500 text-sm font-mono">Restaurando acceso...</span>
+          <span className="text-zinc-500 text-sm font-mono">{t("loginPage.restoringAccess", "Restaurando acceso...")}</span>
         </div>
       </div>
     );

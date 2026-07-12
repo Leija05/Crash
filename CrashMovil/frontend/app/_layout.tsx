@@ -8,6 +8,7 @@ import { BluetoothProvider } from '../src/context/BluetoothContext';
 import { AlertProvider } from '../src/context/AlertContext';
 import { LocationProvider } from '../src/context/LocationContext';
 import { I18nProvider } from '../src/i18n';
+import UpdateGate from '../src/components/UpdateGate';
 import { COLORS } from '../src/theme';
 
 export default function RootLayout() {
@@ -28,6 +29,7 @@ export default function RootLayout() {
                   animation: 'slide_from_right',
                 }}
               />
+              <UpdateGate />
               </AlertProvider>
               </LocationProvider>
             </BluetoothProvider>

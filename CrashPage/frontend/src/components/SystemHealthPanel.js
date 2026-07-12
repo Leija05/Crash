@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Activity, BatteryWarning, BluetoothOff, MapPinOff, ServerCrash, Smartphone } from "lucide-react";
+import { useI18n } from "../i18n";
 
 function minutesSince(iso) {
   if (!iso) return Infinity;
@@ -35,6 +36,7 @@ function HealthItem({ icon: Icon, label, value, tone = "default", hint }) {
 const MemoHealthItem = memo(HealthItem);
 
 function SystemHealthPanel({ drivers, wsStatus }) {
+  const { t } = useI18n();
   const metrics = useMemo(() => {
     const list = Object.values(drivers || {});
     const noGps = list.filter((d) => typeof d.lat !== "number" || typeof d.lng !== "number").length;
@@ -52,23 +54,23 @@ function SystemHealthPanel({ drivers, wsStatus }) {
     <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-2xl p-4" data-testid="system-health-panel">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">Centro de salud</div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{t("systemHealth.healthCenter", "Centro de salud")}</div>
           <div className="text-sm font-semibold mt-1">
-            {metrics.totalIssues > 0 ? `${metrics.totalIssues} señales a revisar` : "Sistema operativo"}
+            {metrics.totalIssues > 0 ? `${metrics.totalIssues} ${t("systemHealth.signalsToReview", "señales a revisar")}` : t("systemHealth.operational", "Sistema operativo")}
           </div>
         </div>
-        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center ${metrics.wsDisconnected ? "border-red-500/40 bg-red-500/10" : "border-emerald-500/30 bg-emerald-500/10"}`} title="Estado WebSocket">
+        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center ${metrics.wsDisconnected ? "border-red-500/40 bg-red-500/10" : "border-emerald-500/30 bg-emerald-500/10"}`} title={t("systemHealth.wsStatusTitle", "Estado WebSocket")}>
           <Activity className={`h-4 w-4 ${metrics.wsDisconnected ? "text-red-400" : "text-emerald-400"}`} />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <MemoHealthItem icon={MapPinOff} label="Sin GPS" value={metrics.noGps} tone={metrics.noGps ? "warning" : "ok"} hint="App móvil sin coordenadas" />
-        <MemoHealthItem icon={Smartphone} label="Sin telemetría" value={metrics.stale} tone={metrics.stale ? "danger" : "ok"} hint="Última actualización vieja" />
-        <MemoHealthItem icon={BatteryWarning} label="Batería" value={metrics.lowBattery + metrics.noBattery} tone={metrics.lowBattery || metrics.noBattery ? "warning" : "ok"} hint="Baja o no reportada" />
-        <MemoHealthItem icon={BluetoothOff} label="Casco BT" value={metrics.helmetOff} tone={metrics.helmetOff ? "warning" : "ok"} hint="Headset desconectado" />
-        <MemoHealthItem icon={ServerCrash} label="WebSocket" value={metrics.wsStatus} tone={metrics.wsDisconnected ? "danger" : "ok"} hint="Canal tiempo real" />
-        <MemoHealthItem icon={Smartphone} label="App silenciosa" value={metrics.appSilent} tone={metrics.appSilent ? "danger" : "ok"} hint="Posible móvil/backend" />
+        <MemoHealthItem icon={MapPinOff} label={t("systemHealth.noGps", "Sin GPS")} value={metrics.noGps} tone={metrics.noGps ? "warning" : "ok"} hint={t("systemHealth.noGpsHint", "App móvil sin coordenadas")} />
+        <MemoHealthItem icon={Smartphone} label={t("systemHealth.noTelemetry", "Sin telemetría")} value={metrics.stale} tone={metrics.stale ? "danger" : "ok"} hint={t("systemHealth.staleHint", "Última actualización vieja")} />
+        <MemoHealthItem icon={BatteryWarning} label={t("systemHealth.battery", "Batería")} value={metrics.lowBattery + metrics.noBattery} tone={metrics.lowBattery || metrics.noBattery ? "warning" : "ok"} hint={t("systemHealth.batteryHint", "Baja o no reportada")} />
+        <MemoHealthItem icon={BluetoothOff} label={t("systemHealth.helmetBt", "Casco BT")} value={metrics.helmetOff} tone={metrics.helmetOff ? "warning" : "ok"} hint={t("systemHealth.helmetBtHint", "Headset desconectado")} />
+        <MemoHealthItem icon={ServerCrash} label="WebSocket" value={metrics.wsStatus} tone={metrics.wsDisconnected ? "danger" : "ok"} hint={t("systemHealth.wsHint", "Canal tiempo real")} />
+        <MemoHealthItem icon={Smartphone} label={t("systemHealth.silentApp", "App silenciosa")} value={metrics.appSilent} tone={metrics.appSilent ? "danger" : "ok"} hint={t("systemHealth.silentAppHint", "Posible móvil/backend")} />
       </div>
     </section>
   );

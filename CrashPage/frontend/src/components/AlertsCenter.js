@@ -6,6 +6,7 @@ import {
 import { api, formatApiError } from "../lib/api";
 import { playCriticalAlert, playAck } from "../lib/sound";
 import AlertDiagnosis from "./AlertDiagnosis";
+import { useI18n } from "../i18n";
 
 function timeAgo(iso) {
   if (!iso) return "—";
@@ -71,10 +72,20 @@ function IncidentWorkflow({ alert, onOpenDriverDetail }) {
 
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(state)); }, [state, storageKey]);
 
+  const { t } = useI18n();
+  const stepLabel = {
+    location: t("alertsCenter.stepLocation", "Ver ubicación"),
+    medical: t("alertsCenter.stepMedical", "Revisar datos médicos"),
+    call: t("alertsCenter.stepCall", "Llamar contacto principal"),
+    message: t("alertsCenter.stepMessage", "Confirmar WhatsApp/SMS"),
+    escalate: t("alertsCenter.stepEscalate", "Escalar a emergencias"),
+    close: t("alertsCenter.stepClose", "Cerrar incidente con nota"),
+  };
+
   const toggle = useCallback((step) => {
     setState((prev) => {
       const nextChecked = { ...prev.checked, [step.key]: !prev.checked?.[step.key] };
-      const log = [{ at: new Date().toISOString(), text: `${nextChecked[step.key] ? "Completó" : "Reabrió"}: ${step.label}` }, ...(prev.log || [])].slice(0, 6);
+      const log = [{ at: new Date().toISOString(), text: `${nextChecked[step.key] ? t("alertsCenter.completed", "Completó") : t("alertsCenter.reopened", "Reabrió")}: ${stepLabel[step.key]}` }, ...(prev.log || [])].slice(0, 6);
       return { ...prev, checked: nextChecked, log };
     });
   }, []);
@@ -87,7 +98,7 @@ function IncidentWorkflow({ alert, onOpenDriverDetail }) {
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 text-red-200">
           <ClipboardCheck className="h-3.5 w-3.5" />
-          <span className="text-[10px] uppercase tracking-[0.2em]">Modo emergencia</span>
+          <span className="text-[10px] uppercase tracking-[0.2em]">{t("alertsCenter.emergencyMode", "Modo emergencia")}</span>
         </div>
         <span className="text-[10px] font-mono text-neutral-400">{completed}/{EMERGENCY_STEPS.length}</span>
       </div>
@@ -103,7 +114,7 @@ function IncidentWorkflow({ alert, onOpenDriverDetail }) {
                 {checked ? "✓" : ""}
               </span>
               <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-              <span>{step.label}</span>
+              <span>{stepLabel[step.key]}</span>
             </button>
           );
         })}
@@ -111,12 +122,12 @@ function IncidentWorkflow({ alert, onOpenDriverDetail }) {
       <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-neutral-400">
-            <Clock className="h-3 w-3" /> Bitácora
+            <Clock className="h-3 w-3" /> {t("alertsCenter.log", "Bitácora")}
           </div>
-          {firstResponse ? <span className="text-[10px] font-mono text-emerald-400">1ª respuesta {timeAgo(firstResponse)}</span> : null}
+          {firstResponse ? <span className="text-[10px] font-mono text-emerald-400">{t("alertsCenter.firstResponse", "1ª respuesta")} {timeAgo(firstResponse)}</span> : null}
         </div>
         <textarea value={state.note || ""} onChange={(e) => setState((prev) => ({ ...prev, note: e.target.value }))}
-          placeholder="Nota interna: contacto, decisión, seguimiento..."
+          placeholder={t("alertsCenter.internalNotePlaceholder", "Nota interna: contacto, decisión, seguimiento...")}
           className="w-full min-h-[58px] rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-emerald-500/50 transition-all"
         />
         {(state.log || []).length > 0 ? (
@@ -143,6 +154,19 @@ function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelectDriver, onOpenD
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const lastPlayedRef = useRef(null);
+  const { t } = useI18n();
+  const statusLabel = {
+    pending: t("alertsCenter.statusPending", "Pendiente"),
+    acknowledged: t("alertsCenter.statusAcknowledged", "Atendido"),
+    false_alarm: t("alertsCenter.statusFalseAlarm", "Falsa Alarma"),
+  };
+  const dayLabel = {
+    1: t("alertsCenter.day1", "1 día"),
+    3: t("alertsCenter.day3", "3 días"),
+    7: t("alertsCenter.day7", "7 días"),
+    14: t("alertsCenter.day14", "14 días"),
+    30: t("alertsCenter.day30", "30 días"),
+  };
 
   useEffect(() => {
     if (!lastImpactId || muted) return;
@@ -224,24 +248,24 @@ function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelectDriver, onOpenD
     <div className={`flex flex-col h-full glass-card rounded-2xl overflow-hidden ${active.length > 0 ? "border-red-500/30 border-glow-red" : ""}`} data-testid="alerts-center">
       <div className="flex items-center justify-between p-5 pb-3">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">Centro de Alertas</div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{t("alertsCenter.title", "Centro de Alertas")}</div>
           <div className="flex items-center gap-2 mt-1">
             <AlertTriangle className={`h-4 w-4 ${active.length > 0 ? "text-red-400" : "text-neutral-400"}`} />
-            <h3 className="text-lg font-bold">{active.length > 0 ? `${active.length} crítica${active.length > 1 ? "s" : ""}` : "Sin alertas activas"}</h3>
+            <h3 className="text-lg font-bold">{active.length > 0 ? `${active.length} ${t("alertsCenter.criticalCount", "crítica")}${active.length > 1 ? "s" : ""}` : t("alertsCenter.noActiveAlerts", "Sin alertas activas")}</h3>
           </div>
         </div>
-        <button onClick={handleMute} data-testid="alerts-mute-toggle" className="h-9 w-9 rounded-lg border border-white/10 hover:border-white/30 flex items-center justify-center transition-all hover-lift" title={muted ? "Activar audio" : "Silenciar audio"}>
+        <button onClick={handleMute} data-testid="alerts-mute-toggle" className="h-9 w-9 rounded-lg border border-white/10 hover:border-white/30 flex items-center justify-center transition-all hover-lift"           title={muted ? t("alertsCenter.enableAudio", "Activar audio") : t("alertsCenter.muteAudio", "Silenciar audio")}>
           {muted ? <VolumeX className="h-4 w-4 text-neutral-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
         </button>
       </div>
 
       <div className="px-5 flex gap-1 border-b border-white/10">
-        {[{ k: "active", l: `Activas · ${active.length}` }, { k: "history", l: `Historial · ${history.length}` }].map((t) => (
-          <button key={t.k} data-testid={`alerts-tab-${t.k}`} onClick={() => setTab(t.k)}
-            className={`relative px-4 py-2 text-xs uppercase tracking-[0.2em] transition-all ${tab === t.k ? "text-white" : "text-neutral-500 hover:text-neutral-300"}`}
+        {[{ k: "active", l: active.length }, { k: "history", l: history.length }].map((tabOpt) => (
+          <button key={tabOpt.k} data-testid={`alerts-tab-${tabOpt.k}`} onClick={() => setTab(tabOpt.k)}
+            className={`relative px-4 py-2 text-xs uppercase tracking-[0.2em] transition-all ${tab === tabOpt.k ? "text-white" : "text-neutral-500 hover:text-neutral-300"}`}
           >
-            {t.l}
-            {tab === t.k ? <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-emerald-400" /> : null}
+            {tabOpt.k === "active" ? t("alertsCenter.tabActive", "Activas") : t("alertsCenter.tabHistory", "Historial")} · {tabOpt.l}
+            {tab === tabOpt.k ? <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-emerald-400" /> : null}
           </button>
         ))}
       </div>
@@ -249,25 +273,25 @@ function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelectDriver, onOpenD
       {tab === "history" ? (
         <div className="px-5 py-2.5 border-b border-white/5 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-            <CalendarDays className="h-3 w-3" /><span>Últimos</span>
+            <CalendarDays className="h-3 w-3" /><span>{t("alertsCenter.last", "Últimos")}</span>
           </div>
           <div className="flex gap-1 flex-1 justify-end" data-testid="history-day-filters">
             {DAY_FILTERS.map((d) => (
               <button key={d.v} data-testid={`history-days-${d.v}`} onClick={() => setDays(d.v)}
                 className={`text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-md border transition-all hover-lift ${days === d.v ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300" : "border-white/10 bg-white/[0.03] text-neutral-400 hover:border-white/30 hover:text-white"}`}
-              >{d.l}</button>
+                >{dayLabel[d.v]}</button>
             ))}
           </div>
         </div>
       ) : null}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {tab === "history" && loadingHistory ? <div className="text-xs text-neutral-500 px-1">Cargando historial...</div> : null}
+        {tab === "history" && loadingHistory ?           <div className="text-xs text-neutral-500 px-1">{t("alertsCenter.loadingHistory", "Cargando historial...")}</div> : null}
 
         {(tab === "active" ? active : history).length === 0 && !loadingHistory ? (
           <div className="h-full min-h-[200px] flex flex-col items-center justify-center text-neutral-500">
             <BellOff className="h-8 w-8 mb-3" />
-            <span className="text-xs uppercase tracking-[0.3em]">{tab === "active" ? "Todo en orden" : "Sin registros en el rango"}</span>
+            <span className="text-xs uppercase tracking-[0.3em]">{tab === "active" ? t("alertsCenter.allClear", "Todo en orden") : t("alertsCenter.noRecordsRange", "Sin registros en el rango")}</span>
           </div>
         ) : (
           (tab === "active" ? active : [...(alerts || []).filter((a) => a.status === "pending" && a.alerts_sent === true), ...history]).map((a) => {
@@ -278,9 +302,11 @@ function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelectDriver, onOpenD
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[9px] font-semibold uppercase tracking-[0.2em] px-2 py-0.5 rounded border ${STATUS_BADGE[a.status]}`}>{STATUS_LABEL[a.status]}</span>
+                       <span className={`text-[9px] font-semibold uppercase tracking-[0.2em] px-2 py-0.5 rounded border ${STATUS_BADGE[a.status]}`}>{statusLabel[a.status]}</span>
                       {a.severity_label || a.severity ? <span className={`text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border ${severityTone(a.severity)}`}>{a.severity_label || a.severity}</span> : null}
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{isCrit ? "Impacto detectado · Prioridad máxima" : isSent ? "Emergencia notificada" : a.type === "impact" ? "Impacto detectado" : a.type}</span>
+                      {a.injury_probability != null ? <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border border-rose-500/40 bg-rose-500/10 text-rose-300" title={t("alertsCenter.injuryProbTitle", "Probabilidad estimada de lesión (triaje)")}>{t("alertsCenter.injuryLabel", "Lesión")} {Math.round(a.injury_probability * 100)}%{a.triage_label ? ` · ${a.triage_label}` : ""}</span> : null}
+                      {a.risk_zone?.name ? <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-300" title={t("alertsCenter.riskZoneTitle", "Zona de riesgo")}>{a.risk_zone.name}</span> : null}
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{isCrit ? t("alertsCenter.impactMaxPriority", "Impacto detectado · Prioridad máxima") : isSent ? t("alertsCenter.emergencyNotified", "Emergencia notificada") : a.type === "impact" ? t("alertsCenter.impactDetected", "Impacto detectado") : a.type}</span>
                     </div>
                     <button onClick={() => onSelectDriver?.(a.driver_id)} className="text-base font-semibold mt-1.5 hover:text-emerald-400 transition-colors text-left">{a.driver_name || a.driver_id}</button>
                     {a.driver_email ? <div className="text-[10px] text-neutral-500 font-mono">{a.driver_email}</div> : null}
@@ -299,11 +325,11 @@ function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelectDriver, onOpenD
                     <div className="flex gap-2 mt-3">
                       <button data-testid={`alert-ack-${a.id}`} onClick={() => acknowledge(a.id)}
                         className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 rounded-lg px-3 py-2 transition-all hover-lift">
-                        <Check className="h-3.5 w-3.5" /> Atender
+                         <Check className="h-3.5 w-3.5" /> {t("alertsCenter.acknowledge", "Atender")}
                       </button>
                       <button data-testid={`alert-false-${a.id}`} onClick={() => falseAlarm(a.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/30 text-neutral-300 rounded-lg px-3 py-2 transition-all hover-lift">
-                        Falsa alarma
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/30                         text-neutral-300 rounded-lg px-3 py-2 transition-all hover-lift">
+                        {t("alertsCenter.falseAlarm", "Falsa alarma")}
                       </button>
                     </div>
                   </>
@@ -311,7 +337,7 @@ function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelectDriver, onOpenD
                   <div className="mt-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-2 text-[11px] flex items-start gap-2">
                     <UserCheck className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-emerald-300">Atendido por <span className="font-semibold">{a.ack_by_name || a.ack_by || "—"}</span></div>
+                      <div className="text-emerald-300">{t("alertsCenter.attendedBy", "Atendido por")} <span className="font-semibold">{a.ack_by_name || a.ack_by || "—"}</span></div>
                       {a.ack_by && a.ack_by_name ? <div className="text-[10px] text-neutral-500 font-mono truncate">{a.ack_by}</div> : null}
                       {a.ack_at ? <div className="text-[10px] text-neutral-500 font-mono">{new Date(a.ack_at).toLocaleString()}</div> : null}
                     </div>

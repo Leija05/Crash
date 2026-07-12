@@ -5,9 +5,9 @@ import { api, formatApiError } from "../lib/api";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useCloseOnBrowserBack, closeModalViaHistory } from "../hooks/useCloseOnBrowserBack";
+import { useI18n } from "../i18n";
 
 const SEVERITY_SCORE = { critical: 4, critico: 4, crítico: 4, high: 3, alto: 3, medium: 2, medio: 2, low: 1, bajo: 1 };
-const STATUS_LABEL = { pending: "Pendiente", acknowledged: "Atendido", false_alarm: "Falsa alarma" };
 const STATUS_COLOR = { pending: "#ef4444", acknowledged: "#10b981", false_alarm: "#a3a3a3" };
 
 function severityScore(impact) {
@@ -15,15 +15,22 @@ function severityScore(impact) {
   return SEVERITY_SCORE[raw] || 0;
 }
 
-function severityLabel(score) {
-  if (!score) return "Sin datos";
-  if (score >= 3.5) return "Crítica";
-  if (score >= 2.5) return "Alta";
-  if (score >= 1.5) return "Media";
-  return "Baja";
-}
-
 function CrashStatsWidget() {
+  const { t } = useI18n();
+  const STATUS_LABEL = {
+    pending: t("crashStats.statusPending", "Pendiente"),
+    acknowledged: t("crashStats.statusAcknowledged", "Atendido"),
+    false_alarm: t("crashStats.statusFalseAlarm", "Falsa alarma"),
+  };
+
+  function severityLabel(score) {
+    if (!score) return t("crashStats.severityNoData", "Sin datos");
+    if (score >= 3.5) return t("crashStats.severityCritical", "Crítica");
+    if (score >= 2.5) return t("crashStats.severityHigh", "Alta");
+    if (score >= 1.5) return t("crashStats.severityMedium", "Media");
+    return t("crashStats.severityLow", "Baja");
+  }
+
   const [open, setOpen] = useState(false);
   const [impacts, setImpacts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -110,8 +117,8 @@ function CrashStatsWidget() {
 
   return (
     <>
-      <button data-testid="open-crash-stats" onClick={handleOpen} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-500/30 hover:border-red-400/80 hover:bg-red-500/10 text-[10px] uppercase tracking-[0.25em] text-neutral-200 hover:text-red-200 transition-all hover-lift" title="Ventana avanzada de estadísticas y gráficas" aria-expanded={open}>
-        <BarChart3 className="h-3.5 w-3.5" /> Estadísticas avanzadas
+      <button data-testid="open-crash-stats" onClick={handleOpen} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-red-500/30 hover:border-red-400/80 hover:bg-red-500/10 text-[10px] uppercase tracking-[0.25em] text-neutral-200 hover:text-red-200 transition-all hover-lift" title={t("crashStats.openBtnTitle", "Ventana avanzada de estadísticas y gráficas")} aria-expanded={open}>
+        <BarChart3 className="h-3.5 w-3.5" /> {t("crashStats.openBtn", "Estadísticas avanzadas")}
       </button>
 
       {open ? createPortal(
@@ -119,52 +126,52 @@ function CrashStatsWidget() {
           <div className="w-[98vw] h-[94vh] bg-gradient-to-br from-black via-[#110607] to-[#1b0608] border border-red-500/30 rounded-2xl shadow-2xl overflow-hidden panel-entrance gradient-border gradient-border-slow" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">C.R.A.S.H. · Estadísticas avanzadas</div>
-                <h2 className="text-xl font-bold tracking-tight">Análisis de Impactos</h2>
+                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">C.R.A.S.H. · {t("crashStats.advancedStats", "Estadísticas avanzadas")}</div>
+                <h2 className="text-xl font-bold tracking-tight">{t("crashStats.analysisTitle", "Análisis de Impactos")}</h2>
               </div>
-              <button onClick={handleClose} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all hover-lift" title="Cerrar">
+              <button onClick={handleClose} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all hover-lift" title={t("crashStats.closeTitle", "Cerrar")}>
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="p-5 h-[calc(94vh-80px)] overflow-y-auto">
               {loading ? (
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-neutral-400"><Loader2 className="h-4 w-4 animate-spin" /> Calculando estadísticas...</div>
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-neutral-400"><Loader2 className="h-4 w-4 animate-spin" /> {t("crashStats.calculating", "Calculando estadísticas...")}</div>
               ) : error ? (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{error}</div>
               ) : (
                 <>
-                  <div className="mb-4 text-[10px] uppercase tracking-[0.25em] text-red-300/70">Se actualiza automáticamente cada 10 segundos</div>
+                  <div className="mb-4 text-[10px] uppercase tracking-[0.25em] text-red-300/70">{t("crashStats.autoUpdate", "Se actualiza automáticamente cada 10 segundos")}</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 card-3d"><div className="card-3d-inner"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-red-200/80"><TrendingUp className="h-3 w-3" /> Choques/día</div><div className="mt-2 font-mono text-3xl font-bold text-red-200">{stats.perDay.toFixed(2)}</div></div></div>
-                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 card-3d"><div className="card-3d-inner"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-200/80"><TriangleAlert className="h-3 w-3" /> Severidad media</div><div className="mt-2 font-mono text-3xl font-bold text-amber-200">{stats.avgSeverity ? stats.avgSeverity.toFixed(1) : "—"}</div><div className="text-[10px] uppercase tracking-[0.2em] text-amber-100/60">{severityLabel(stats.avgSeverity)}</div></div></div>
+                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 card-3d"><div className="card-3d-inner"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-red-200/80"><TrendingUp className="h-3 w-3" /> {t("crashStats.crashesPerDay", "Choques/día")}</div><div className="mt-2 font-mono text-3xl font-bold text-red-200">{stats.perDay.toFixed(2)}</div></div></div>
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 card-3d"><div className="card-3d-inner"><div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-amber-200/80"><TriangleAlert className="h-3 w-3" /> {t("crashStats.avgSeverity", "Severidad media")}</div><div className="mt-2 font-mono text-3xl font-bold text-amber-200">{stats.avgSeverity ? stats.avgSeverity.toFixed(1) : "—"}</div><div className="text-[10px] uppercase tracking-[0.2em] text-amber-100/60">{severityLabel(stats.avgSeverity)}</div></div></div>
                   </div>
 
                   <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-                    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 hover-lift"><div className="font-mono text-sm text-white">{stats.total}</div>Total</div>
-                    <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2 hover-lift"><div className="font-mono text-sm text-red-300">{stats.pending}</div>Pend.</div>
+                    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2 hover-lift"><div className="font-mono text-sm text-white">{stats.total}</div>{t("crashStats.total", "Total")}</div>
+                    <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2 hover-lift"><div className="font-mono text-sm text-red-300">{stats.pending}</div>{t("crashStats.pending", "Pend.")}</div>
                     <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2 hover-lift"><div className="font-mono text-sm text-emerald-300">{stats.withGps}</div>GPS</div>
-                    <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-2 hover-lift"><div className="font-mono text-sm text-violet-300">{peakDay.total}</div>Pico {peakDay.day}</div>
+                    <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-2 hover-lift"><div className="font-mono text-sm text-violet-300">{peakDay.total}</div>{t("crashStats.peak", "Pico")} {peakDay.day}</div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
                     <div className="h-48 rounded-xl border border-white/10 bg-white/[0.02] p-2">
-                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">Choques por fecha/hora</div>
+                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{t("crashStats.crashesByTime", "Choques por fecha/hora")}</div>
                       <ResponsiveContainer width="100%" height="85%"><BarChart data={hourlyChart}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" /><XAxis dataKey="label" interval={1} angle={-25} textAnchor="end" height={55} stroke="#a3a3a3" fontSize={10} /><YAxis stroke="#a3a3a3" fontSize={10} allowDecimals={false} /><Tooltip contentStyle={{ background: "#0f1114", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }} /><Bar dataKey="total" radius={[6, 6, 0, 0]} fill="#ef4444" /></BarChart></ResponsiveContainer>
                     </div>
                     <div className="h-48 rounded-xl border border-white/10 bg-white/[0.02] p-2">
-                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">Composición</div>
+                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{t("crashStats.composition", "Composición")}</div>
                       <ResponsiveContainer width="100%" height="85%"><PieChart><Pie data={statusChart} dataKey="value" nameKey="name" innerRadius={35} outerRadius={65} paddingAngle={3}>{statusChart.map((e) => <Cell key={`pie-${e.name}`} fill={e.color} />)}</Pie><Tooltip contentStyle={{ background: "#0f1114", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }} /></PieChart></ResponsiveContainer>
                     </div>
                     <div className="h-48 rounded-xl border border-white/10 bg-white/[0.02] p-2">
-                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">Tendencia 7 días</div>
+                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{t("crashStats.trend7Days", "Tendencia 7 días")}</div>
                       <ResponsiveContainer width="100%" height="85%"><LineChart data={trendChart}><CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" /><XAxis dataKey="day" stroke="#a3a3a3" fontSize={10} /><YAxis stroke="#a3a3a3" fontSize={10} allowDecimals={false} /><Tooltip contentStyle={{ background: "#0f1114", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10 }} /><Line type="monotone" dataKey="total" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: "#ef4444", r: 3 }} /></LineChart></ResponsiveContainer>
                     </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
                     <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
-                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">Nodos de riesgo</div>
+                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{t("crashStats.riskNodes", "Nodos de riesgo")}</div>
                       <div className="space-y-2 max-h-64 overflow-auto pr-1">
                         {topImpacts.map((impact) => {
                           const active = impact.id === activeImpactId;
@@ -172,7 +179,7 @@ function CrashStatsWidget() {
                             <button key={impact.id} onMouseEnter={() => setActiveImpactId(impact.id)} onClick={() => setActiveImpactId(impact.id)}
                               className={`w-full text-left rounded-lg border px-3 py-2 transition-all hover-lift ${active ? "border-red-400/60 bg-red-500/15" : "border-white/10 bg-black/30 hover:border-red-400/30"}`}
                             >
-                              <div className="text-xs font-semibold">{impact.name || impact.driver_name || "Usuario"}</div>
+                              <div className="text-xs font-semibold">{impact.name || impact.driver_name || t("crashStats.user", "Usuario")}</div>
                               <div className="text-[10px] text-neutral-400">{(impact.ts || impact.created_at || "").slice(0, 19).replace("T", " ")}</div>
                             </button>
                           );
@@ -188,7 +195,7 @@ function CrashStatsWidget() {
                             <CircleMarker key={i.id} center={[i.lat, i.lng]} radius={active ? 12 : 7}
                               pathOptions={{ color: active ? "#ef4444" : "#ef4444", fillOpacity: active ? 0.85 : 0.55 }}
                               eventHandlers={{ mouseover: () => setActiveImpactId(i.id), click: () => setActiveImpactId(i.id) }}>
-                              <Popup><div className="text-xs"><div className="font-semibold">{i.name || i.driver_name || "Usuario"}</div><div>G-Force: {i.gforce?.toFixed?.(2) || "—"}G</div><div>Estado: {STATUS_LABEL[i.status] || i.status || "—"}</div></div></Popup>
+                              <Popup><div className="text-xs"><div className="font-semibold">{i.name || i.driver_name || t("crashStats.user", "Usuario")}</div><div>G-Force: {i.gforce?.toFixed?.(2) || "—"}G</div><div>{t("crashStats.status", "Estado")}: {STATUS_LABEL[i.status] || i.status || "—"}</div></div></Popup>
                             </CircleMarker>
                           );
                         })}
@@ -198,14 +205,14 @@ function CrashStatsWidget() {
 
                   {activeImpact ? (
                     <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-red-200/80 mb-1">Detalle del nodo seleccionado</div>
-                      <div className="font-semibold">{activeImpact.name || activeImpact.driver_name || "Usuario"}</div>
-                      <div>Correo: {activeImpact.email || activeImpact.driver_email || "—"}</div>
-                      <div>Choque: {activeImpact.gforce?.toFixed?.(2) || "—"}G · {activeImpact.severity_label || "Sin etiqueta"} · {STATUS_LABEL[activeImpact.status] || activeImpact.status || "—"}</div>
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-red-200/80 mb-1">{t("crashStats.nodeDetail", "Detalle del nodo seleccionado")}</div>
+                      <div className="font-semibold">{activeImpact.name || activeImpact.driver_name || t("crashStats.user", "Usuario")}</div>
+                      <div>{t("crashStats.email", "Correo")}: {activeImpact.email || activeImpact.driver_email || "—"}</div>
+                      <div>{t("crashStats.impact", "Choque")}: {activeImpact.gforce?.toFixed?.(2) || "—"}G · {activeImpact.severity_label || t("crashStats.noLabel", "Sin etiqueta")} · {STATUS_LABEL[activeImpact.status] || activeImpact.status || "—"}</div>
                     </div>
                   ) : null}
 
-                  <div className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-neutral-500"><Activity className="mt-0.5 h-3 w-3 flex-shrink-0" />La severidad se promedia en escala 1-4: baja, media, alta y crítica.</div>
+                  <div className="mt-4 flex items-start gap-2 text-[11px] leading-relaxed text-neutral-500"><Activity className="mt-0.5 h-3 w-3 flex-shrink-0" />{t("crashStats.severityNote", "La severidad se promedia en escala 1-4: baja, media, alta y crítica.")}</div>
                 </>
               )}
             </div>

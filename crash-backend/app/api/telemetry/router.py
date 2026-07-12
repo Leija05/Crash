@@ -131,7 +131,6 @@ async def receive_telemetry_batch(body: BatchTelemetryInput, user: dict = Depend
 
     stored = 0
     duplicates = 0
-    latest = None
     for s in body.samples:
         ts = s.occurred_at or datetime.now(timezone.utc).isoformat()
         location = None
@@ -165,8 +164,6 @@ async def receive_telemetry_batch(body: BatchTelemetryInput, user: dict = Depend
                     "from_blackbox": True,
                     "timestamp": ts,
                 })
-            if latest is None or ts > latest["timestamp"]:
-                latest = doc
         except DuplicateKeyError:
             duplicates += 1
 
@@ -236,7 +233,7 @@ async def update_live_location(body: LocationInput, user: dict = Depends(get_cur
             "timestamp": ts,
         })
 
-    return {"status": "ok"}
+    return {"status": "ok", "caution": caution}
 
 
 @router.get("/history")

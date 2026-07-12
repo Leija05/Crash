@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import PremiumModal from "./ui/Modal";
+import { useI18n } from "../i18n";
 
 function Section({ icon: Icon, label, children, tone = "default" }) {
   const toneClass = {
@@ -34,8 +35,9 @@ function Section({ icon: Icon, label, children, tone = "default" }) {
 }
 
 function ChipList({ items }) {
+  const { t } = useI18n();
   if (!items || items.length === 0) {
-    return <div className="text-xs text-neutral-500 italic">Ninguno</div>;
+    return <div className="text-xs text-neutral-500 italic">{t("driverDetail.none", "Ninguno")}</div>;
   }
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -67,6 +69,7 @@ export default function DriverDetailSheet({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!open || !driverId) return;
@@ -89,8 +92,8 @@ export default function DriverDetailSheet({
     <PremiumModal
       open={open}
       onClose={() => onOpenChange(false)}
-      title={driver?.name || "Conductor"}
-      eyebrow="C.R.A.S.H. · Conductor"
+      title={driver?.name || t("driverDetail.driver", "Conductor")}
+      eyebrow={`C.R.A.S.H. · ${t("driverDetail.conductor", "Conductor")}`}
       icon={Bike}
       accent="emerald"
       size="lg"
@@ -110,7 +113,7 @@ export default function DriverDetailSheet({
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
               <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                Vel.
+                {t("driverDetail.speedLabel", "Vel.")}
               </div>
               <div className="font-mono text-sm">
                 {typeof driver.speed === "number"
@@ -120,7 +123,7 @@ export default function DriverDetailSheet({
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
               <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                G-Force
+                {t("driverDetail.gforceLabel", "G-Force")}
               </div>
               <div className="font-mono text-sm">
                 {typeof driver.gforce === "number"
@@ -130,7 +133,7 @@ export default function DriverDetailSheet({
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-2">
               <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                Batería
+                {t("driverDetail.battery", "Batería")}
               </div>
               <div className="font-mono text-sm">
                 {driver.battery != null ? `${driver.battery}%` : "—"}
@@ -149,11 +152,11 @@ export default function DriverDetailSheet({
           </div>
         ) : (
           <>
-            <Section icon={User} label="Perfil médico">
+            <Section icon={User} label={t("driverDetail.medicalProfile", "Perfil médico")}>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
-                    Nombre
+                    {t("driverDetail.name", "Nombre")}
                   </div>
                   <div className="text-white">
                     {profile.full_name || driver?.name || "—"}
@@ -161,7 +164,7 @@ export default function DriverDetailSheet({
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.25em] text-neutral-500">
-                    Tipo de sangre
+                    {t("driverDetail.bloodType", "Tipo de sangre")}
                   </div>
                   <div className="font-mono text-emerald-400 font-bold text-base">
                     {profile.blood_type || "—"}
@@ -172,7 +175,7 @@ export default function DriverDetailSheet({
 
             <Section
               icon={AlertTriangle}
-              label="Alergias"
+              label={t("driverDetail.allergies", "Alergias")}
               tone={(profile.allergies || []).length ? "danger" : "default"}
             >
               <ChipList items={profile.allergies} />
@@ -180,7 +183,7 @@ export default function DriverDetailSheet({
 
             <Section
               icon={Heart}
-              label="Condiciones médicas"
+              label={t("driverDetail.medicalConditions", "Condiciones médicas")}
               tone={
                 (profile.medical_conditions || []).length
                   ? "danger"
@@ -190,12 +193,12 @@ export default function DriverDetailSheet({
               <ChipList items={profile.medical_conditions} />
             </Section>
 
-            <Section icon={Accessibility} label="Discapacidades">
+            <Section icon={Accessibility} label={t("driverDetail.disabilities", "Discapacidades")}>
               <ChipList items={profile.disabilities} />
             </Section>
 
             {profile.emergency_notes ? (
-              <Section icon={Pill} label="Notas de emergencia">
+              <Section icon={Pill} label={t("driverDetail.emergencyNotes", "Notas de emergencia")}>
                 <p className="text-sm text-neutral-200 leading-relaxed whitespace-pre-line">
                   {profile.emergency_notes}
                 </p>
@@ -204,11 +207,11 @@ export default function DriverDetailSheet({
 
             <Section
               icon={Phone}
-              label={`Contactos de emergencia · ${contacts.length}`}
+              label={`${t("driverDetail.emergencyContacts", "Contactos de emergencia")} · ${contacts.length}`}
             >
               {contacts.length === 0 ? (
                 <div className="text-xs text-neutral-500 italic">
-                  Sin contactos registrados
+                  {t("driverDetail.noContacts", "Sin contactos registrados")}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -234,7 +237,7 @@ export default function DriverDetailSheet({
                         <a
                           href={`tel:${c.phone}`}
                           className="h-8 w-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 flex items-center justify-center transition-all hover-lift"
-                          title="Llamar"
+                          title={t("driverDetail.call", "Llamar")}
                         >
                           <Phone className="h-3.5 w-3.5 text-emerald-400" />
                         </a>
@@ -255,11 +258,11 @@ export default function DriverDetailSheet({
             </Section>
 
             {settings && Object.keys(settings).length > 0 ? (
-              <Section icon={ShieldCheck} label="Configuración del conductor">
+              <Section icon={ShieldCheck} label={t("driverDetail.driverSettings", "Configuración del conductor")}>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
                     <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                      Umbral G
+                       {t("driverDetail.gThreshold", "Umbral G")}
                     </div>
                     <div className="font-mono text-emerald-400">
                       {settings.alert_threshold ?? "—"}G
@@ -267,7 +270,7 @@ export default function DriverDetailSheet({
                   </div>
                   <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5">
                     <div className="text-[9px] uppercase tracking-[0.25em] text-neutral-500">
-                      Auto llamada
+                       {t("driverDetail.autoCall", "Auto llamada")}
                     </div>
                     <div
                       className={`font-mono ${settings.auto_call ? "text-emerald-400" : "text-neutral-500"}`}
@@ -289,7 +292,7 @@ export default function DriverDetailSheet({
               </Section>
             ) : null}
 
-            <Section icon={Mail} label="Identificadores">
+            <Section icon={Mail} label={t("driverDetail.identifiers", "Identificadores")}>
               <div className="font-mono text-[11px] text-neutral-400 space-y-1 break-all">
                 <div>
                   <span className="text-neutral-600">id:</span> {driverId}

@@ -29,6 +29,8 @@ from app.api.riders.router import router as riders_router
 from app.api.telemetry.router import router as telemetry_router
 from app.api.sales.router import router as sales_router
 from app.api.analytics.router import router as analytics_router
+from app.api.geofences.router import router as geofences_router
+from app.api.versions.router import router as versions_router
 from app.core.config import settings
 from app.core.database import get_db, close_db
 from app.core.security import decode_token, hash_password, verify_password
@@ -267,6 +269,8 @@ app.include_router(riders_router, prefix="/api")
 app.include_router(monitor_router, prefix="/api")
 app.include_router(sales_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
+app.include_router(geofences_router, prefix="/api")
+app.include_router(versions_router, prefix="/api")
 
 
 @app.get("/api/")
@@ -412,6 +416,7 @@ async def _seed_superadmin() -> None:
             "password_hash": hash_password(settings.SUPERADMIN_PASSWORD),
             "role": "superadmin",
             "site_token": site_token,
+            "is_root": True,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         })
@@ -421,14 +426,14 @@ async def _seed_superadmin() -> None:
         await db.users.update_one(
             {"email": email},
             {"$set": {"role": "superadmin", "password_hash": hash_password(settings.SUPERADMIN_PASSWORD),
-                       "site_token": site_token, "updated_at": datetime.now(timezone.utc).isoformat()}},
+                       "site_token": site_token, "is_root": True, "updated_at": datetime.now(timezone.utc).isoformat()}},
         )
         logger.info("SuperAdmin role updated for %s", email)
     else:
         await db.users.update_one(
             {"email": email},
             {"$set": {"password_hash": hash_password(settings.SUPERADMIN_PASSWORD),
-                       "updated_at": datetime.now(timezone.utc).isoformat()}},
+                       "is_root": True, "updated_at": datetime.now(timezone.utc).isoformat()}},
         )
         site_token = existing.get("site_token", "")
 
@@ -522,7 +527,14 @@ async def on_startup() -> None:
     await db.user_profiles.create_index("user_id")
     await db.user_settings.create_index("user_id")
     await db.page_views.create_index("day")
+    await db.app_versions.create_index([("platform", 1), ("version", 1)], unique=True)
+    await db.app_versions.create_index([("published", 1), ("platform", 1)])
     await db.page_views.create_index("created_at")
+    await db.geofences.create_index("id", unique=True)
+    await db.geofences.create_index([("company_id", 1), ("active", 1)])
+    await db.user_zone_state.create_index("user_id", unique=True)
+    await db.geofence_events.create_index([("geofence_id", 1), ("created_at", -1)])
+    await db.geofence_events.create_index([("user_id", 1), ("created_at", -1)])
 
     if settings.DEMO_MODE:
         await db.drivers.create_index("id", unique=True)

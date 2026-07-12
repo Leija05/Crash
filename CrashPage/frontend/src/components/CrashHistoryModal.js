@@ -5,6 +5,7 @@ import { api, formatApiError } from "../lib/api";
 import CrashLogo from "./CrashLogo";
 import AlertDiagnosis from "./AlertDiagnosis";
 import { useCloseOnBrowserBack, closeModalViaHistory } from "../hooks/useCloseOnBrowserBack";
+import { useI18n } from "../i18n";
 
 const SEVERITY_OPTIONS = [{ v: "", l: "Todas" }, { v: "critical", l: "Crítica" }, { v: "high", l: "Alta" }, { v: "medium", l: "Media" }, { v: "low", l: "Baja" }];
 const STATUS_OPTIONS = [{ v: "all", l: "Todos" }, { v: "pending", l: "Pendientes" }, { v: "acknowledged", l: "Atendidos" }, { v: "false_alarm", l: "Falsa alarma" }];
@@ -42,6 +43,25 @@ function CrashHistoryModal({ open, onClose }) {
   const [expandedId, setExpandedId] = useState(null);
   const cardRefs = useRef({});
   const markerRefs = useRef({});
+  const { t } = useI18n();
+  const severityLabel = {
+    "": t("crashHistory.sevAll", "Todas"),
+    critical: t("crashHistory.sevCritical", "Crítica"),
+    high: t("crashHistory.sevHigh", "Alta"),
+    medium: t("crashHistory.sevMedium", "Media"),
+    low: t("crashHistory.sevLow", "Baja"),
+  };
+  const statusFilterLabel = {
+    all: t("crashHistory.statusAll", "Todos"),
+    pending: t("crashHistory.statusPending", "Pendientes"),
+    acknowledged: t("crashHistory.statusAttended", "Atendidos"),
+    false_alarm: t("crashHistory.statusFalseAlarm", "Falsa alarma"),
+  };
+  const statusBadgeLabel = {
+    pending: t("crashHistory.badgePending", "Pendiente"),
+    acknowledged: t("crashHistory.badgeAttended", "Atendido"),
+    false_alarm: t("crashHistory.badgeFalseAlarm", "Falsa alarma"),
+  };
 
   const fetchImpacts = useCallback(async () => {
     setLoading(true);
@@ -130,49 +150,49 @@ function CrashHistoryModal({ open, onClose }) {
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">C.R.A.S.H. · Registro</div>
-              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-400" /> Historial de Choques</h2>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">C.R.A.S.H. · {t("crashHistory.eyebrow", "Registro")}</div>
+              <h2 className="text-xl font-bold tracking-tight flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-400" /> {t("crashHistory.title", "Historial de Choques")}</h2>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.2em]">
-              <span className="px-2 py-1 rounded border border-white/10 bg-white/5 font-mono">{counts.total} total</span>
-              <span className="px-2 py-1 rounded border border-red-500/30 bg-red-500/10 text-red-300 font-mono">{counts.pending} pendientes</span>
-              <span className="px-2 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-mono">{counts.acknowledged} atendidos</span>
-              <span className="px-2 py-1 rounded border border-neutral-500/30 bg-neutral-500/10 text-neutral-300 font-mono">{counts.false_alarm} falsa</span>
+              <span className="px-2 py-1 rounded border border-white/10 bg-white/5 font-mono">{counts.total} {t("crashHistory.total", "total")}</span>
+              <span className="px-2 py-1 rounded border border-red-500/30 bg-red-500/10 text-red-300 font-mono">{counts.pending} {t("crashHistory.pending", "pendientes")}</span>
+              <span className="px-2 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 font-mono">{counts.acknowledged} {t("crashHistory.attended", "atendidos")}</span>
+              <span className="px-2 py-1 rounded border border-neutral-500/30 bg-neutral-500/10 text-neutral-300 font-mono">{counts.false_alarm} {t("crashHistory.falseAlarmCount", "falsa")}</span>
             </div>
-            <button data-testid="crash-modal-close" onClick={() => closeModalViaHistory(onClose)} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Cerrar"><X className="h-4 w-4" /></button>
+            <button data-testid="crash-modal-close" onClick={() => closeModalViaHistory(onClose)} className="h-9 w-9 rounded-lg border border-white/10 hover:border-red-500/40 hover:bg-red-500/10 flex items-center justify-center transition-all" title={t("crashHistory.close", "Cerrar")}><X className="h-4 w-4" /></button>
           </div>
         </div>
 
         <div className="relative px-4 sm:px-5 py-3 border-b border-white/10 bg-white/[0.02] flex flex-wrap items-end gap-3 flex-shrink-0">
           <div className="flex-1 min-w-[200px]">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><Search className="inline h-3 w-3 mr-1" />Nombre o correo</label>
-            <input data-testid="filter-name" type="text" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") fetchImpacts(); }} placeholder="Buscar conductor..." className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-500/40 outline-none transition-all" />
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><Search className="inline h-3 w-3 mr-1" />{t("crashHistory.nameOrEmail", "Nombre o correo")}</label>
+            <input data-testid="filter-name" type="text" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") fetchImpacts(); }} placeholder={t("crashHistory.searchDriver", "Buscar conductor...")} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-500/40 outline-none transition-all" />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><Calendar className="inline h-3 w-3 mr-1" />Desde</label>
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><Calendar className="inline h-3 w-3 mr-1" />{t("crashHistory.from", "Desde")}</label>
             <input data-testid="filter-date-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-500/40 outline-none transition-all" />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><Calendar className="inline h-3 w-3 mr-1" />Hasta</label>
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><Calendar className="inline h-3 w-3 mr-1" />{t("crashHistory.to", "Hasta")}</label>
             <input data-testid="filter-date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-500/40 outline-none transition-all" />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><FilterIcon className="inline h-3 w-3 mr-1" />Gravedad</label>
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block"><FilterIcon className="inline h-3 w-3 mr-1" />{t("crashHistory.severity", "Gravedad")}</label>
             <select data-testid="filter-severity" value={severity} onChange={(e) => setSeverity(e.target.value)} className="bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-500/40 outline-none transition-all">
-              {SEVERITY_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+              {SEVERITY_OPTIONS.map((o) => <option key={o.v} value={o.v}>{severityLabel[o.v]}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block">Estado</label>
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1 block">{t("crashHistory.status", "Estado")}</label>
             <select data-testid="filter-status" value={status} onChange={(e) => setStatus(e.target.value)} className="bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:border-emerald-500/40 outline-none transition-all">
-              {STATUS_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+              {STATUS_OPTIONS.map((o) => <option key={o.v} value={o.v}>{statusFilterLabel[o.v]}</option>)}
             </select>
           </div>
           <div className="flex gap-2">
-            <button data-testid="filter-apply" onClick={fetchImpacts} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-medium px-4 py-1.5 rounded-lg transition-all hover-lift">Aplicar</button>
-            <button data-testid="filter-reset" onClick={() => { resetFilters(); setTimeout(fetchImpacts, 50); }} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/30 text-neutral-300 text-xs px-3 py-1.5 rounded-lg transition-all hover-lift flex items-center gap-1" title="Limpiar filtros"><RotateCcw className="h-3 w-3" />Limpiar</button>
+            <button data-testid="filter-apply" onClick={fetchImpacts} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-medium px-4 py-1.5 rounded-lg transition-all hover-lift">{t("crashHistory.apply", "Aplicar")}</button>
+            <button data-testid="filter-reset" onClick={() => { resetFilters(); setTimeout(fetchImpacts, 50); }} className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/30 text-neutral-300 text-xs px-3 py-1.5 rounded-lg transition-all hover-lift flex items-center gap-1" title={t("crashHistory.clearFilters", "Limpiar filtros")}><RotateCcw className="h-3 w-3" />{t("crashHistory.clear", "Limpiar")}</button>
           </div>
         </div>
 
@@ -195,7 +215,7 @@ function CrashHistoryModal({ open, onClose }) {
                       ref={(ref) => { if (ref) markerRefs.current[i.id] = ref; }}>
                       <Popup>
                         <div style={{ minWidth: 200 }}>
-                          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.2em", color: "#a3a3a3" }}>{STATUS_LABEL[i.status]}</div>
+                           <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.2em", color: "#a3a3a3" }}>{statusBadgeLabel[i.status]}</div>
                           <div style={{ fontWeight: 600, marginTop: 2 }}>{i.driver_name}</div>
                           {i.driver_email ? <div style={{ fontSize: 11, color: "#737373" }}>{i.driver_email}</div> : null}
                           <div style={{ fontFamily: "monospace", fontSize: 12, marginTop: 4 }}>{i.gforce?.toFixed?.(2) || "—"}G{i.severity_label ? <span style={{ marginLeft: 6, opacity: 0.8 }}> · {i.severity_label}</span> : null}</div>
@@ -209,19 +229,19 @@ function CrashHistoryModal({ open, onClose }) {
                 <MapFlyTo impact={selected} />
               </MapContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-neutral-500 text-xs uppercase tracking-[0.3em]">{loading ? "Cargando..." : "Sin choques con GPS para los filtros actuales"}</div>
+              <div className="h-full flex items-center justify-center text-neutral-500 text-xs uppercase tracking-[0.3em]">{loading ? t("crashHistory.loading", "Cargando...") : t("crashHistory.noGpsCrashes", "Sin choques con GPS para los filtros actuales")}</div>
             )}
             <div className="absolute bottom-3 left-3 z-[400] rounded-lg border border-white/10 bg-black/70 backdrop-blur px-3 py-2 text-[10px] flex gap-3 items-center">
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" />Pendiente</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" />Atendido</span>
-              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-neutral-400 inline-block" />Falsa alarma</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-500 inline-block" />{t("crashHistory.legendPending", "Pendiente")}</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" />{t("crashHistory.legendAttended", "Atendido")}</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-neutral-400 inline-block" />{t("crashHistory.legendFalseAlarm", "Falsa alarma")}</span>
             </div>
           </div>
 
           <aside className="lg:col-span-2 flex flex-col min-h-[360px] lg:min-h-0">
-            <div className="px-4 py-2 border-b border-white/10 text-[10px] uppercase tracking-[0.3em] text-neutral-500">Resultados · {impacts.length}</div>
+            <div className="px-4 py-2 border-b border-white/10 text-[10px] uppercase tracking-[0.3em] text-neutral-500">{t("crashHistory.results", "Resultados")} · {impacts.length}</div>
             <div className="flex-1 overflow-y-auto p-3 space-y-2" data-testid="impacts-list">
-              {loading ? <div className="text-xs text-neutral-500 px-2">Cargando...</div> : error ? <div className="text-xs text-red-400 px-2">{error}</div> : impacts.length === 0 ? <div className="text-xs text-neutral-500 px-2">Sin choques para los filtros aplicados.</div> : impacts.map((i) => {
+              {loading ? <div className="text-xs text-neutral-500 px-2">{t("crashHistory.loading", "Cargando...")}</div> : error ? <div className="text-xs text-red-400 px-2">{error}</div> : impacts.length === 0 ? <div className="text-xs text-neutral-500 px-2">{t("crashHistory.noCrashesApplied", "Sin choques para los filtros aplicados.")}</div> : impacts.map((i) => {
                 const isSel = i.id === selectedId;
                 const isExp = i.id === expandedId;
                 const StatusIcon = i.status === "acknowledged" ? CheckCircle2 : i.status === "false_alarm" ? XCircle : AlertTriangle;
@@ -232,8 +252,9 @@ function CrashHistoryModal({ open, onClose }) {
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
                           <StatusIcon className={`h-3.5 w-3.5 flex-shrink-0 ${i.status === "acknowledged" ? "text-emerald-400" : i.status === "false_alarm" ? "text-neutral-400" : "text-red-400"}`} />
-                          <span className={`text-[9px] font-semibold uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border ${STATUS_BADGE[i.status]}`}>{STATUS_LABEL[i.status]}</span>
+                           <span className={`text-[9px] font-semibold uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border ${STATUS_BADGE[i.status]}`}>{statusBadgeLabel[i.status]}</span>
                           {i.severity_label || i.severity ? <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border border-white/15 text-neutral-300">{i.severity_label || i.severity}</span> : null}
+                           {i.injury_probability != null ? <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded border border-rose-500/40 bg-rose-500/10 text-rose-300" title={t("crashHistory.injuryProbTitle", "Probabilidad estimada de lesión")}>{t("crashHistory.injuryLabel", "Lesión")} {Math.round(i.injury_probability * 100)}%</span> : null}
                         </div>
                         <span className="font-mono text-[10px] text-neutral-500 whitespace-nowrap">{fmt(i.created_at)}</span>
                       </div>
@@ -241,19 +262,19 @@ function CrashHistoryModal({ open, onClose }) {
                       {i.driver_email ? <div className="text-[10px] text-neutral-500 font-mono truncate">{i.driver_email}</div> : null}
                       <div className="mt-1.5 flex items-center gap-3 font-mono text-[11px] flex-wrap">
                         <span className="inline-flex items-center gap-1 text-amber-300"><AlertTriangle className="h-3 w-3" />{i.gforce?.toFixed?.(2) || "—"}G</span>
-                        {i.lat != null ? <span className="inline-flex items-center gap-1 text-neutral-400"><MapPin className="h-3 w-3" />{i.lat.toFixed(4)}, {i.lng.toFixed(4)}</span> : <span className="text-amber-400/70 text-[10px]">sin GPS</span>}
+                         {i.lat != null ? <span className="inline-flex items-center gap-1 text-neutral-400"><MapPin className="h-3 w-3" />{i.lat.toFixed(4)}, {i.lng.toFixed(4)}</span> : <span className="text-amber-400/70 text-[10px]">{t("crashHistory.noGps", "sin GPS")}</span>}
                       </div>
                       {i.status !== "pending" && i.ack_by_name ? (
-                        <div className="mt-2 text-[10px] flex items-center gap-1.5 text-emerald-300/80"><CheckCircle2 className="h-3 w-3" /><span>Atendido por <span className="font-semibold">{i.ack_by_name}</span>{i.ack_by ? <span className="text-neutral-500 font-mono"> · {i.ack_by}</span> : null}</span></div>
+                         <div className="mt-2 text-[10px] flex items-center gap-1.5 text-emerald-300/80"><CheckCircle2 className="h-3 w-3" /><span>{t("crashHistory.attendedBy", "Atendido por")} <span className="font-semibold">{i.ack_by_name}</span>{i.ack_by ? <span className="text-neutral-500 font-mono"> · {i.ack_by}</span> : null}</span></div>
                       ) : null}
                       <button onClick={(e) => { e.stopPropagation(); setExpandedId(isExp ? null : i.id); }} className="mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-neutral-400 hover:text-white transition-colors">
-                        {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}{isExp ? "Ocultar detalle" : "Ver detalle"}
+                         {isExp ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}{isExp ? t("crashHistory.hideDetail", "Ocultar detalle") : t("crashHistory.viewDetail", "Ver detalle")}
                       </button>
                     </div>
                     {isExp ? (
                       <div className="border-t border-white/10 px-3 pb-3 pt-2 text-xs space-y-2">
-                        {i.ai_diagnosis ? <AlertDiagnosis diagnosis={i.ai_diagnosis} /> : <div className="text-neutral-500 text-[11px]">Sin diagnóstico IA registrado para este choque.</div>}
-                        {i.alerts_sent ? <div className="text-[10px] text-emerald-300/80">✓ Contactos de emergencia notificados</div> : null}
+                         {i.ai_diagnosis ? <AlertDiagnosis diagnosis={i.ai_diagnosis} /> : <div className="text-neutral-500 text-[11px]">{t("crashHistory.noDiagnosis", "Sin diagnóstico IA registrado para este choque.")}</div>}
+                         {i.alerts_sent ? <div className="text-[10px] text-emerald-300/80">✓ {t("crashHistory.emergencyNotified", "Contactos de emergencia notificados")}</div> : null}
                       </div>
                     ) : null}
                   </div>
