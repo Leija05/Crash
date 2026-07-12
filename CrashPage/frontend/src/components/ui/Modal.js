@@ -65,7 +65,7 @@ export default function PremiumModal({
 
   return (
     <div
-      className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 backdrop-blur-md fade-in ${
+      className={`fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in ${
         fullscreen ? "p-0" : "p-2 sm:p-3 lg:p-6"
       }`}
       onClick={closeOnBackdrop ? requestClose : undefined}
