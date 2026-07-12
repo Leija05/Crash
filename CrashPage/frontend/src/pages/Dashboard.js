@@ -97,7 +97,7 @@ function SupportModal({ onClose }) {
           >
             <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("dashboardPage.requestType", "Tipo de solicitud")}</label>
             <select value={type} onChange={(e) => setType(e.target.value)} className="w-full bg-white/5 border border-white/10 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
-              {SUPPORT_TYPES.map((t) =>             <option key={t.id} value={t.id}>{t(`dashboardPage.support.${t.key}`, t.label)}</option>)}
+              {SUPPORT_TYPES.map((item) =>             <option key={item.id} value={item.id}>{t(`dashboardPage.support.${item.key}`, item.label)}</option>)}
             </select>
           </motion.div>
           <motion.div
