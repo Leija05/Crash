@@ -125,6 +125,14 @@ async def delete_version(version_id: str) -> dict:
     return {"ok": True}
 
 
+async def get_version_download_url(version_id: str) -> str:
+    db = await get_db()
+    doc = await db.app_versions.find_one({"id": version_id})
+    if not doc or not doc.get("download_url"):
+        raise HTTPException(404, "URL de descarga no disponible")
+    return doc.get("download_url", "")
+
+
 async def get_latest_version(platform: str = "android") -> dict:
     db = await get_db()
     platform = (platform or "android").strip().lower()
