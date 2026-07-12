@@ -161,13 +161,15 @@ function Dashboard() {
   }, [isMonitor, user?.company_id]);
 
   const visibleDrivers = useMemo(() => {
+    // No monitor: ve todos los conductores
     if (!isMonitor && !isGeneralMonitor) return drivers || {};
     const out = {};
     for (const [k, v] of Object.entries(drivers || {})) {
-      // Monitor de empresa: ve sus conductores + los que no tienen empresa
-      if (isMonitor && (!v.company_id || v.company_id === user.company_id)) out[k] = v;
-      // Monitor general: ve conductores sin empresa o con company_id === "general"
-      else if (isGeneralMonitor && (!v.company_id || v.company_id === GENERAL_COMPANY_ID)) out[k] = v;
+      const dc = v.company_id;
+      // Monitor de empresa: sus conductores + los independientes (company_id === "general")
+      if (isMonitor && (dc === user.company_id || !dc || dc === GENERAL_COMPANY_ID)) out[k] = v;
+      // Monitor general: ve todos los conductores (sin filtrar)
+      else if (isGeneralMonitor) out[k] = v;
     }
     return out;
   }, [drivers, isMonitor, isGeneralMonitor, user?.company_id]);
