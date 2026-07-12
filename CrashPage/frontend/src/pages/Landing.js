@@ -5,13 +5,20 @@ import {
   Smartphone, Cpu, Monitor, Lock, Network, Siren, Navigation,
   WifiOff, MessagesSquare, Database, ShoppingCart, X, MessageCircle, Mail,
   Check, ArrowRight, MapPin, History, Signal, Users, Building2,
-  Gauge, Brain, ShieldAlert, Zap, Activity, Radar, ChevronDown,
+  Gauge, Brain, ShieldAlert, Zap, Activity, Radar, ChevronDown, Download,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { useI18n } from "../i18n";
 
 const CONTACT_WHATSAPP = "5210000000000000"; // Reemplaza con el numero real de ventas C.R.A.S.H.
 const CONTACT_EMAIL = "contacto@crash.io";
-const CYCLES = ["Semanal", "Mensual", "Bimestral", "Trimestral", "Anual"];
+const CYCLES = [
+  { key: "cycleSemanal", label: "Semanal" },
+  { key: "cycleMensual", label: "Mensual" },
+  { key: "cycleBimestral", label: "Bimestral" },
+  { key: "cycleTrimestral", label: "Trimestral" },
+  { key: "cycleAnual", label: "Anual" },
+];
 const CYCLE_MULT = { Semanal: 0.3, Mensual: 1, Bimestral: 1.9, Trimestral: 2.7, Anual: 9.6 };
 const HERO = "https://images.pexels.com/photos/2611685/pexels-photo-2611685.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
 
@@ -35,15 +42,15 @@ const PROJECT_META = {
 };
 
 const PROBLEMS = [
-  { t: "Dependencia de intervención humana", d: "Si el conductor queda inconsciente o el accidente ocurre en un tramo aislado sin testigos, la falta de notificación genera retrasos fatales en la asistencia." },
-  { t: "Falta de datos técnicos en tiempo real", d: "Los servicios de emergencia acuden 'a ciegas' sin la fuerza-G del impacto, dificultando el triaje y la preparación médica." },
-  { t: "Inexistencia de monitoreo inteligente en EPP", d: "A diferencia de los vehículos modernos, el Equipo de Protección Personal (cascos) es pasivo y no alerta sobre traumatismos craneoencefálicos." },
+  { key: "problemHumanDependence", t: "Dependencia de intervención humana", d: "Si el conductor queda inconsciente o el accidente ocurre en un tramo aislado sin testigos, la falta de notificación genera retrasos fatales en la asistencia." },
+  { key: "problemRealtimeData", t: "Falta de datos técnicos en tiempo real", d: "Los servicios de emergencia acuden 'a ciegas' sin la fuerza-G del impacto, dificultando el triaje y la preparación médica." },
+  { key: "problemEPPMonitoring", t: "Inexistencia de monitoreo inteligente en EPP", d: "A diferencia de los vehículos modernos, el Equipo de Protección Personal (cascos) es pasivo y no alerta sobre traumatismos craneoencefálicos." },
 ];
 
 const VALUE = [
-  { t: "Monitoreo biomecánico dual", d: "Se adapta a cascos de seguridad industriales y a estructuras vehiculares, detectando grados de fuerza (G) durante un impacto o caída con sensores de alta precisión." },
-  { t: "Triaje automatizado por IA", d: "Algoritmos de inteligencia artificial discriminan entre un golpe accidental leve y una colisión crítica, categorizando la gravedad para optimizar la respuesta médica." },
-  { t: "Protocolo de alerta omnicanal", d: "Integración nativa con bot de WhatsApp y una aplicación de escritorio de alto rendimiento que envía GPS y datos del impacto a contactos y centros de control." },
+  { key: "valueBiomech", t: "Monitoreo biomecánico dual", d: "Se adapta a cascos de seguridad industriales y a estructuras vehiculares, detectando grados de fuerza (G) durante un impacto o caída con sensores de alta precisión." },
+  { key: "valueAI", t: "Triaje automatizado por IA", d: "Algoritmos de inteligencia artificial discriminan entre un golpe accidental leve y una colisión crítica, categorizando la gravedad para optimizar la respuesta médica." },
+  { key: "valueOmnichannel", t: "Protocolo de alerta omnicanal", d: "Integración nativa con bot de WhatsApp y una aplicación de escritorio de alto rendimiento que envía GPS y datos del impacto a contactos y centros de control." },
 ];
 
 const TEAM = [
@@ -60,33 +67,33 @@ const ADVISORS = [
 ];
 
 const NORMS = [
-  { c: "NOM-115-STPS-2009", d: "Cascos de protección y especificaciones de seguridad en el entorno laboral mexicano." },
-  { c: "NOM-001-SCFI-2018", d: "Aparatos electrónicos y requisitos de seguridad para su comercialización." },
-  { c: "ISO 45001", d: "Sistemas de gestión de la seguridad y salud en el trabajo." },
-  { c: "ANSI/ISEA Z89.1", d: "Requisitos de desempeño para cascos de protección industrial (absorción de impacto)." },
-  { c: "LFPDPPP", d: "Ley Federal de Protección de Datos Personales: privacidad de contactos y ubicación." },
+  { key: "normNom115", c: "NOM-115-STPS-2009", d: "Cascos de protección y especificaciones de seguridad en el entorno laboral mexicano." },
+  { key: "normNom001", c: "NOM-001-SCFI-2018", d: "Aparatos electrónicos y requisitos de seguridad para su comercialización." },
+  { key: "normIso45001", c: "ISO 45001", d: "Sistemas de gestión de la seguridad y salud en el trabajo." },
+  { key: "normAnsi", c: "ANSI/ISEA Z89.1", d: "Requisitos de desempeño para cascos de protección industrial (absorción de impacto)." },
+  { key: "normLfpdppp", c: "LFPDPPP", d: "Ley Federal de Protección de Datos Personales: privacidad de contactos y ubicación." },
 ];
 
 const ARCH = [
-  { t: "Hardware (Nodo Sensor)", d: "Módulo compacto montable en cascos (EPP) o chasis vehiculares con sensores MEMS (MPU-6050) para medir fuerzas G y cambios de orientación." },
-  { t: "Backend (Cerebro del Sistema)", d: "FastAPI (Python) con IA (red neuronal de clasificación) que analiza la curva de aceleración para determinar severidad y probabilidad de lesiones." },
-  { t: "Capa de Alerta", d: "Integración con bot de WhatsApp Business para difundir mensajes con plantillas interactivas y geolocalización precisa del incidente." },
-  { t: "Interfaz de Control", d: "Aplicación web de alto rendimiento (React) con panel de monitoreo en tiempo real y estética de alto impacto visual." },
+  { key: "archHardware", t: "Hardware (Nodo Sensor)", d: "Módulo compacto montable en cascos (EPP) o chasis vehiculares con sensores MEMS (MPU-6050) para medir fuerzas G y cambios de orientación." },
+  { key: "archBackend", t: "Backend (Cerebro del Sistema)", d: "FastAPI (Python) con IA (red neuronal de clasificación) que analiza la curva de aceleración para determinar severidad y probabilidad de lesiones." },
+  { key: "archAlert", t: "Capa de Alerta", d: "Integración con bot de WhatsApp Business para difundir mensajes con plantillas interactivas y geolocalización precisa del incidente." },
+  { key: "archInterface", t: "Interfaz de Control", d: "Aplicación web de alto rendimiento (React) con panel de monitoreo en tiempo real y estética de alto impacto visual." },
 ];
 
 const HERO_SUB = [
-  { icon: Smartphone, t: "App Móvil", s: "El Escudo del Conductor", d: "Cero distracciones en marcha, caja negra offline y botón de pánico silencioso en el casco." },
-  { icon: Cpu, t: "Backend / Dispositivo", s: "El Cerebro", d: "Arduino Nano + MPU-6050 detecta impactos en milisegundos, con filtro de acelerómetro e IA de gravedad." },
-  { icon: Monitor, t: "Dashboard Web", s: "Centro de Monitoreo", d: "WebSockets en vivo, gestión por excepción y difusión automática a contactos y autoridades." },
+  { key: "heroMobile", icon: Smartphone, t: "App Móvil", s: "El Escudo del Conductor", d: "Cero distracciones en marcha, caja negra offline y botón de pánico silencioso en el casco." },
+  { key: "heroBackend", icon: Cpu, t: "Backend / Dispositivo", s: "El Cerebro", d: "Arduino Nano + MPU-6050 detecta impactos en milisegundos, con filtro de acelerómetro e IA de gravedad." },
+  { key: "heroDashboard", icon: Monitor, t: "Dashboard Web", s: "Centro de Monitoreo", d: "WebSockets en vivo, gestión por excepción y difusión automática a contactos y autoridades." },
 ];
 
 const FEATURES = [
-  { icon: Cpu, t: "Detección de impacto por IA", d: "El módulo MPU-6050 con red neuronal de clasificación detecta la fuerza-G del impacto y categoriza la gravedad en milisegundos." },
-  { icon: Brain, t: "Triaje automatizado", d: "La IA discrimina entre un golpe leve y una colisión crítica, estimando la probabilidad de lesión para priorizar la respuesta médica." },
-  { icon: MessagesSquare, t: "Alertas automáticas a contactos", d: "WhatsApp Business difunde ubicación GPS y diagnóstico del impacto a tus contactos y al centro de monitoreo de inmediato." },
-  { icon: Monitor, t: "Monitoreo en vivo", d: "Centro de Control con WebSockets muestra la flotilla, telemetría y estado de cada conductor en tiempo real." },
-  { icon: MapPin, t: "Geocercas de riesgo", d: "Zonas peligrosas (curvas, túneles, escolares) activan modo Precaución y cronometran el tiempo exacto en la zona." },
-  { icon: Database, t: "Caja Negra del Casco", d: "Almacena telemetría IMU local y la envía en ráfaga al recuperar la señal en zonas muertas, sin perder datos." },
+  { key: "featureAI", icon: Cpu, t: "Detección de impacto por IA", d: "El módulo MPU-6050 con red neuronal de clasificación detecta la fuerza-G del impacto y categoriza la gravedad en milisegundos." },
+  { key: "featureTriage", icon: Brain, t: "Triaje automatizado", d: "La IA discrimina entre un golpe leve y una colisión crítica, estimando la probabilidad de lesión para priorizar la respuesta médica." },
+  { key: "featureAlerts", icon: MessagesSquare, t: "Alertas automáticas a contactos", d: "WhatsApp Business difunde ubicación GPS y diagnóstico del impacto a tus contactos y al centro de monitoreo de inmediato." },
+  { key: "featureLive", icon: Monitor, t: "Monitoreo en vivo", d: "Centro de Control con WebSockets muestra la flotilla, telemetría y estado de cada conductor en tiempo real." },
+  { key: "featureGeofence", icon: MapPin, t: "Geocercas de riesgo", d: "Zonas peligrosas (curvas, túneles, escolares) activan modo Precaución y cronometran el tiempo exacto en la zona." },
+  { key: "featureBlackbox", icon: Database, t: "Caja Negra del Casco", d: "Almacena telemetría IMU local y la envía en ráfaga al recuperar la señal en zonas muertas, sin perder datos." },
 ];
 
 function CrashLogo({ className = "h-9 w-9" }) {
@@ -181,12 +188,13 @@ function Counter({ to, prefix = "", suffix = "", decimals = 0, duration = 1600 }
 /* ── Interactive impact simulator (innovative tool) ──────────── */
 function ImpactSimulator() {
   const [g, setG] = useState(2);
+  const { t } = useI18n();
   const tiers = [
-    { min: 0, max: 3, key: "none", label: "Sin impacto", color: "text-zinc-400", hex: "#71717a", ai: "Sin fuerza significativa. El sistema permanece en modo vigilancia." },
-    { min: 3, max: 6, key: "mild", label: "Leve", color: "text-emerald-400", hex: "#10b981", ai: "Golpe leve detectado. Se registra en la caja negra; sin alerta automática." },
-    { min: 6, max: 10, key: "moderate", label: "Moderado", color: "text-amber-400", hex: "#f59e0b", ai: "Impacto moderado. Se notifica al conductor y se inicia cuenta regresiva de confirmación." },
-    { min: 10, max: 15, key: "severe", label: "Severo", color: "text-orange-400", hex: "#fb923c", ai: "Triaje IA: posible traumatismo. Alerta a contactos y centro de control en 8s." },
-    { min: 15, max: 99, key: "critical", label: "Crítico", color: "text-red-500", hex: "#ef4444", ai: "Colisión crítica. Despliegue inmediato de emergencia con GPS y diagnóstico IA." },
+    { min: 0, max: 3, key: "none", label: t("landing.tierNone", "Sin impacto"), color: "text-zinc-400", hex: "#71717a", ai: t("landing.tierNoneAi", "Sin fuerza significativa. El sistema permanece en modo vigilancia.") },
+    { min: 3, max: 6, key: "mild", label: t("landing.tierMild", "Leve"), color: "text-emerald-400", hex: "#10b981", ai: t("landing.tierMildAi", "Golpe leve detectado. Se registra en la caja negra; sin alerta automática.") },
+    { min: 6, max: 10, key: "moderate", label: t("landing.tierModerate", "Moderado"), color: "text-amber-400", hex: "#f59e0b", ai: t("landing.tierModerateAi", "Impacto moderado. Se notifica al conductor y se inicia cuenta regresiva de confirmación.") },
+    { min: 10, max: 15, key: "severe", label: t("landing.tierSevere", "Severo"), color: "text-orange-400", hex: "#fb923c", ai: t("landing.tierSevereAi", "Triaje IA: posible traumatismo. Alerta a contactos y centro de control en 8s.") },
+    { min: 15, max: 99, key: "critical", label: t("landing.tierCritical", "Crítico"), color: "text-red-500", hex: "#ef4444", ai: t("landing.tierCriticalAi", "Colisión crítica. Despliegue inmediato de emergencia con GPS y diagnóstico IA.") },
   ];
   const tier = tiers.find((t) => g >= t.min && g < t.max) || tiers[tiers.length - 1];
   const pct = Math.min(100, (g / 20) * 100);
@@ -199,12 +207,11 @@ function ImpactSimulator() {
       <div className="relative grid lg:grid-cols-2 gap-8 items-center">
         <div>
           <div className="inline-flex items-center gap-2 text-red-400 text-xs font-mono uppercase tracking-[0.2em] mb-4">
-            <Radar size={16} className="animate-spin-slow" /> Demostración interactiva
+            <Radar size={16} className="animate-spin-slow" /> {t("landing.demoInteractive", "Demostración interactiva")}
           </div>
-          <h3 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">Simulador de Impacto en vivo</h3>
+          <h3 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">{t("landing.impactSimTitle", "Simulador de Impacto en vivo")}</h3>
           <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-            Arrastra para simular la fuerza-G de un impacto. La IA de C.R.A.S.H. clasifica la gravedad,
-            estima la probabilidad de lesión y define el protocolo de respuesta en milisegundos.
+            {t("landing.impactSimPara", "Arrastra para simular la fuerza-G de un impacto. La IA de C.R.A.S.H. clasifica la gravedad, estima la probabilidad de lesión y define el protocolo de respuesta en milisegundos.")}
           </p>
 
           <div className="flex items-center gap-4 mb-3">
@@ -213,7 +220,7 @@ function ImpactSimulator() {
               type="range" min={0} max={20} step={0.5} value={g}
               onChange={(e) => setG(parseFloat(e.target.value))}
               className="w-full accent-red-500 h-2 rounded-full bg-white/10 appearance-none cursor-pointer"
-              aria-label="Fuerza G del impacto"
+              aria-label={t("landing.impactGLabel", "Fuerza G del impacto")}
             />
           </div>
           <div className="flex items-end justify-between mb-6">
@@ -230,11 +237,11 @@ function ImpactSimulator() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-[11px] uppercase tracking-wider text-zinc-500">Prob. de lesión</div>
+              <div className="text-[11px] uppercase tracking-wider text-zinc-500">{t("landing.probLesion", "Prob. de lesión")}</div>
               <div className="font-mono font-bold text-lg" style={{ color: tier.hex }}>{lesionPct}%</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="text-[11px] uppercase tracking-wider text-zinc-500">Respuesta estimada</div>
+              <div className="text-[11px] uppercase tracking-wider text-zinc-500">{t("landing.respEstimate", "Respuesta estimada")}</div>
               <div className="font-mono font-bold text-lg">{etaMin}s</div>
             </div>
           </div>
@@ -266,10 +273,15 @@ function Landing() {
   const [audience, setAudience] = useState("b2c");
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [appVersion, setAppVersion] = useState(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     (async () => {
       try { const { data } = await api.get("/plans"); setPlans(data || []); } catch { setPlans([]); }
+    })();
+    (async () => {
+      try { const { data } = await api.get("/versions/latest", { params: { platform: "android" } }); if (data?.download_url) setAppVersion(data); } catch {}
     })();
   }, []);
 
@@ -297,10 +309,10 @@ function Landing() {
   };
 
   const labelOf = (item) => {
-    if (item.kind === "device") return `Kit C.R.A.S.H. (${item.audience === "b2b" ? "Empresa" : "Usuario"})`;
-    if (item.kind === "b2csub") return `Suscripción App (${item.cycle})`;
-    if (item.kind === "plan") return `Plan ${item.planName} (${item.cycle})`;
-    return item.name || "Producto";
+    if (item.kind === "device") return t(item.audience === "b2b" ? "landing.cartKitB2b" : "landing.cartKitB2c", item.audience === "b2b" ? "Kit C.R.A.S.H. (Empresa)" : "Kit C.R.A.S.H. (Usuario)");
+    if (item.kind === "b2csub") return t("landing.cartSubApp", "Suscripción App ({c})").replace("{c}", t(`landing.cycle${item.cycle}`, item.cycle));
+    if (item.kind === "plan") return t("landing.cartPlan", "Plan {p} ({c})").replace("{p}", item.planName).replace("{c}", t(`landing.cycle${item.cycle}`, item.cycle));
+    return item.name || t("landing.cartProduct", "Producto");
   };
 
   const addItems = (items) => {
@@ -316,9 +328,9 @@ function Landing() {
   const total = cart.reduce((s, i) => s + priceOfItem(i), 0);
 
   const buildMessage = () => {
-    let msg = "Hola, quiero contratar C.R.A.S.H.:%0A%0A";
+    let msg = t("landing.cartMsg", "Hola, quiero contratar C.R.A.S.H.:") + "%0A%0A";
     cart.forEach((i) => { msg += `• ${labelOf(i)}: ${mx(priceOfItem(i)).replace(/ /g, "%20")}%0A`; });
-    msg += `%0ATOTAL: ${mx(total).replace(/ /g, "%20")}`;
+    msg += `%0A${t("landing.cartTotalMsg", "TOTAL:")} ${mx(total).replace(/ /g, "%20")}`;
     return msg;
   };
   const orderWhatsApp = () => {
@@ -328,10 +340,19 @@ function Landing() {
   const orderEmail = () => {
     if (!cart.length) return;
     const body = buildMessage().replace(/%0A/g, "\n").replace(/%20/g, " ");
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Pedido C.R.A.S.H.")}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(t("landing.cartOrderSubject", "Pedido C.R.A.S.H."))}&body=${encodeURIComponent(body)}`;
   };
 
-  const TRUST = ["IA de Triaje", "WhatsApp Business", "WebSockets en vivo", "Caja Negra IMU", "Geocercas", "NOM-115", "ISO 45001", "Modo Offline"];
+  const TRUST = [
+    { key: "trustAI", label: "IA de Triaje" },
+    { key: "trustWhatsapp", label: "WhatsApp Business" },
+    { key: "trustWebsockets", label: "WebSockets en vivo" },
+    { key: "trustBlackbox", label: "Caja Negra IMU" },
+    { key: "trustGeofence", label: "Geocercas" },
+    { key: "trustNom115", label: "NOM-115" },
+    { key: "trustIso", label: "ISO 45001" },
+    { key: "trustOffline", label: "Modo Offline" },
+  ];
 
   return (
     <div className="page-enter bg-[#050505] text-white min-h-screen relative">
@@ -348,11 +369,11 @@ function Landing() {
               <Brand />
             </Link>
             <div className="flex items-center gap-4">
-              <a href="#planes" className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors font-medium">Planes</a>
+              <a href="#planes" className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors font-medium">{t("landing.navPlanes", "Planes")}</a>
               <button
                 onClick={() => setCartOpen(true)}
                 className="relative p-2 text-zinc-300 hover:text-white transition-colors"
-                aria-label="Abrir carrito"
+                aria-label={t("landing.cartOpenAria", "Abrir carrito")}
               >
                 <ShoppingCart size={20} />
                 {cart.length > 0 && (
@@ -365,7 +386,7 @@ function Landing() {
                 to="/login"
                 className="text-sm bg-white text-black font-bold px-4 py-2 rounded-xl hover:bg-zinc-200 transition-all hover:-translate-y-0.5 shadow-lg shadow-white/10"
               >
-                Acceso monitoristas
+                {t("landing.navAccess", "Acceso monitoristas")}
               </Link>
             </div>
           </div>
@@ -374,28 +395,33 @@ function Landing() {
         {/* HERO */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
-            <img src={HERO} alt="Motociclista de noche" className="w-full h-full object-cover" />
+            <img src={HERO} alt={t("landing.heroAlt", "Motociclista de noche")} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/78" />
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 40%,#050505)" }} />
           </div>
           <div className="relative max-w-6xl mx-auto px-4 py-20 sm:py-28 lg:py-40">
             <div className="inline-flex items-center gap-2 border border-white/15 rounded-full px-3.5 py-1.5 text-xs font-mono text-zinc-300 mb-6 fade-up">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-safe" />
-              Ecosistema de cascos · Monitoreo en vivo
+              {t("landing.heroBadge", "Ecosistema de cascos · Monitoreo en vivo")}
             </div>
             <h1 className="font-bold font-mono text-4xl sm:text-5xl lg:text-6xl tracking-tight max-w-3xl leading-[1.05] fade-up" style={{ animationDelay: "0.1s" }}>
-              Alerta crítica que <span className="text-gradient font-bold">previene</span> y responde al accidente en tiempo real.
+              {t("landing.heroTitle", "Alerta crítica que previene y responde al accidente en tiempo real.")}
             </h1>
             <p className="text-zinc-300 text-base md:text-lg mt-6 max-w-xl fade-up" style={{ animationDelay: "0.2s" }}>
-              C.R.A.S.H. (Critical Response Alert System for Helmets) detecta impactos en el casco, analiza la gravedad con IA y alerta de inmediato con ubicación a tus contactos y al centro de monitoreo.
+              {t("landing.heroSub", "C.R.A.S.H. (Critical Response Alert System for Helmets) detecta impactos en el casco, analiza la gravedad con IA y alerta de inmediato con ubicación a tus contactos y al centro de monitoreo.")}
             </p>
             <div className="flex flex-wrap gap-3 mt-8 fade-up" style={{ animationDelay: "0.3s" }}>
               <a href="#planes" className="bg-white text-black font-bold px-6 py-3 rounded-xl hover:bg-zinc-200 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 flex items-center gap-2 shadow-lg shadow-white/10">
-                Ver planes <ArrowRight size={18} />
+                {t("landing.heroCtaPlans", "Ver planes")} <ArrowRight size={18} />
               </a>
               <Link to="/login" className="border border-white/20 hover:border-white/50 font-bold px-6 py-3 rounded-xl transition-all">
-                Centro de control
+                {t("landing.heroCtaControl", "Centro de control")}
               </Link>
+              {appVersion && (
+                <a href={appVersion.download_url} target="_blank" rel="noreferrer" className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-3 rounded-xl hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                  <Download size={18} /> {t("landing.heroDownload", "Descargar app")} <span className="font-mono text-xs opacity-70">v{appVersion.version}</span>
+                </a>
+              )}
             </div>
 
             <div className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl fade-up" style={{ animationDelay: "0.4s" }}>
@@ -404,10 +430,10 @@ function Landing() {
                 { icon: Zap, v: 99, suffix: "%", l: "Precisión IA" },
                 { icon: Users, v: 386000, l: "Usuarios moto" },
                 { icon: ShieldAlert, v: 61869, l: "Accidentes/año" },
-              ].map((s) => (
+              ].map((s, i) => (
                 <div key={s.l} className="rounded-xl border border-white/10 bg-white/[0.04] backdrop-blur-sm px-4 py-3">
                   <div className="font-mono font-bold text-2xl"><Counter to={s.v} suffix={s.suffix || ""} /></div>
-                  <div className="text-[11px] text-zinc-500 mt-0.5 uppercase tracking-wide">{s.l}</div>
+                  <div className="text-[11px] text-zinc-500 mt-0.5 uppercase tracking-wide">{t(`landing.stat${i}`, s.l)}</div>
                 </div>
               ))}
             </div>
@@ -420,9 +446,9 @@ function Landing() {
         {/* MARQUEE */}
         <div className="marquee-mask overflow-hidden border-y border-white/[0.04] py-4 bg-white/[0.015]">
           <div className="marquee-track">
-            {[...TRUST, ...TRUST].map((t, i) => (
+            {[...TRUST, ...TRUST].map((it, i) => (
               <span key={i} className="inline-flex items-center gap-2 px-6 text-sm text-zinc-500 font-mono uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" /> {t}
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70" /> {t(`landing.${it.key}`, it.label)}
               </span>
             ))}
           </div>
@@ -430,18 +456,18 @@ function Landing() {
 
         <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <Reveal>
-            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Los 3 componentes</div>
-            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">Un ecosistema sincronizado</h2>
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrow3Components", "Los 3 componentes")}</div>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">{t("landing.titleEcosystem", "Un ecosistema sincronizado")}</h2>
           </Reveal>
           <div className="grid md:grid-cols-3 gap-5">
             {HERO_SUB.map((c, i) => (
-              <Reveal key={c.t} delay={(i % 3) + 1} className="card-premium p-8 hover-lift" style={{ borderRadius: 20 }}>
+              <Reveal key={c.key} delay={(i % 3) + 1} className="card-premium p-8 hover-lift" style={{ borderRadius: 20 }}>
                 <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-5">
                   <c.icon size={26} className="text-white" />
                 </div>
-                <div className="font-bold font-mono text-lg">{c.t}</div>
-                <div className="text-red-500 text-xs font-mono uppercase tracking-wider mb-3 mt-1">{c.s}</div>
-                <p className="text-zinc-400 text-sm leading-relaxed">{c.d}</p>
+                <div className="font-bold font-mono text-lg">{t(`landing.${c.key}`, c.t)}</div>
+                <div className="text-red-500 text-xs font-mono uppercase tracking-wider mb-3 mt-1">{t(`landing.${c.key}Sub`, c.s)}</div>
+                <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${c.key}Desc`, c.d)}</p>
               </Reveal>
             ))}
           </div>
@@ -449,17 +475,17 @@ function Landing() {
 
         <section className="max-w-6xl mx-auto px-4 py-10">
           <Reveal>
-            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Características</div>
-            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">Protección en cada kilómetro</h2>
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowFeatures", "Características")}</div>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-10">{t("landing.titleProtection", "Protección en cada kilómetro")}</h2>
           </Reveal>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((f, i) => (
-              <Reveal key={f.t} delay={(i % 3) + 1} className="card-premium p-6 hover-lift" style={{ borderRadius: 16 }}>
+              <Reveal key={f.key} delay={(i % 3) + 1} className="card-premium p-6 hover-lift" style={{ borderRadius: 16 }}>
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
                   <f.icon size={22} className="text-emerald-400" />
                 </div>
-                <div className="font-bold mb-1.5 text-[15px]">{f.t}</div>
-                <p className="text-zinc-400 text-sm leading-relaxed">{f.d}</p>
+                <div className="font-bold mb-1.5 text-[15px]">{t(`landing.${f.key}`, f.t)}</div>
+                <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${f.key}Desc`, f.d)}</p>
               </Reveal>
             ))}
           </div>
@@ -467,8 +493,8 @@ function Landing() {
 
         {/* INNOVATIVE TOOL: impact simulator */}
         <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
-          <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Inteligencia Artificial</Reveal>
-          <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Prueba el cerebro de C.R.A.S.H.</Reveal>
+          <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowAI", "Inteligencia Artificial")}</Reveal>
+          <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">{t("landing.titleBrain", "Prueba el cerebro de C.R.A.S.H.")}</Reveal>
           <Reveal delay={2}>
             <ImpactSimulator />
           </Reveal>
@@ -479,23 +505,23 @@ function Landing() {
             <Network size={160} className="absolute -right-8 -bottom-8 text-emerald-500/10" />
             <div className="relative">
               <div className="inline-flex items-center gap-2 text-emerald-400 text-xs font-mono uppercase tracking-[0.2em] mb-4">
-                <Network size={16} /> Factor Ciudad
+                <Network size={16} /> {t("landing.eyebrowCityFactor", "Factor Ciudad")}
               </div>
-              <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight max-w-2xl">Módulo de Geocercas de Riesgo</h2>
+              <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight max-w-2xl">{t("landing.titleGeofence", "Módulo de Geocercas de Riesgo")}</h2>
               <p className="text-zinc-400 mt-4 max-w-2xl leading-relaxed">
-                Al entrar a zonas de alto riesgo (curvas peligrosas, túneles o escolares), se activa una geocerca de <b className="text-white">Precaución</b>: cronometra el tiempo exacto en la zona, pausa alertas por detención y mide la fuerza-G para anticipar caídas.
+                {t("landing.geoParaA", "Al entrar a zonas de alto riesgo (curvas peligrosas, túneles o escolares), se activa una geocerca de ")}<b className="text-white">{t("landing.geoModeCaution", "Precaución")}</b>{t("landing.geoParaB", ": cronometra el tiempo exacto en la zona, pausa alertas por detención y mide la fuerza-G para anticipar caídas.")}
               </p>
               <div className="flex flex-wrap gap-6 mt-6">
                 {[
                   { icon: MapPin, label: "Geocercas", value: "Curvas, túneles, escolares" },
                   { icon: History, label: "Monitoreo", value: "Tiempo exacto en zona" },
                   { icon: Signal, label: "Alertas", value: "Pausa automática" },
-                ].map((s) => (
+                ].map((s, i) => (
                   <div key={s.label} className="flex items-center gap-3 text-sm">
                     <s.icon size={18} className="text-emerald-400" />
                     <div>
-                      <div className="text-zinc-500 text-xs">{s.label}</div>
-                      <div className="text-white font-semibold">{s.value}</div>
+                      <div className="text-zinc-500 text-xs">{t(`landing.geoLabel${i}`, s.label)}</div>
+                      <div className="text-white font-semibold">{t(`landing.geoVal${i}`, s.value)}</div>
                     </div>
                   </div>
                 ))}
@@ -505,8 +531,8 @@ function Landing() {
         </section>
 
         <section className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
-          <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Demo en vivo</Reveal>
-          <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">Vélo en acción</Reveal>
+          <Reveal className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowDemo", "Demo en vivo")}</Reveal>
+          <Reveal delay={1} className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">{t("landing.titleAction", "Vélo en acción")}</Reveal>
           <Reveal delay={2} className="relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video card-premium" style={{ borderRadius: 20 }}>
             <video
               className="w-full h-full object-cover"
@@ -520,7 +546,7 @@ function Landing() {
               poster={HERO}
               src="/videos/CrashVideo.mp4"
             >
-              Tu navegador no soporta el elemento de video.
+              {t("landing.videoFallback", "Tu navegador no soporta el elemento de video.")}
             </video>
           </Reveal>
         </section>
@@ -529,49 +555,49 @@ function Landing() {
           <Reveal className="card-premium p-8 lg:p-12 relative overflow-hidden" style={{ borderRadius: 20 }}>
             <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-red-500/10 blur-[100px]" />
             <div className="relative">
-              <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">El Proyecto C.R.A.S.H.</div>
-              <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-3">Memoria del proyecto · InnovaTecNM 2026</h2>
-              <p className="text-zinc-400 text-sm leading-relaxed mb-6">{PROJECT_META.descripcion}</p>
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">{t("landing.eyebrowProject", "El Proyecto C.R.A.S.H.")}</div>
+              <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-3">{t("landing.titleMemory", "Memoria del proyecto · InnovaTecNM 2026")}</h2>
+              <p className="text-zinc-400 text-sm leading-relaxed mb-6">{t("landing.projDesc", PROJECT_META.descripcion)}</p>
               <div className="grid sm:grid-cols-2 gap-3 text-sm mb-8">
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Evento</div><div className="font-medium">{PROJECT_META.evento}</div></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Sede</div><div className="font-medium">{PROJECT_META.sede}</div></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Folio · Categoría</div><div className="font-medium">{PROJECT_META.folio} · {PROJECT_META.categoria}</div></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">Área</div><div className="font-medium">{PROJECT_META.area}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelEvento", "Evento")}</div><div className="font-medium">{t("landing.projEvento", PROJECT_META.evento)}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelSede", "Sede")}</div><div className="font-medium">{t("landing.projSede", PROJECT_META.sede)}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelFolioCat", "Folio · Categoría")}</div><div className="font-medium">{PROJECT_META.folio} · {t("landing.projCategoria", PROJECT_META.categoria)}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelArea", "Área")}</div><div className="font-medium">{t("landing.projArea", PROJECT_META.area)}</div></div>
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Problemática</div>
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowProblem", "Problemática")}</div>
               <div className="grid md:grid-cols-3 gap-4 mb-8">
                 {PROBLEMS.map((p) => (
-                  <div key={p.t} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-                    <div className="font-bold text-[15px] mb-1.5 text-red-300">{p.t}</div>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{p.d}</p>
+                  <div key={p.key} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                    <div className="font-bold text-[15px] mb-1.5 text-red-300">{t(`landing.${p.key}`, p.t)}</div>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${p.key}Desc`, p.d)}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Propuesta de valor</div>
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowValue", "Propuesta de valor")}</div>
               <div className="grid md:grid-cols-3 gap-4 mb-8">
                 {VALUE.map((v) => (
-                  <div key={v.t} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-                    <div className="font-bold text-[15px] mb-1.5 text-emerald-300">{v.t}</div>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{v.d}</p>
+                  <div key={v.key} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                    <div className="font-bold text-[15px] mb-1.5 text-emerald-300">{t(`landing.${v.key}`, v.t)}</div>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${v.key}Desc`, v.d)}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Arquitectura técnica</div>
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowArch", "Arquitectura técnica")}</div>
               <div className="grid md:grid-cols-2 gap-4 mb-8">
                 {ARCH.map((a) => (
-                  <div key={a.t} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-                    <div className="font-bold text-[15px] mb-1.5">{a.t}</div>
-                    <p className="text-zinc-400 text-sm leading-relaxed">{a.d}</p>
+                  <div key={a.key} className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                    <div className="font-bold text-[15px] mb-1.5">{t(`landing.${a.key}`, a.t)}</div>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${a.key}Desc`, a.d)}</p>
                   </div>
                 ))}
               </div>
 
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Equipo · Autores</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowTeam", "Equipo · Autores")}</div>
                   <ul className="space-y-2 text-sm text-zinc-300">
                     {TEAM.map((m) => (
                       <li key={m} className="flex items-start gap-2"><Users size={14} className="text-emerald-400 mt-1 shrink-0" /><span>{m}</span></li>
@@ -579,16 +605,16 @@ function Landing() {
                   </ul>
                 </div>
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Asesores</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowAdvisors", "Asesores")}</div>
                   <ul className="space-y-2 text-sm text-zinc-300 mb-6">
                     {ADVISORS.map((a) => (
                       <li key={a} className="flex items-start gap-2"><Building2 size={14} className="text-red-400 mt-1 shrink-0" /><span>{a}</span></li>
                     ))}
                   </ul>
-                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Normatividad aplicable</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowNorms", "Normatividad aplicable")}</div>
                   <div className="space-y-2">
                     {NORMS.map((n) => (
-                      <div key={n.c} className="text-sm"><span className="font-mono font-bold text-white">{n.c}</span><span className="text-zinc-400"> — {n.d}</span></div>
+                      <div key={n.c} className="text-sm"><span className="font-mono font-bold text-white">{n.c}</span><span className="text-zinc-400"> — {t(`landing.${n.key}`, n.d)}</span></div>
                     ))}
                   </div>
                 </div>
@@ -599,11 +625,10 @@ function Landing() {
 
         <section id="planes" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <Reveal>
-            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">Suscripciones</div>
-            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">Planes y precios</h2>
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowSubs", "Suscripciones")}</div>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">{t("landing.titlePlans", "Planes y precios")}</h2>
             <p className="text-zinc-400 mb-6 text-sm max-w-2xl">
-              El precio a empresas (B2B) es superior al del usuario final (B2C) porque incluye dashboard corporativo,
-              telemetría de flotilla e instalación. Elige tu perfil para ver precios en MXN.
+              {t("landing.planesIntro", "El precio a empresas (B2B) es superior al del usuario final (B2C) porque incluye dashboard corporativo, telemetría de flotilla e instalación. Elige tu perfil para ver precios en MXN.")}
             </p>
           </Reveal>
 
@@ -612,21 +637,21 @@ function Landing() {
               onClick={() => setAudience("b2c")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${audience === "b2c" ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
             >
-              <Users size={15} /> Usuario (B2C)
+              <Users size={15} /> {t("landing.audienceB2c", "Usuario (B2C)")}
             </button>
             <button
               onClick={() => setAudience("b2b")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${audience === "b2b" ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
             >
-              <Building2 size={15} /> Empresa (B2B)
+              <Building2 size={15} /> {t("landing.audienceB2b", "Empresa (B2B)")}
             </button>
           </div>
 
           {audience === "b2c" ? (
             <div className="grid md:grid-cols-2 gap-5">
               <div className="card-premium p-6 flex flex-col hover-lift" style={{ borderRadius: 20 }}>
-                <div className="font-bold font-mono text-2xl">Plan Personal</div>
-                <div className="text-zinc-500 text-sm mt-1">Protección para motociclistas particulares y repartidores independientes.</div>
+                <div className="font-bold font-mono text-2xl">{t("landing.planPersonal", "Plan Personal")}</div>
+                <div className="text-zinc-500 text-sm mt-1">{t("landing.planPersonalDesc", "Protección para motociclistas particulares y repartidores independientes.")}</div>
                 <div className="mt-6 flex items-end gap-2">
                   <span className="font-mono font-bold text-4xl">{mx(subB2C)}</span>
                   <span className="text-zinc-500 text-sm mb-1 font-mono">/ {cycle.toLowerCase()}</span>
@@ -638,9 +663,9 @@ function Landing() {
                     "Historial de telemetría",
                     "App móvil C.R.A.S.H.",
                     "Dispositivo con 46% de margen",
-                  ].map((f) => (
+                  ].map((f, i) => (
                     <li key={f} className="flex items-center gap-2.5 text-zinc-300">
-                      <Check size={15} className="text-emerald-400 shrink-0" /> {f}
+                      <Check size={15} className="text-emerald-400 shrink-0" /> {t(`landing.b2cFeat${i + 1}`, f)}
                     </li>
                   ))}
                 </ul>
@@ -649,34 +674,33 @@ function Landing() {
                     onClick={() => addItems([{ key: `b2c-device`, kind: "device", audience: "b2c" }])}
                     className="border border-white/15 hover:border-white/40 font-bold py-3 rounded-xl transition-all hover:bg-white/5 text-sm"
                   >
-                    Dispositivo {mx(deviceB2C)}
+                    {t("landing.btnDevice", "Dispositivo")} {mx(deviceB2C)}
                   </button>
                   <button
                     onClick={() => addItems([{ key: `b2c-sub-${cycle}`, kind: "b2csub", cycle }])}
                     className="bg-white text-black font-bold py-3 rounded-xl transition-all hover:bg-zinc-200 text-sm"
                   >
-                    Suscripción
+                    {t("landing.btnSubscription", "Suscripción")}
                   </button>
                 </div>
               </div>
 
               <div className="card-premium p-6 flex flex-col justify-center hover-lift" style={{ borderRadius: 20 }}>
-                <div className="text-emerald-400 text-xs font-mono uppercase tracking-[0.2em] mb-3">¿Por qué C.R.A.S.H.?</div>
+                <div className="text-emerald-400 text-xs font-mono uppercase tracking-[0.2em] mb-3">{t("landing.whyCrash", "¿Por qué C.R.A.S.H.?")}</div>
                 <p className="text-zinc-300 text-sm leading-relaxed mb-4">
-                  En 2024 se registraron <b className="text-white">61,869</b> accidentes con motocicleta en México.
-                  Más de <b className="text-white">386 mil</b> personas usan la moto como herramienta de trabajo.
+                  {t("landing.whyPara", "En 2024 se registraron 61,869 accidentes con motocicleta en México. Más de 386 mil personas usan la moto como herramienta de trabajo.")}
                 </p>
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                    <span className="text-zinc-500">Dispositivo (B2C)</span>
+                    <span className="text-zinc-500">{t("landing.priceDeviceB2c", "Dispositivo (B2C)")}</span>
                     <span className="font-mono font-bold">{mx(deviceB2C)}</span>
                   </div>
                   <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                    <span className="text-zinc-500">Suscripción / mes</span>
+                    <span className="text-zinc-500">{t("landing.priceSubMonth", "Suscripción / mes")}</span>
                     <span className="font-mono font-bold">{mx(subB2C)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-zinc-500">Costo de producción</span>
+                    <span className="text-zinc-500">{t("landing.priceProduction", "Costo de producción")}</span>
                     <span className="font-mono font-bold text-emerald-400">$800 MXN</span>
                   </div>
                 </div>
@@ -687,11 +711,11 @@ function Landing() {
               <div className="inline-flex flex-wrap gap-1 border border-white/10 rounded-xl p-1 mb-8 bg-white/[0.02]">
                 {CYCLES.map((c) => (
                   <button
-                    key={c}
-                    onClick={() => setCycle(c)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${cycle === c ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
+                    key={c.key}
+                    onClick={() => setCycle(c.label)}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${cycle === c.label ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
                   >
-                    {c}
+                    {t(`landing.${c.key}`, c.label)}
                   </button>
                 ))}
               </div>
@@ -705,36 +729,36 @@ function Landing() {
                   >
                     {p.popular && (
                       <div className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400 mb-3 bg-emerald-500/10 px-2.5 py-1 rounded-full self-start">
-                        <Check size={10} /> Más popular
+                        <Check size={10} /> {t("landing.popular", "Más popular")}
                       </div>
                     )}
                     <div className="font-bold font-mono text-2xl">{p.name}</div>
-                    <div className="text-zinc-500 text-sm mt-1">Hasta {p.max_drivers} repartidores · {p.max_monitors} monitores</div>
+                    <div className="text-zinc-500 text-sm mt-1">{t("landing.planDrivers", "Hasta {d} repartidores · {m} monitores").replace("{d}", p.max_drivers).replace("{m}", p.max_monitors)}</div>
                     <div className="mt-6 flex items-end gap-2">
                       <span className="font-mono font-bold text-4xl">{mx(Math.round((p.price || 0) * (CYCLE_MULT[cycle] || 1)))}</span>
-                      <span className="text-zinc-500 text-sm mb-1 font-mono">/ {cycle.toLowerCase()}</span>
+                      <span className="text-zinc-500 text-sm mb-1 font-mono">{t(`landing.cycleSlash${cycle}`, `/ ${cycle.toLowerCase()}`)}</span>
                     </div>
-                    <div className="text-[11px] text-zinc-500 mt-1">Incluye SaaS a {mx(subB2BPerDriver)} por repartidor/mes</div>
+                    <div className="text-[11px] text-zinc-500 mt-1">{t("landing.planIncludesSaas", "Incluye SaaS a {amt} por repartidor/mes").replace("{amt}", mx(subB2BPerDriver))}</div>
                     <ul className="mt-6 space-y-3 text-sm flex-1">
-                      {(p.features && p.features.length ? p.features : ["Monitoreo en tiempo real", "Alertas de impacto", "Historial de telemetría", "Soporte"]).map((f) => (
-                        <li key={f} className="flex items-center gap-2.5 text-zinc-300">
-                          <Check size={15} className="text-emerald-400 shrink-0" />
-                          {f}
-                        </li>
-                      ))}
+                       {(p.features && p.features.length ? p.features : ["Monitoreo en tiempo real", "Alertas de impacto", "Historial de telemetría", "Soporte"]).map((f, i) => (
+                         <li key={f} className="flex items-center gap-2.5 text-zinc-300">
+                           <Check size={15} className="text-emerald-400 shrink-0" />
+                           {p.features && p.features.length ? f : t(`landing.b2bDefFeat${i}`, f)}
+                         </li>
+                       ))}
                     </ul>
                     <div className="grid grid-cols-2 gap-2 mt-6">
                       <button
                         onClick={() => addItems([{ key: `b2b-device`, kind: "device", audience: "b2b" }])}
                         className="border border-white/15 hover:border-white/40 font-bold py-3 rounded-xl transition-all hover:bg-white/5 text-sm"
                       >
-                        Disp. {mx(deviceB2B)}
+                         {t("landing.btnDisp", "Disp.")} {mx(deviceB2B)}
                       </button>
                       <button
                         onClick={() => addItems([{ key: `plan-${p.name}-b2b-${cycle}`, kind: "plan", planName: p.name, cycle }])}
                         className={`font-bold py-3 rounded-xl transition-all text-sm ${p.popular ? "bg-white text-black hover:bg-zinc-200 shadow-lg shadow-white/10" : "border border-white/15 hover:border-white/40 hover:bg-white/5"}`}
                       >
-                        Suscripción
+                    {t("landing.btnSubscription", "Suscripción")}
                       </button>
                     </div>
                   </div>
@@ -744,9 +768,7 @@ function Landing() {
           )}
 
           <p className="text-xs text-zinc-600 mt-8 leading-relaxed max-w-2xl">
-            El precio B2B (empresa) es superior al B2C porque suma instalación, soporte, dashboard corporativo con
-            telemetría de flotilla y prevención de accidentes laborales. Las empresas acceden a un Centro de Control
-            que reduce primas de seguro y responsabilidad civil.
+            {t("landing.plansFooter", "El precio B2B (empresa) es superior al B2C porque suma instalación, soporte, dashboard corporativo con telemetría de flotilla y prevención de accidentes laborales. Las empresas acceden a un Centro de Control que reduce primas de seguro y responsabilidad civil.")}
           </p>
         </section>
 
@@ -756,7 +778,7 @@ function Landing() {
               <Brand compact />
             </div>
             <p className="text-zinc-600 text-sm font-mono">
-              Critical Response Alert System for Helmets · Hecho en México
+              {t("landing.footerTag", "Critical Response Alert System for Helmets · Hecho en México")}
             </p>
           </div>
         </footer>
@@ -768,9 +790,9 @@ function Landing() {
           <div className="relative w-full max-w-md max-h-[85vh] bg-[#0a0a0a] border border-white/[0.08] rounded-2xl flex flex-col shadow-[0_30px_80px_rgba(0,0,0,0.6)] animate-scale-in overflow-hidden">
             <div className="px-5 h-16 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
               <span className="font-bold font-mono flex items-center gap-2 text-base">
-                <ShoppingCart size={18} /> Carrito {cart.length > 0 && <span className="text-xs text-zinc-500">({cart.length})</span>}
+                <ShoppingCart size={18} /> {t("landing.cartTitle", "Carrito")} {cart.length > 0 && <span className="text-xs text-zinc-500">({cart.length})</span>}
               </span>
-              <button onClick={() => setCartOpen(false)} className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/30 transition-all" aria-label="Cerrar carrito">
+              <button onClick={() => setCartOpen(false)} className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/30 transition-all" aria-label={t("landing.cartCloseAria", "Cerrar carrito")}>
                 <X size={16} />
               </button>
             </div>
@@ -778,8 +800,8 @@ function Landing() {
               {cart.length === 0 && (
                 <div className="flex flex-col items-center justify-center text-center py-10 gap-3">
                   <ShoppingCart size={32} className="text-zinc-700" />
-                  <p className="text-zinc-600 text-sm">Tu carrito está vacío.</p>
-                  <p className="text-zinc-700 text-xs">Agrega un plan para comenzar.</p>
+                  <p className="text-zinc-600 text-sm">{t("landing.cartEmpty", "Tu carrito está vacío.")}</p>
+                  <p className="text-zinc-700 text-xs">{t("landing.cartAdd", "Agrega un plan para comenzar.")}</p>
                 </div>
               )}
               {cart.map((i) => (
@@ -800,18 +822,18 @@ function Landing() {
             </div>
             <div className="p-4 border-t border-white/[0.06] space-y-3 bg-black/20 flex-shrink-0">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-400 text-sm uppercase tracking-wider font-mono">Total</span>
+                <span className="text-zinc-400 text-sm uppercase tracking-wider font-mono">{t("landing.cartTotal", "Total")}</span>
                 <span className="font-mono font-bold text-2xl">{mx(total)}</span>
               </div>
               <p className="text-xs text-zinc-600 leading-relaxed">
-                Recibe la información del plan por WhatsApp o correo. La compra es simulada: al confirmar generamos tus tokens.
+                {t("landing.cartInfo", "Recibe la información del plan por WhatsApp o correo. La compra es simulada: al confirmar generamos tus tokens.")}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={orderWhatsApp} className="bg-emerald-500 text-black font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-                  <MessageCircle size={20} /> WhatsApp
+                  <MessageCircle size={20} /> {t("landing.cartWhatsapp", "WhatsApp")}
                 </button>
                 <button onClick={orderEmail} className="border border-white/15 hover:border-white/40 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/5">
-                  <Mail size={20} /> Correo
+                  <Mail size={20} /> {t("landing.cartEmail", "Correo")}
                 </button>
               </div>
             </div>
