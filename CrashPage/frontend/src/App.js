@@ -91,7 +91,32 @@ function AppContent() {
               <Suspense fallback={<LoadingFallback />}>
                 <AnimatedRoutes />
               </Suspense>
-              <Toaster theme="dark" position="top-right" richColors closeButton />
+              <Toaster
+                theme="dark"
+                position="top-center"
+                richColors
+                closeButton
+                expand
+                visibleToasts={5}
+                duration={4000}
+                toastOptions={{
+                  style: {
+                    width: "100%",
+                    maxWidth: "520px",
+                    fontSize: "14px",
+                    padding: "16px 20px",
+                    borderRadius: "12px",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                  },
+                  classNames: {
+                    toast: "border border-white/10 backdrop-blur-xl",
+                    error: "!bg-red-500/90 !border-red-400/30 !text-white",
+                    success: "!bg-emerald-500/90 !border-emerald-400/30 !text-white",
+                    title: "text-sm font-medium",
+                    description: "text-xs text-white/70",
+                  },
+                }}
+              />
             </BrowserRouter>
           </SettingsProvider>
         </AuthProvider>
