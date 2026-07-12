@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authAPI } from '../services/api';
+import * as Location from 'expo-location';
+import { authAPI, locationAPI } from '../services/api';
 
 type User = {
   id: string;
@@ -31,6 +32,21 @@ const AuthContext = createContext<AuthState>({
 });
 
 export const useAuth = () => useContext(AuthContext);
+
+async function linkPermissionLocationOnLogin(token: string) {
+  try {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') return;
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    await locationAPI.linkPermissionLocation(token, {
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      accuracy: pos.coords.accuracy ?? null,
+    });
+  } catch (e) {
+    console.warn('No se pudo vincular ubicación al iniciar sesión', e);
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
@@ -77,6 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);
+    // Vincular ubicación actual con la cuenta
+    linkPermissionLocationOnLogin(data.access_token);
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
@@ -88,6 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);
+    // Vincular ubicación actual con la cuenta
+    linkPermissionLocationOnLogin(data.access_token);
   }, []);
 
   const logout = useCallback(async () => {

@@ -22,14 +22,14 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = useCallback(async () => {
-    if (!email.trim() || !password.trim()) { setError('Completa todos los campos'); return; }
+    if (!email.trim() || !password.trim()) { setError(t('login.errorEmpty')); return; }
     setError('');
     setLoading(true);
     try {
       await login(email.trim(), password);
       router.replace('/(tabs)');
     } catch (e: any) {
-      setError(e.message || 'Error al iniciar sesión');
+      setError(e.message || t('login.errorGeneric'));
     } finally { setLoading(false); }
   }, [email, password, login, router]);
 

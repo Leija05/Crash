@@ -9,11 +9,13 @@ import { useFocusEffect } from 'expo-router';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
+import { useI18n } from '../../src/i18n';
 import { profileAPI } from '../../src/services/api';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function ProfileScreen() {
+  const { t } = useI18n();
   const { user, token } = useAuth();
   const { alert } = useAlert();
   const [loading, setLoading] = useState(true);
@@ -55,9 +57,9 @@ export default function ProfileScreen() {
         disabilities: disabilitiesText.split(',').map(s => s.trim()).filter(Boolean),
         emergency_notes: notes.trim(),
       });
-      alert({ title: 'Guardado', message: 'Tu perfil médico fue actualizado' });
+      alert({ title: t('common.save'), message: t('profile.saveSuccess') });
     } catch (e: any) {
-      alert({ title: 'Error', message: e.message });
+      alert({ title: t('common.error'), message: e.message || t('profile.saveError') });
     } finally { setSaving(false); }
   };
 
@@ -79,8 +81,8 @@ export default function ProfileScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.title}>PERFIL MÉDICO</Text>
-            <Text style={styles.subtitle}>Esta información se comparte automáticamente con emergencias.</Text>
+            <Text style={styles.title}>{t('profile.profileTitle')}</Text>
+            <Text style={styles.subtitle}>{t('profile.subtitle')}</Text>
           </View>
 
           <View style={styles.userCard}>
@@ -94,13 +96,13 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>DATOS PERSONALES</Text>
+            <Text style={styles.sectionTitle}>{t('profile.personalData')}</Text>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>NOMBRE COMPLETO</Text>
-              <TextInput testID="profile-fullname-input" style={styles.input} value={fullName} onChangeText={setFullName} placeholderTextColor={COLORS.textDim} placeholder="Tu nombre" />
+              <Text style={styles.label}>{t('profile.fullName')}</Text>
+              <TextInput testID="profile-fullname-input" style={styles.input} value={fullName} onChangeText={setFullName} placeholderTextColor={COLORS.textDim} placeholder={t('profile.fullNamePlaceholder')} />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>TIPO DE SANGRE</Text>
+              <Text style={styles.label}>{t('profile.bloodType')}</Text>
               <View style={styles.bloodGrid}>
                 {BLOOD_TYPES.map(bt => (
                   <TouchableOpacity key={bt} testID={`blood-type-${bt}`} style={[styles.bloodBtn, bloodType === bt && styles.bloodBtnActive]} onPress={() => setBloodType(bt)}>
@@ -112,22 +114,22 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>INFORMACIÓN MÉDICA</Text>
+            <Text style={styles.sectionTitle}>{t('profile.medicalInfo')}</Text>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>ALERGIAS (separadas por coma)</Text>
-              <TextInput testID="profile-allergies-input" style={styles.input} value={allergiesText} onChangeText={setAllergiesText} placeholder="Penicilina, aspirina..." placeholderTextColor={COLORS.textDim} />
+              <Text style={styles.label}>{t('profile.allergies')}</Text>
+              <TextInput testID="profile-allergies-input" style={styles.input} value={allergiesText} onChangeText={setAllergiesText} placeholder={t('profile.allergiesPlaceholder')} placeholderTextColor={COLORS.textDim} />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>CONDICIONES MÉDICAS</Text>
-              <TextInput testID="profile-conditions-input" style={styles.input} value={conditionsText} onChangeText={setConditionsText} placeholder="Diabetes, hipertensión..." placeholderTextColor={COLORS.textDim} />
+              <Text style={styles.label}>{t('profile.conditions')}</Text>
+              <TextInput testID="profile-conditions-input" style={styles.input} value={conditionsText} onChangeText={setConditionsText} placeholder={t('profile.conditionsPlaceholder')} placeholderTextColor={COLORS.textDim} />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>DISCAPACIDADES</Text>
-              <TextInput testID="profile-disabilities-input" style={styles.input} value={disabilitiesText} onChangeText={setDisabilitiesText} placeholder="Ninguna" placeholderTextColor={COLORS.textDim} />
+              <Text style={styles.label}>{t('profile.disabilities')}</Text>
+              <TextInput testID="profile-disabilities-input" style={styles.input} value={disabilitiesText} onChangeText={setDisabilitiesText} placeholder={t('profile.disabilitiesPlaceholder')} placeholderTextColor={COLORS.textDim} />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>NOTAS DE EMERGENCIA</Text>
-              <TextInput testID="profile-notes-input" style={[styles.input, styles.textArea]} value={notes} onChangeText={setNotes} placeholder="Información adicional para servicios de emergencia..." placeholderTextColor={COLORS.textDim} multiline numberOfLines={3} textAlignVertical="top" />
+              <Text style={styles.label}>{t('profile.emergencyNotes')}</Text>
+              <TextInput testID="profile-notes-input" style={[styles.input, styles.textArea]} value={notes} onChangeText={setNotes} placeholder={t('profile.notesPlaceholder')} placeholderTextColor={COLORS.textDim} multiline numberOfLines={3} textAlignVertical="top" />
             </View>
           </View>
 
@@ -135,7 +137,7 @@ export default function ProfileScreen() {
             {saving ? <ActivityIndicator color="#000" /> : (
               <>
                 <Ionicons name="save" size={16} color="#000" />
-                <Text style={styles.saveBtnText}>GUARDAR PERFIL</Text>
+                <Text style={styles.saveBtnText}>{t('profile.saveBtn')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -149,7 +151,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(204,255,0,0.01)',
+    backgroundColor: 'rgba(204,255,0,0.008)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
@@ -161,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
     padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
-    marginBottom: SPACING.md, ...SHADOWS.sm,
+    marginBottom: SPACING.md,
   },
   userAvatar: { width: 48, height: 48, borderRadius: RADIUS.md, backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)' },
   userInfo: { flex: 1 },
@@ -170,7 +172,7 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
     padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
-    marginBottom: SPACING.md, ...SHADOWS.sm,
+    marginBottom: SPACING.md,
   },
   sectionTitle: { fontSize: 10, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.md },
   inputGroup: { marginBottom: SPACING.md },
@@ -192,7 +194,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent,
     borderRadius: RADIUS.md, height: 50, alignItems: 'center', justifyContent: 'center',
-    marginTop: 4, ...SHADOWS.glow(COLORS.accent),
+    marginTop: 4,
   },
   saveBtnText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
 });

@@ -5,9 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../src/theme';
 import { useBluetooth } from '../src/context/BluetoothContext';
+import { useI18n } from '../src/i18n';
 import type { ScanDevice } from '../src/services/bluetooth';
 
 export default function DevicesScreen() {
+  const { t } = useI18n();
   const router = useRouter();
   const { startDeviceScan, connect, status, statusDetail, disconnect, connected } = useBluetooth();
   const [devices, setDevices] = useState<ScanDevice[]>([]);
@@ -37,15 +39,15 @@ export default function DevicesScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.header}>
-        <Text style={styles.title}>BUSCAR CASCO</Text>
+        <Text style={styles.title}>{t('devices.title')}</Text>
         <TouchableOpacity onPress={scan} disabled={scanning} style={styles.refreshBtn}>
           {scanning ? <ActivityIndicator color={COLORS.accent} size="small" /> : <Ionicons name="refresh" size={20} color={COLORS.accent} />}
         </TouchableOpacity>
       </View>
 
       <View style={styles.nameCard}>
-        <Text style={styles.nameLabel}>Nombre personalizado</Text>
-        <TextInput value={customName} onChangeText={setCustomName} placeholder="Mi casco CRASH" placeholderTextColor={COLORS.textDim} style={styles.nameInput} />
+        <Text style={styles.nameLabel}>{t('devices.customName')}</Text>
+        <TextInput value={customName} onChangeText={setCustomName} placeholder={t('devices.customNamePlaceholder')} placeholderTextColor={COLORS.textDim} style={styles.nameInput} />
       </View>
 
       <FlatList
@@ -67,11 +69,11 @@ export default function DevicesScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="bluetooth-outline" size={40} color={COLORS.textDim} />
-            <Text style={styles.emptyText}>No se encontraron dispositivos BLE...</Text>
+            <Text style={styles.emptyText}>{t('devices.empty')}</Text>
           </View>
         }
       />
-      <Text style={styles.footer}>Estado: {statusDetail || status}</Text>
+      <Text style={styles.footer}>{t('devices.statusLabel')}: {statusDetail || status}</Text>
     </SafeAreaView>
   );
 }
@@ -80,7 +82,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, padding: SPACING.md },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(204,255,0,0.012)',
+    backgroundColor: 'rgba(204,255,0,0.010)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md, paddingTop: SPACING.sm },
@@ -89,7 +91,7 @@ const styles = StyleSheet.create({
   nameCard: {
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
     padding: 14, borderWidth: 1, borderColor: COLORS.glassBorder,
-    marginBottom: SPACING.md, ...SHADOWS.sm,
+    marginBottom: SPACING.md,
   },
   nameLabel: { color: COLORS.textSec, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8, textTransform: 'uppercase' },
   nameInput: {
@@ -102,7 +104,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: COLORS.glassBg, padding: 14, borderRadius: RADIUS.md,
     marginBottom: 8, gap: 12, borderWidth: 1, borderColor: COLORS.glassBorder,
-    ...SHADOWS.sm,
   },
   bluetoothIcon: {
     width: 38, height: 38, borderRadius: RADIUS.sm,

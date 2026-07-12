@@ -8,10 +8,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
+import { useI18n } from '../../src/i18n';
 import { contactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
 
 export default function ContactsScreen() {
+  const { t } = useI18n();
   const { token } = useAuth();
   const { alert } = useAlert();
   const [contacts, setContacts] = useState<any[]>([]);
@@ -43,7 +45,7 @@ export default function ContactsScreen() {
       setName(''); setPhone(''); setRelationship('');
       setShowAdd(false);
     } catch (e: any) {
-      alert({ title: 'Error', message: e.message });
+      alert({ title: t('common.error'), message: e.message || t('contacts.addError') });
     } finally { setSubmitting(false); }
   };
 
@@ -53,7 +55,7 @@ export default function ContactsScreen() {
       await contactsAPI.delete(token, contactId);
       setContacts((prev) => prev.filter((c) => c.id !== contactId));
     } catch (e: any) {
-      alert({ title: 'Error', message: e.message });
+      alert({ title: t('common.error'), message: e.message || t('contacts.deleteError') });
     }
   };
 
@@ -71,7 +73,7 @@ export default function ContactsScreen() {
         <View style={styles.cardActions}>
           <View style={styles.verifiedBadge}>
             <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
-            <Text style={styles.verifiedText}>ACTIVO</Text>
+            <Text style={styles.verifiedText}>{t('contacts.active')}</Text>
           </View>
           <TouchableOpacity
             testID={`delete-contact-${item.id}-btn`}
@@ -90,8 +92,8 @@ export default function ContactsScreen() {
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.headerSection}>
         <View>
-          <Text style={styles.title}>CONTACTOS</Text>
-          <Text style={styles.subtitle}>{contacts.length} contactos activos</Text>
+          <Text style={styles.title}>{t('contacts.title')}</Text>
+          <Text style={styles.subtitle}>{contacts.length} {t('contacts.count')}</Text>
         </View>
         <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => setShowAdd(true)}>
           <Ionicons name="add" size={22} color="#000" />
@@ -110,8 +112,8 @@ export default function ContactsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name="people-outline" size={32} color={COLORS.textDim} /></View>
-              <Text style={styles.emptyText}>Sin contactos de emergencia</Text>
-              <Text style={styles.emptySubtext}>Agrega contactos que serán notificados en caso de impacto</Text>
+              <Text style={styles.emptyText}>{t('contacts.empty')}</Text>
+              <Text style={styles.emptySubtext}>{t('contacts.emptyDesc')}</Text>
             </View>
           }
         />
@@ -121,25 +123,25 @@ export default function ContactsScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Agregar Contacto</Text>
+              <Text style={styles.modalTitle}>{t('contacts.addContact')}</Text>
               <TouchableOpacity onPress={() => setShowAdd(false)} testID="close-add-modal-btn" style={styles.modalClose}>
                 <Ionicons name="close" size={20} color={COLORS.textSec} />
               </TouchableOpacity>
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>NOMBRE</Text>
-              <TextInput testID="contact-name-input" style={styles.input} value={name} onChangeText={setName} placeholder="Nombre completo" placeholderTextColor={COLORS.textDim} />
+              <Text style={styles.label}>{t('contacts.name')}</Text>
+              <TextInput testID="contact-name-input" style={styles.input} value={name} onChangeText={setName} placeholder={t('contacts.namePlaceholder')} placeholderTextColor={COLORS.textDim} />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>TELÉFONO</Text>
-              <TextInput testID="contact-phone-input" style={styles.input} value={phone} onChangeText={setPhone} placeholder="+52 55 1234 5678" placeholderTextColor={COLORS.textDim} keyboardType="phone-pad" />
+              <Text style={styles.label}>{t('contacts.phone')}</Text>
+              <TextInput testID="contact-phone-input" style={styles.input} value={phone} onChangeText={setPhone} placeholder={t('contacts.phonePlaceholder')} placeholderTextColor={COLORS.textDim} keyboardType="phone-pad" />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>RELACIÓN</Text>
-              <TextInput testID="contact-relationship-input" style={styles.input} value={relationship} onChangeText={setRelationship} placeholder="Familiar, amigo, etc." placeholderTextColor={COLORS.textDim} />
+              <Text style={styles.label}>{t('contacts.relationship')}</Text>
+              <TextInput testID="contact-relationship-input" style={styles.input} value={relationship} onChangeText={setRelationship} placeholder={t('contacts.relationshipPlaceholder')} placeholderTextColor={COLORS.textDim} />
             </View>
             <TouchableOpacity testID="submit-contact-btn" style={[styles.submitBtn, submitting && { opacity: 0.6 }]} onPress={addContact} disabled={submitting}>
-              {submitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitText}>AGREGAR CONTACTO</Text>}
+              {submitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitText}>{t('contacts.submit')}</Text>}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -152,19 +154,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(204,255,0,0.012)',
+    backgroundColor: 'rgba(204,255,0,0.010)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
   headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: 12 },
   title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
   subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
-  addBtn: { backgroundColor: COLORS.accent, width: 38, height: 38, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', ...SHADOWS.glow(COLORS.accent) },
+  addBtn: { backgroundColor: COLORS.accent, width: 38, height: 38, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
   list: { paddingHorizontal: SPACING.md, paddingBottom: 80 },
   card: {
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
     padding: 14, marginBottom: 10,
     borderWidth: 1, borderColor: COLORS.glassBorder,
-    ...SHADOWS.sm,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 38, height: 38, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: COLORS.glassBorder },
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontSize: 16, color: COLORS.text, fontWeight: '700' },
   emptySubtext: { fontSize: 12, color: COLORS.textDim, marginTop: 4, textAlign: 'center', paddingHorizontal: 40 },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.8)' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.85)' },
   modalContent: {
     backgroundColor: 'rgba(20,20,28,0.96)',
     borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
@@ -206,7 +207,6 @@ const styles = StyleSheet.create({
   submitBtn: {
     backgroundColor: COLORS.accent, borderRadius: RADIUS.md, height: 50,
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
-    ...SHADOWS.glow(COLORS.accent),
   },
   submitText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
 });

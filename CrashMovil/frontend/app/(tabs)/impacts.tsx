@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
+import { useI18n } from '../../src/i18n';
 import { impactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
 
@@ -17,6 +18,7 @@ function sevColor(s: string) {
 }
 
 export default function ImpactsScreen() {
+  const { t } = useI18n();
   const { token } = useAuth();
   const router = useRouter();
   const [impacts, setImpacts] = useState<any[]>([]);
@@ -49,14 +51,16 @@ export default function ImpactsScreen() {
       <View style={[styles.sevStrip, { backgroundColor: sevColor(item.severity) }]} />
       <View style={styles.cardBody}>
         <View style={styles.cardTopRow}>
-          <Text style={[styles.cardSeverity, { color: sevColor(item.severity) }]}>{item.severity_label || item.severity}</Text>
+          <Text style={[styles.cardSeverity, { color: sevColor(item.severity) }]}>
+            {item.severity_label || (t(`impacts.severity.${item.severity}`) || item.severity)}
+          </Text>
           <Text style={[styles.cardGForce, { color: sevColor(item.severity) }]}>{item.g_force?.toFixed(1)}<Text style={styles.cardGUnit}>G</Text></Text>
         </View>
         <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
         {item.ai_diagnosis && (
           <View style={styles.aiBadge}>
             <Ionicons name="sparkles" size={10} color={COLORS.accent} />
-            <Text style={styles.aiText}>DIAGNÓSTICO IA</Text>
+            <Text style={styles.aiText}>{t('impacts.aiDiagnosis')}</Text>
           </View>
         )}
       </View>
@@ -71,8 +75,8 @@ export default function ImpactsScreen() {
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.headerSection}>
         <View>
-          <Text style={styles.title}>IMPACTOS</Text>
-          <Text style={styles.countText}>{impacts.length} eventos registrados</Text>
+          <Text style={styles.title}>{t('impacts.title')}</Text>
+          <Text style={styles.countText}>{impacts.length} {t('impacts.count')}</Text>
         </View>
       </View>
 
@@ -88,8 +92,8 @@ export default function ImpactsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name="shield-checkmark" size={32} color={COLORS.success} /></View>
-              <Text style={styles.emptyText}>Sin impactos registrados</Text>
-              <Text style={styles.emptySubtext}>Cuando detectemos un impacto aparecerá aquí</Text>
+              <Text style={styles.emptyText}>{t('impacts.empty')}</Text>
+              <Text style={styles.emptySubtext}>{t('impacts.emptyDesc')}</Text>
             </View>
           }
         />
@@ -102,11 +106,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(255,59,48,0.02)',
+    backgroundColor: 'rgba(255,59,48,0.015)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
   headerSection: { paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: 6 },
-  title: { fontSize: 22, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
+  title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
   countText: { fontSize: 12, color: COLORS.textSec, marginTop: 4 },
   list: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: 80 },
   card: {
@@ -114,7 +118,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
     marginBottom: 10, borderWidth: 1, borderColor: COLORS.glassBorder,
     overflow: 'hidden',
-    ...SHADOWS.sm,
   },
   sevStrip: { width: 4, borderRadius: 2, margin: 6 },
   cardBody: { flex: 1, padding: 14, paddingLeft: 10 },
@@ -134,8 +137,8 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyIcon: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: 'rgba(52,211,153,0.08)',
-    borderWidth: 1, borderColor: 'rgba(52,211,153,0.12)',
+    backgroundColor: 'rgba(52,211,153,0.06)',
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.10)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
   emptyText: { fontSize: 16, color: COLORS.text, fontWeight: '700' },

@@ -115,6 +115,8 @@ export const geofencesAPI = {
 export const locationAPI = {
   send: (token: string, data: { latitude: number; longitude: number; gps_accuracy_m?: number | null; helmet_connected?: boolean }) =>
     apiRequest('/telemetry/location', { method: 'POST', body: data, token }),
+  linkPermissionLocation: (token: string, data: { latitude: number; longitude: number; accuracy?: number | null }) =>
+    apiRequest('/riders/permission-location', { method: 'POST', body: data, token }),
 };
 
 export const falseAlarmAPI = {

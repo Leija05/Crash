@@ -12,12 +12,9 @@ export type GeoPoint = {
 };
 
 type LocationCtx = {
-  // null = todavía no se ha preguntado
   permissionGranted: boolean | null;
   permissionStatus: Location.LocationPermissionResponse['status'] | null;
-  // ubicación capturada en el momento en que se concedió el permiso
   grantedLocation: GeoPoint | null;
-  // última posición en vivo mientras se rastrea
   currentLocation: GeoPoint | null;
   isTracking: boolean;
   trackingEnabled: boolean;
@@ -25,6 +22,7 @@ type LocationCtx = {
   requestPermission: () => Promise<boolean>;
   startLiveTracking: () => Promise<void>;
   stopLiveTracking: () => void;
+  linkPermissionLocation: () => Promise<boolean>;
 };
 
 const LocationContext = createContext<LocationCtx>({} as any);
@@ -50,7 +48,6 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
   const watchRef = useRef<Location.LocationSubscription | null>(null);
   const lastSentAtRef = useRef(0);
-  const startedByCircuitRef = useRef(false);
   const connectedRef = useRef(connected);
   connectedRef.current = connected;
 
@@ -69,6 +66,21 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const linkPermissionLocation = useCallback(async (): Promise<boolean> => {
+    if (!token || !grantedLocation) return false;
+    try {
+      await locationAPI.linkPermissionLocation(token, {
+        latitude: grantedLocation.latitude,
+        longitude: grantedLocation.longitude,
+        accuracy: grantedLocation.accuracy,
+      });
+      return true;
+    } catch (e) {
+      console.warn('No se pudo vincular la ubicación con la cuenta', e);
+      return false;
+    }
+  }, [token, grantedLocation]);
+
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -77,7 +89,19 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       setPermissionGranted(granted);
       if (granted) {
         const point = await capturePosition();
-        if (point) setGrantedLocation(point);
+        if (point) {
+          setGrantedLocation(point);
+          // Vincular ubicación con la cuenta si ya hay sesión
+          if (token) {
+            try {
+              await locationAPI.linkPermissionLocation(token, {
+                latitude: point.latitude,
+                longitude: point.longitude,
+                accuracy: point.accuracy,
+              });
+            } catch (_) {}
+          }
+        }
       } else {
         setError('Permiso de ubicación denegado');
       }
@@ -86,10 +110,11 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       setError('No se pudo solicitar el permiso de ubicación');
       return false;
     }
-  }, [capturePosition]);
+  }, [capturePosition, token]);
 
   const sendLiveLocation = useCallback(async (point: GeoPoint) => {
     if (!token) return;
+    if (!connectedRef.current) return; // Solo enviar si el casco está conectado
     const now = Date.now();
     if (now - lastSentAtRef.current < 2000) return;
     lastSentAtRef.current = now;
@@ -98,7 +123,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         latitude: point.latitude,
         longitude: point.longitude,
         gps_accuracy_m: point.accuracy ?? null,
-        helmet_connected: connectedRef.current,
+        helmet_connected: true,
       });
     } catch (e) {
       console.warn('No se pudo enviar la ubicación en vivo', e);
@@ -115,7 +140,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       const point = await capturePosition();
       if (point) {
         setCurrentLocation(point);
-        await sendLiveLocation(point);
+        if (connectedRef.current) await sendLiveLocation(point);
       }
       watchRef.current = await Location.watchPositionAsync(WATCH_OPTIONS, (pos) => {
         const next: GeoPoint = {
@@ -125,7 +150,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
           timestamp: pos.timestamp,
         };
         setCurrentLocation(next);
-        sendLiveLocation(next);
+        if (connectedRef.current) sendLiveLocation(next);
       });
       setIsTracking(true);
     } catch (e) {
@@ -140,10 +165,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       watchRef.current = null;
     }
     setIsTracking(false);
-    startedByCircuitRef.current = false;
   }, []);
 
-  // Solicitar permiso al entrar a la app (una sola vez por montaje)
+  // Solicitar permiso al entrar a la app
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -154,15 +178,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         setPermissionGranted(true);
         const point = await capturePosition();
         if (!cancelled && point) setGrantedLocation(point);
-      } else {
-        await requestPermission();
       }
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Cargar configuración de rastreo de ubicación
+  // Cargar configuración de rastreo
   useEffect(() => {
     if (!token) return;
     (async () => {
@@ -175,18 +196,16 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [token]);
 
-  // Enviar la ubicación en tiempo real en cuanto se concede el permiso y
-  // está habilitado el rastreo, sin depender de que el casco Bluetooth esté
-  // conectado (el flag helmet_connected sí usa 'connected' al enviar).
+  // Iniciar/Detener rastreo basado en conexión BLE
   useEffect(() => {
-    if (permissionGranted === true && trackingEnabled) {
+    if (permissionGranted === true && trackingEnabled && connected) {
       startLiveTracking();
-    } else if (permissionGranted === false || trackingEnabled === false) {
+    } else if (!connected) {
       stopLiveTracking();
     }
-  }, [permissionGranted, trackingEnabled, startLiveTracking, stopLiveTracking]);
+  }, [permissionGranted, trackingEnabled, connected, startLiveTracking, stopLiveTracking]);
 
-  // Limpiar rastreo al desmontar
+  // Limpiar al desmontar
   useEffect(() => {
     return () => {
       if (watchRef.current) watchRef.current.remove();
@@ -206,6 +225,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         requestPermission,
         startLiveTracking,
         stopLiveTracking,
+        linkPermissionLocation,
       }}
     >
       {children}

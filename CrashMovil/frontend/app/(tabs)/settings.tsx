@@ -66,24 +66,24 @@ export default function SettingsScreen() {
   const linkCompany = async () => {
     if (!token) return;
     const raw = companyTokenInput.trim().toUpperCase();
-    if (!raw) { alert({ title: 'Error', message: 'Ingresa el token de empresa.' }); return; }
+    if (!raw) { alert({ title: t('common.error'), message: t('settings.companyTokenHelper') }); return; }
     setLinking(true);
     try {
       const r = await authAPI.linkCompany(token, raw);
       setCompany({ company_id: r.company_id ?? null, company_name: r.company_name ?? null });
       setCompanyTokenInput('');
-      alert({ title: 'Vinculado', message: `Tu cuenta ahora está asociada a "${r.company_name}".` });
+      alert({ title: t('settings.linkedTitle'), message: `${t('settings.linkedMessage')} "${r.company_name}".` });
     } catch (e: any) {
-      alert({ title: 'Error al vincular', message: e?.message || 'Token inválido, agotado o expirado.' });
+      alert({ title: t('settings.linkError'), message: e?.message || t('settings.linkErrorDetail') });
     } finally { setLinking(false); }
   };
 
   const unlinkCompany = async () => {
     const ok = await confirm({
-      title: 'Desvincular empresa',
-      message: 'Tu cuenta ya no aparecerá en el monitoreo de la empresa.',
-      confirmText: 'Desvincular',
-      cancelText: 'Cancelar',
+      title: t('settings.unlinkConfirmTitle'),
+      message: t('settings.unlinkConfirmMessage'),
+      confirmText: t('settings.unlinkConfirmBtn'),
+      cancelText: t('common.cancel'),
       destructive: true,
     });
     if (!ok) return;
@@ -97,28 +97,28 @@ export default function SettingsScreen() {
         throw new Error(body?.detail || `Error ${r.status}`);
       }
       await fetchCompany();
-      alert({ title: 'Desvinculado', message: 'Tu cuenta ahora está en el monitoreo general de C.R.A.S.H.' });
-    } catch (e: any) { alert({ title: 'Error', message: e?.message || 'No se pudo desvincular.' }); }
+      alert({ title: t('settings.unlinkedTitle'), message: t('settings.unlinkedMessage') });
+    } catch (e: any) { alert({ title: t('common.error'), message: e?.message || t('errors.generic') }); }
   };
 
   const saveServer = async () => {
     if (!token) return;
-    const t = parseFloat(threshold);
-    if (isNaN(t) || t <= 0) { alert({ title: 'Error', message: 'El umbral debe ser un número positivo' }); return; }
+    const tVal = parseFloat(threshold);
+    if (isNaN(tVal) || tVal <= 0) { alert({ title: t('common.error'), message: t('settings.thresholdError') }); return; }
     const c = parseInt(countdownSeconds, 10);
-    if (isNaN(c) || c < 3 || c > 60) { alert({ title: 'Error', message: 'La cuenta regresiva debe estar entre 3 y 60 segundos' }); return; }
+    if (isNaN(c) || c < 3 || c > 60) { alert({ title: t('common.error'), message: t('settings.countdownError') }); return; }
     setSaving(true);
     try {
-      await settingsAPI.update(token, { alert_threshold: t, auto_call: autoCall, auto_whatsapp: autoWhatsapp, countdown_seconds: c, location_tracking_enabled: locationTrackingEnabled });
+      await settingsAPI.update(token, { alert_threshold: tVal, auto_call: autoCall, auto_whatsapp: autoWhatsapp, countdown_seconds: c, location_tracking_enabled: locationTrackingEnabled });
       notifyAlertsConfigChanged();
-      alert({ title: 'Guardado', message: 'Configuración de alertas actualizada' });
-    } catch (e: any) { alert({ title: 'Error', message: e.message }); }
+      alert({ title: t('settings.saved'), message: t('settings.savedAlerts') });
+    } catch (e: any) { alert({ title: t('common.error'), message: e.message }); }
     finally { setSaving(false); }
   };
 
   const saveDeviceName = async () => {
     await setDeviceName(deviceInput.trim() || 'HC-05');
-    alert({ title: 'Guardado', message: 'Nombre del dispositivo actualizado.' });
+    alert({ title: t('settings.saved'), message: t('settings.deviceNameSaved') });
   };
 
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -144,42 +144,42 @@ export default function SettingsScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <Text style={styles.title}>AJUSTES</Text>
-            <Text style={styles.subtitle}>Configura tu casco, alertas y modo de prueba.</Text>
+            <Text style={styles.title}>{t('settings.title').toUpperCase()}</Text>
+            <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
           </View>
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title="DISPOSITIVO BLUETOOTH" icon="bluetooth" />
+            <SectionHeader title={t('settings.bluetoothDevice')} icon="bluetooth" />
             <View style={styles.deviceStatus}>
               <View style={[styles.statusDot, { backgroundColor: connected ? COLORS.success : COLORS.textDim }]} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.statusLabel}>{connected ? 'CONECTADO' : 'SIN CONEXIÓN'}</Text>
-                <Text style={styles.statusDevice}>{connected ? liveDevice : 'Ningún módulo activo'}</Text>
+                <Text style={styles.statusLabel}>{connected ? t('settings.connected') : t('settings.noConnection')}</Text>
+                <Text style={styles.statusDevice}>{connected ? liveDevice : t('settings.noDevice')}</Text>
               </View>
               {connected ? (
                 <TouchableOpacity onPress={disconnect} style={styles.inlineBtn} testID="settings-disconnect-btn">
-                  <Text style={styles.inlineBtnText}>DESCONECTAR</Text>
+                  <Text style={styles.inlineBtnText}>{t('settings.disconnect')}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => router.push('/devices')} style={[styles.inlineBtn, styles.inlineBtnAccent]} testID="settings-scan-btn">
-                  <Text style={[styles.inlineBtnText, { color: '#000' }]}>ESCANEAR</Text>
+                  <Text style={[styles.inlineBtnText, { color: '#000' }]}>{t('settings.scan')}</Text>
                 </TouchableOpacity>
               )}
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>NOMBRE DEL DISPOSITIVO</Text>
-              <Text style={styles.helper}>Se usará como patrón de búsqueda para identificar tu módulo.</Text>
+              <Text style={styles.label}>{t('settings.deviceNameLabel')}</Text>
+              <Text style={styles.helper}>{t('settings.deviceNameHelper')}</Text>
               <View style={styles.inputRow}>
                 <TextInput testID="device-name-input" style={[styles.input, { flex: 1 }]} value={deviceInput} onChangeText={setDeviceInput} placeholder="HC-05 CRASH" placeholderTextColor={COLORS.textDim} autoCapitalize="characters" />
                 <TouchableOpacity onPress={saveDeviceName} style={styles.saveInlineBtn} testID="save-device-name-btn">
-                  <Text style={styles.saveInlineBtnText}>GUARDAR</Text>
+                  <Text style={styles.saveInlineBtnText}>{t('settings.save')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </GlassCard>
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title="EMPRESA / MONITOREO" icon="business" accent />
+            <SectionHeader title={t('settings.company')} icon="business" accent />
             {(() => {
               const isGeneral = company?.company_id === "general";
               const linked = !!company?.company_id && !isGeneral;
@@ -188,11 +188,11 @@ export default function SettingsScreen() {
                   <View style={styles.deviceStatus}>
                     <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.statusLabel}>VINCULADO</Text>
+                      <Text style={styles.statusLabel}>{t('settings.linked')}</Text>
                       <Text style={styles.statusDevice}>{company.company_name}</Text>
                     </View>
                     <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
-                      <Text style={styles.inlineBtnText}>DESVINCULAR</Text>
+                      <Text style={styles.inlineBtnText}>{t('settings.unlink')}</Text>
                     </TouchableOpacity>
                   </View>
                 );
@@ -201,24 +201,24 @@ export default function SettingsScreen() {
                 <View style={styles.inputGroup}>
                   {isGeneral ? (
                     <Text style={[styles.helper, { color: COLORS.success, marginBottom: 8 }]}>
-                      Cuenta en monitoreo general de C.R.A.S.H. Puedes vincularla a una empresa específica con su token:
+                      {t('settings.generalMonitoring')}
                     </Text>
                   ) : (
-                    <Text style={styles.label}>TOKEN DE EMPRESA</Text>
+                    <Text style={styles.label}>{t('settings.companyToken')}</Text>
                   )}
-                  <Text style={styles.helper}>Pídelo a tu empresa. Al ingresarlo, tu cuenta de conductor aparecerá en su centro de monitoreo.</Text>
+                  <Text style={styles.helper}>{t('settings.companyTokenHelper')}</Text>
                   <View style={styles.inputRow}>
                     <TextInput
                       testID="company-token-input"
                       style={[styles.input, { flex: 1, letterSpacing: 2 }]}
                       value={companyTokenInput}
                       onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
-                      placeholder="XXXX-XXXX-XXXX-XXXX"
+                      placeholder={t('settings.companyTokenPlaceholder')}
                       placeholderTextColor={COLORS.textDim}
                       autoCapitalize="characters"
                     />
                     <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
-                      {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>VINCULAR</Text>}
+                      {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>{t('settings.link')}</Text>}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -227,7 +227,7 @@ export default function SettingsScreen() {
           </GlassCard>
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title={t('settings.language')} icon="globe" accent />
+            <SectionHeader title={t('settings.languageSection')} icon="globe" accent />
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity style={[styles.langBtn, locale === 'es' && styles.langBtnActive]} onPress={() => setLocale('es')}>
                 <Text style={[styles.langBtnText, locale === 'es' && styles.langBtnTextActive]}>Español</Text>
@@ -239,10 +239,10 @@ export default function SettingsScreen() {
           </GlassCard>
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title="TIEMPO DE CONFIRMACIÓN" icon="timer" />
+            <SectionHeader title={t('settings.confirmTime')} icon="timer" />
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>CUENTA REGRESIVA DE EMERGENCIA</Text>
-              <Text style={styles.helper}>Segundos antes de enviar mensajes tras detectar impacto alto.</Text>
+              <Text style={styles.label}>{t('settings.countdownLabel')}</Text>
+              <Text style={styles.helper}>{t('settings.countdownHelper')}</Text>
               <View style={styles.thresholdRow}>
                 <TextInput style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={countdownSeconds} onChangeText={setCountdownSeconds} keyboardType="numeric" />
                 <Text style={styles.gSymbol}>s</Text>
@@ -251,25 +251,30 @@ export default function SettingsScreen() {
             {!nativeAvailable && (
               <View style={styles.warnBox}>
                 <Ionicons name="information-circle" size={14} color={COLORS.info} />
-                <Text style={styles.warnBoxText}>Bluetooth real requiere build nativa (expo-dev-client).</Text>
+                <Text style={styles.warnBoxText}>{t('settings.nativeBluetoothWarning')}</Text>
               </View>
             )}
           </GlassCard>
 
           <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title="ALERTAS DE IMPACTO" icon="warning" accent />
+            <SectionHeader title={t('settings.alertsImpact')} icon="warning" accent />
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>UMBRAL DE ALERTA</Text>
-              <Text style={styles.helper}>Se envían alertas cuando la fuerza G supere este valor.</Text>
+              <Text style={styles.label}>{t('settings.alertThresholdLabel')}</Text>
+              <Text style={styles.helper}>{t('settings.alertThresholdHelper')}</Text>
               <View style={styles.thresholdRow}>
                 <TextInput testID="threshold-input" style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={threshold} onChangeText={setThreshold} keyboardType="numeric" />
                 <Text style={styles.gSymbol}>G</Text>
               </View>
               <View style={styles.thresholdScale}>
-                {[{ l: 'Bajo', v: '5' }, { l: 'Medio', v: '10' }, { l: 'Alto', v: '15' }, { l: 'Crítico', v: '20' }].map((t) => (
-                  <TouchableOpacity key={t.v} style={[styles.threshBtn, { borderColor: severityColor(parseFloat(t.v)) }]} onPress={() => setThreshold(t.v)}>
-                    <Text style={[styles.threshText, { color: severityColor(parseFloat(t.v)) }]}>{t.l}</Text>
-                    <Text style={[styles.threshVal, { color: severityColor(parseFloat(t.v)) }]}>{t.v}G</Text>
+                {[
+                  { l: t('settings.thresholdLow'), v: '5' },
+                  { l: t('settings.thresholdMedium'), v: '10' },
+                  { l: t('settings.thresholdHigh'), v: '15' },
+                  { l: t('settings.thresholdCritical'), v: '20' },
+                ].map((item) => (
+                  <TouchableOpacity key={item.v} style={[styles.threshBtn, { borderColor: severityColor(parseFloat(item.v)) }]} onPress={() => setThreshold(item.v)}>
+                    <Text style={[styles.threshText, { color: severityColor(parseFloat(item.v)) }]}>{item.l}</Text>
+                    <Text style={[styles.threshVal, { color: severityColor(parseFloat(item.v)) }]}>{item.v}G</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -278,21 +283,21 @@ export default function SettingsScreen() {
             <View style={styles.toggleRow}>
               <View style={styles.toggleLabelRow}>
                 <Ionicons name="location-outline" size={18} color={COLORS.info} />
-                <Text style={styles.toggleLabel}>Rastreo de ubicación</Text>
+                <Text style={styles.toggleLabel}>{t('settings.trackingLabel')}</Text>
               </View>
               <Switch value={locationTrackingEnabled} onValueChange={setLocationTrackingEnabled} trackColor={{ false: '#2A2A34', true: 'rgba(96,165,250,0.4)' }} thumbColor={locationTrackingEnabled ? COLORS.info : '#9A9AA8'} />
             </View>
             <View style={styles.toggleRow}>
               <View style={styles.toggleLabelRow}>
                 <Ionicons name="call-outline" size={18} color={COLORS.text} />
-                <Text style={styles.toggleLabel}>Llamadas automáticas</Text>
+                <Text style={styles.toggleLabel}>{t('settings.autoCalls')}</Text>
               </View>
               <Switch value={autoCall} onValueChange={setAutoCall} trackColor={{ false: '#2A2A34', true: 'rgba(204,255,0,0.4)' }} thumbColor={autoCall ? COLORS.accent : '#9A9AA8'} />
             </View>
             <View style={styles.toggleRow}>
               <View style={styles.toggleLabelRow}>
                 <Ionicons name="logo-whatsapp" size={18} color={COLORS.success} />
-                <Text style={styles.toggleLabel}>Alertas por WhatsApp</Text>
+                <Text style={styles.toggleLabel}>{t('settings.autoWhatsapp')}</Text>
               </View>
               <Switch value={autoWhatsapp} onValueChange={setAutoWhatsapp} trackColor={{ false: '#2A2A34', true: 'rgba(52,211,153,0.4)' }} thumbColor={autoWhatsapp ? COLORS.success : '#9A9AA8'} />
             </View>
@@ -301,7 +306,7 @@ export default function SettingsScreen() {
               {saving ? <ActivityIndicator color="#000" /> : (
                 <>
                   <Ionicons name="save" size={16} color="#000" />
-                  <Text style={styles.saveBtnText}>GUARDAR ALERTAS</Text>
+                  <Text style={styles.saveBtnText}>{t('settings.saveAlerts')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -309,7 +314,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity testID="logout-btn" style={styles.logoutBtn} onPress={() => setLogoutOpen(true)}>
             <Ionicons name="log-out-outline" size={18} color={COLORS.primary} />
-            <Text style={styles.logoutText}>Cerrar sesión</Text>
+            <Text style={styles.logoutText}>{t('settings.logout')}</Text>
           </TouchableOpacity>
           <Text style={styles.version}>C.R.A.S.H. v1.0</Text>
         </ScrollView>
@@ -317,26 +322,26 @@ export default function SettingsScreen() {
         <PremiumModal
           visible={logoutOpen}
           onClose={() => setLogoutOpen(false)}
-          title="Cerrar sesión"
+          title={t('settings.logoutConfirmTitle')}
           eyebrow="C.R.A.S.H. · Cuenta"
           accent={COLORS.primary}
           closeOnBackdrop={false}
         >
           <Text style={{ color: COLORS.textSec, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
-            ¿Seguro que quieres salir de tu cuenta?
+            {t('settings.logoutConfirmMessage')}
           </Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' }}>
             <TouchableOpacity
               onPress={() => setLogoutOpen(false)}
               style={{ flex: 1, backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, paddingVertical: 14, alignItems: 'center' }}
             >
-              <Text style={{ color: COLORS.text, fontWeight: '800', letterSpacing: 0.7 }}>No</Text>
+              <Text style={{ color: COLORS.text, fontWeight: '800', letterSpacing: 0.7 }}>{t('settings.logoutNo')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={doLogout}
               style={{ flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center' }}
             >
-              <Text style={{ color: '#FFF', fontWeight: '900', letterSpacing: 1 }}>Sí, salir</Text>
+              <Text style={{ color: '#FFF', fontWeight: '900', letterSpacing: 1 }}>{t('settings.logoutYes')}</Text>
             </TouchableOpacity>
           </View>
         </PremiumModal>
@@ -349,13 +354,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(204,255,0,0.012)',
+    backgroundColor: 'rgba(204,255,0,0.010)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: SPACING.md },
-  title: { fontSize: 22, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
+  title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
   subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 4 },
   deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder, marginBottom: SPACING.md },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
@@ -382,7 +387,7 @@ const styles = StyleSheet.create({
   threshBtn: { flex: 1, paddingVertical: 8, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center', backgroundColor: COLORS.glassBg },
   threshText: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   threshVal: { fontSize: 14, fontWeight: '900', marginTop: 2 },
-  saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent, borderRadius: RADIUS.md, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 8, ...SHADOWS.glow(COLORS.accent) },
+  saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent, borderRadius: RADIUS.md, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   saveBtnText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
   langBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center', backgroundColor: COLORS.glassBg },
   langBtnActive: { borderColor: COLORS.accent, backgroundColor: COLORS.accentSoft },
