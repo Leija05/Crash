@@ -458,7 +458,15 @@ function Landing() {
       try { const { data } = await api.get("/plans"); setPlans(data || []); } catch { setPlans([]); }
     })();
     (async () => {
-      try { const { data } = await api.get("/versions/latest", { params: { platform: "android" } }); if (data?.download_url) setAppVersion(data); } catch {}
+      try {
+        const { data } = await api.get("/versions/latest", { params: { platform: "android" } });
+        if (data?.download_url) {
+          if (data.download_url.startsWith("/")) {
+            data.download_url = `${api.defaults.baseURL}/versions/${data.id}/download`;
+          }
+          setAppVersion(data);
+        }
+      } catch {}
     })();
   }, []);
 
