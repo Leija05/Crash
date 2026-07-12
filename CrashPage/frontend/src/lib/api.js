@@ -112,6 +112,7 @@ export const versionsAPI = {
     fd.append("file", file);
     return api.post("/versions/upload", fd, {
       headers: { "Content-Type": "multipart/form-data" },
+      timeout: 300000,
     });
   },
 };
