@@ -168,7 +168,7 @@ async def get_company_drivers(company_id: str) -> list:
     company = await db.companies.find_one(company_query)
     if not company:
         raise HTTPException(404, "Empresa no encontrada")
-    cid = str(company.get("_id", ""))
+    cid = company.get("id") or str(company.get("_id", ""))
     cursor = db.users.find(
         {"company_id": cid},
         {"password_hash": 0},

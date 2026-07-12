@@ -35,6 +35,9 @@ async def receive_telemetry(body: TelemetryInput, user: dict = Depends(get_curre
         "gyroscope": {"x": body.gyroscope_x, "y": body.gyroscope_y, "z": body.gyroscope_z},
         "g_force": body.g_force,
         "speed_kmh": body.speed_kmh,
+        "latitude": body.latitude,
+        "longitude": body.longitude,
+        "gps_accuracy_m": body.gps_accuracy_m,
         "helmet_connected": body.helmet_connected,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
