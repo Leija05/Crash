@@ -54,7 +54,7 @@ const ACCENT_BAR = {
 
 function StatsCard({ icon: Icon, label, value, accent }) {
   return (
-    <div className={`group relative rounded-2xl border border-white/10 bg-white/[0.03] p-5 hover-lift overflow-hidden transition-all hover:border-white/20 ${ACCENT_GLOW[accent] || ""}`}>
+    <div className={`group relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 hover-lift overflow-hidden transition-all hover:border-white/20 ${ACCENT_GLOW[accent] || ""}`}>
       <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/[0.02] blur-2xl group-hover:bg-white/[0.04] transition-all" />
       <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b to-transparent ${ACCENT_BAR[accent] || ACCENT_BAR.default} opacity-0 group-hover:opacity-100 transition-opacity`} />
       <div className="relative flex items-center justify-between mb-3">
@@ -595,15 +595,15 @@ function CompaniesTab() {
         <div className="space-y-3">
           {companies.map(c => (
             <div key={c.id || c._id} className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-              <div className="p-5">
+              <div className="p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <Building2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                       <h3 className="font-bold text-lg truncate">{c.name}</h3>
                       <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full ${c.status === "active" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : c.status === "pending" ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" : "bg-red-500/15 text-red-300 border border-red-500/30"}`}>{c.status || "active"}</span>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-neutral-400 mt-2">
+                    <div className="flex items-center gap-4 text-xs text-neutral-400 mt-2 flex-wrap">
                       <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{c.email}</span>
                       {c.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{c.phone}</span>}
                       <span className="flex items-center gap-1"><CreditCard className="h-3 w-3" />{c.plan_name || "Basic"}</span>
@@ -637,14 +637,14 @@ function CompaniesTab() {
                     </button>
                   )}
                 </div>
-                <div className="mt-3 flex items-center gap-4 text-xs text-neutral-500">
+                <div className="mt-3 flex items-center gap-4 text-xs text-neutral-500 flex-wrap">
                   <span>{t("admin.monitorists", "Monitoristas")}: <strong className="text-white">{c.monitor_count || 0}</strong></span>
                   <span>{t("admin.maxDrivers", "Max conductores")}: <strong className="text-white">{c.max_drivers || 3}</strong></span>
                   <span>{t("admin.created", "Creada")}: <strong className="text-white">{new Date(c.created_at).toLocaleDateString()}</strong></span>
                 </div>
               </div>
               {expanded[c.id || c._id] && (
-                <div className="border-t border-white/10 px-5 py-4 bg-white/[0.02]">
+                <div className="border-t border-white/10 px-4 sm:px-5 py-4 bg-white/[0.02]">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500">{t("admin.accessTokens", "Tokens de acceso")}</h4>
                     {c.has_token && (
@@ -741,7 +741,7 @@ function PlansTab() {
       <h2 className="text-xl font-bold mb-6">{t("admin.plansTitle", "Planes")} ({plans.length})</h2>
       <div className="grid md:grid-cols-3 gap-4">
         {plans.map(p => (
-          <div key={p.name} className={`rounded-2xl border p-5 ${p.popular ? "border-emerald-500/40 bg-emerald-500/[0.04]" : "border-white/10 bg-white/[0.03]"}`}>
+          <div key={p.name} className={`rounded-2xl border p-4 sm:p-5 ${p.popular ? "border-emerald-500/40 bg-emerald-500/[0.04]" : "border-white/10 bg-white/[0.03]"}`}>
             {p.popular && <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 mb-2">{t("admin.mostPopular", "Más popular")}</div>}
             <div className="text-lg font-bold">{p.name}</div>
             <div className="text-3xl font-bold mt-2">${p.price}<span className="text-sm text-neutral-500 font-normal">{t("admin.perMonth", "/mes")}</span></div>
@@ -780,7 +780,7 @@ function TokenAlertsPanel() {
   const total = exhaustion.length + expiring.length + subscriptions.length;
 
   return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-4">
         <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center"><Bell className="h-4 w-4 text-amber-400" /></div>
         <div>
@@ -877,7 +877,7 @@ function OverviewTab() {
         <StatsCard icon={AlertCircle} label={t("admin.criticalAlerts", "Alertas críticas")} value={stats?.critical_alerts || 0} accent="red" />
         <StatsCard icon={BarChart3} label={t("admin.totalImpacts", "Impactos totales")} value={stats?.total_impacts || 0} accent="emerald" />
       </div>
-      <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
         <div className="text-sm text-neutral-400">
           <div className="flex items-center gap-2 mb-2"><Clock className="h-4 w-4" /> {t("admin.last24h", "Últimas 24h")}: <strong className="text-white">{stats?.impacts_last_24h || 0}</strong> {t("admin.impactsN", "impactos")}</div>
           <div className="flex items-center gap-2"><Shield className="h-4 w-4" /> {t("admin.mode", "Modo")}: <strong className="text-white">{stats?.demo_mode ? t("admin.demo", "Demo") : t("admin.production", "Producción")}</strong></div>
@@ -929,7 +929,7 @@ function HeatmapTab() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h2 className="text-xl font-bold">{t("admin.impactHeatmap", "Mapa de calor de impactos")}</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className={selCls}>
             <option value="">{t("admin.allCompanies", "Todas las empresas")}</option>
             {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -944,7 +944,7 @@ function HeatmapTab() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 overflow-hidden h-[520px] relative">
+        <div className="lg:col-span-2 rounded-2xl border border-white/10 overflow-hidden h-[300px] lg:h-[520px] relative">
           {loading && <div className="absolute inset-0 z-[500] flex items-center justify-center bg-black/40"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>}
           <MapContainer key={`heat-${companyId}-${days}`} center={center} zoom={11} scrollWheelZoom className="h-full w-full" style={{ background: "#0a0a0a" }}>
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; carto.com' />
@@ -965,11 +965,11 @@ function HeatmapTab() {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
             <div className="text-3xl font-bold">{data?.total_points || 0}</div>
             <div className="text-xs text-neutral-500 mt-1">{t("admin.geoImpacts", "impactos geolocalizados")} ({days}d)</div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
             <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">{t("admin.highestRiskZones", "Zonas de mayor riesgo")}</h4>
             {zones.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noDataPeriod", "Sin datos en el periodo.")}</div> : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto">
@@ -1119,8 +1119,8 @@ function SupportTab() {
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => (
-            <div key={r.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-              <div className="flex items-start justify-between gap-4">
+            <div key={r.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <LifeBuoy className="h-4 w-4 text-emerald-400 flex-shrink-0" />
@@ -1135,7 +1135,7 @@ function SupportTab() {
                   {r.resolution_note && <div className="text-[11px] text-emerald-400/80 mt-2">✓ {r.resolution_note}</div>}
                   <div className="text-[11px] text-neutral-500 mt-2">{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</div>
                 </div>
-                <div className="flex flex-col gap-2 flex-shrink-0 w-40">
+                <div className="flex flex-row lg:flex-col gap-2 flex-shrink-0 flex-wrap">
                   {r.status !== "resolved" && (
                     <>
                       <button disabled={busyId === r.id} onClick={() => resetPassword(r)} className="inline-flex items-center justify-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 disabled:opacity-50 text-emerald-300 rounded-lg px-3 py-1.5 text-xs transition-all">
@@ -1244,12 +1244,12 @@ function AnalyticsTab() {
             <StatsCard icon={Globe} label={`${t("admin.uniqueVisitors", "Visitantes únicos")} (${days}d)`} value={data?.unique_visitors || 0} accent="blue" />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <h3 className="text-sm font-semibold flex items-center gap-2"><LineChartIcon className="h-4 w-4 text-emerald-400" /> {t("admin.viewsPerDay", "Vistas por día")}</h3>
-              <span className="text-xs text-neutral-500">{t("admin.avg", "Promedio")}: <strong className="text-white">{data?.avg_views_per_day || 0}</strong>{t("admin.perDay", "/día")}</span>
+              <span className="text-xs text-neutral-500 whitespace-nowrap">{t("admin.avg", "Promedio")}: <strong className="text-white">{data?.avg_views_per_day || 0}</strong>{t("admin.perDay", "/día")}</span>
             </div>
-            <div className="h-72">
+            <div className="h-56 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={series} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
@@ -1274,7 +1274,7 @@ function AnalyticsTab() {
           </div>
 
           <div className="mt-6 grid lg:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
               <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-4">{t("admin.mostVisitedPages", "Páginas más visitadas")}</h4>
               {topPages.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noDataPeriod", "Sin datos en el periodo.")}</div> : (
                 <div className="space-y-3">
@@ -1288,7 +1288,7 @@ function AnalyticsTab() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
               <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-4">{t("admin.trafficSources", "Orígenes de tráfico")}</h4>
               {referrers.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noDataPeriod", "Sin datos en el periodo.")}</div> : (
                 <div className="space-y-3">
@@ -1419,17 +1419,17 @@ function GeofencesTab() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
               <h3 className="text-sm font-semibold mb-4">{editingId ? "Editar zona" : "Nueva zona de riesgo"}</h3>
               <div className="space-y-3">
                 <input className={inputCls} placeholder="Nombre (ej. Curva del kilómetro 12)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid sm:grid-cols-2 gap-3">
                   <select className={inputCls} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
                     {GEOFENCE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input className={inputCls} type="number" min="10" max="5000" placeholder="Radio (m)" value={form.radius_m} onChange={(e) => setForm({ ...form, radius_m: e.target.value })} />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid sm:grid-cols-2 gap-3">
                   <input className={inputCls} type="number" step="any" placeholder="Latitud" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
                   <input className={inputCls} type="number" step="any" placeholder="Longitud" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
                 </div>
@@ -1459,7 +1459,7 @@ function GeofencesTab() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
               <h3 className="text-sm font-semibold mb-4">Zonas registradas ({zones.length})</h3>
               {zones.length === 0 ? <div className="text-xs text-neutral-500">Aún no hay zonas. Crea la primera.</div> : (
                 <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
@@ -1574,7 +1574,7 @@ function VersionsTab() {
       <h2 className="text-xl font-bold mb-2">Versiones de la App</h2>
       <p className="text-xs text-neutral-500 mb-6">Sube el archivo APK directamente o pega un enlace de descarga externo. La versión publicada más alta se ofrece en la web y notifica a la app móvil.</p>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 mb-6">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 mb-6">
         <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Publicar nueva versión</h3>
         <form onSubmit={handleCreate} className="grid md:grid-cols-2 gap-3">
           <input value={form.version} onChange={(e) => setForm(f => ({ ...f, version: e.target.value }))} placeholder="Versión (ej. 2.1.0)" required className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
@@ -1585,7 +1585,7 @@ function VersionsTab() {
           </select>
           <div className="md:col-span-2 space-y-2">
             <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500">Subir APK</label>
-            <input type="file" accept=".apk" onChange={(e) => { setApkFile(e.target.files[0] || null); setForm(f => ({ ...f, size_mb: e.target.files[0] ? Math.round(e.target.files[0].size / (1024 * 1024) * 100) / 100 : null })); }} className="block w-full text-sm text-neutral-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-300 hover:file:bg-emerald-500/20 file:cursor-pointer cursor-pointer" />
+            <input type="file" accept=".apk" onChange={(e) => { setApkFile(e.target.files[0] || null); setForm(f => ({ ...f, size_mb: e.target.files[0] ? Math.round(e.target.files[0].size / (1024 * 1024) * 100) / 100 : null })); }} className="block w-full text-sm text-neutral-300 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-300 hover:file:bg-emerald-500/20 file:cursor-pointer cursor-pointer" />
             {apkFile && <p className="text-xs text-emerald-400">{apkFile.name} ({(apkFile.size / (1024 * 1024)).toFixed(2)} MB)</p>}
           </div>
           <div className="md:col-span-2">
@@ -1593,10 +1593,10 @@ function VersionsTab() {
             <input value={form.download_url} onChange={(e) => setForm(f => ({ ...f, download_url: e.target.value }))} placeholder="https://enlace-de-descarga-del-apk" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
           </div>
           <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Novedades / changelog (opcional)" rows={3} className="md:col-span-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none resize-none" />
-          <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={form.mandatory} onChange={(e) => setForm(f => ({ ...f, mandatory: e.target.checked }))} className="accent-emerald-500" /> Actualización obligatoria</label>
-          <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={form.published} onChange={(e) => setForm(f => ({ ...f, published: e.target.checked }))} className="accent-emerald-500" /> Publicar de inmediato</label>
+          <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer py-1"><input type="checkbox" checked={form.mandatory} onChange={(e) => setForm(f => ({ ...f, mandatory: e.target.checked }))} className="accent-emerald-500 flex-shrink-0" /> <span>Actualización obligatoria</span></label>
+          <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer py-1"><input type="checkbox" checked={form.published} onChange={(e) => setForm(f => ({ ...f, published: e.target.checked }))} className="accent-emerald-500 flex-shrink-0" /> <span>Publicar de inmediato</span></label>
           <div className="md:col-span-2 space-y-3">
-            <button disabled={busy || !form.version || (!apkFile && !form.download_url)} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? (uploading ? "Subiendo APK..." : "Publicando...") : "Publicar versión"}</button>
+            <button disabled={busy || !form.version || (!apkFile && !form.download_url)} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? (uploading ? "Subiendo APK..." : "Publicando...") : "Publicar versión"}</button>
             {uploading && (
               <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
                 <div className="h-full bg-emerald-400 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
@@ -1611,10 +1611,10 @@ function VersionsTab() {
       <div className="space-y-3">
         {list.length === 0 && <div className="text-sm text-neutral-500 text-center py-8">Aún no hay versiones publicadas.</div>}
         {list.map((v) => (
-          <div key={v.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between gap-3">
+          <div key={v.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex-col sm:flex-row flex sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center flex-shrink-0"><Smartphone className="h-4 w-4 text-emerald-400" /></div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="font-bold flex items-center gap-2 flex-wrap">
                   v{v.version}
                   <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-white/15 text-neutral-400">{v.platform}</span>
@@ -1623,11 +1623,11 @@ function VersionsTab() {
                     : <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-neutral-500/40 bg-neutral-500/10 text-neutral-400">Borrador</span>}
                   {v.mandatory && <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300">Obligatoria</span>}
                 </div>
-                {v.notes && <div className="text-xs text-neutral-500 truncate max-w-md">{v.notes}</div>}
+                {v.notes && <div className="text-xs text-neutral-500 truncate max-w-xs sm:max-w-md">{v.notes}</div>}
                 <button onClick={() => window.open(`${api.defaults.baseURL}/versions/${v.id}/download`, '_blank')} className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> {v.download_url?.startsWith("/uploads/") ? v.download_url.split("/").pop() : "Descargar"}</button>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
               <button onClick={() => toggleMandatory(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all" title="Obligatoria">{v.mandatory ? "Opcional" : "Obligar"}</button>
               <button onClick={() => togglePublish(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all">{v.published ? "Ocultar" : "Publicar"}</button>
               <button onClick={() => setPendingDelete({ id: v.id, version: v.version })} className="h-8 w-8 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
@@ -1717,7 +1717,7 @@ function SalesLogisticsTab() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-5">
-        <div className="card-premium p-6 space-y-4" style={{ borderRadius: 20 }}>
+        <div className="card-premium p-4 sm:p-6 space-y-4" style={{ borderRadius: 20 }}>
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono">Simulador</div>
           <NumberField label="Conductores (repartidores)" value={drivers} onChange={setDrivers} />
           <NumberField label="Precio B2B por repartidor" value={price} onChange={setPrice} suffix="MXN/mes" />
@@ -1726,11 +1726,11 @@ function SalesLogisticsTab() {
         </div>
 
         <div className="lg:col-span-2 space-y-5">
-          {loading && <div className="card-premium p-10 flex items-center justify-center text-neutral-500"><Loader2 className="animate-spin" /></div>}
+          {loading && <div className="card-premium p-6 sm:p-10 flex items-center justify-center text-neutral-500"><Loader2 className="animate-spin" /></div>}
           {error && <div className="border border-red-500/30 bg-red-500/10 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
           {!loading && scenario && (
             <>
-              <div className={`card-premium p-6 relative overflow-hidden ${scenario.meets_target_margin ? "" : "ring-1 ring-amber-500/30"}`} style={{ borderRadius: 20 }}>
+              <div className={`card-premium p-4 sm:p-6 relative overflow-hidden ${scenario.meets_target_margin ? "" : "ring-1 ring-amber-500/30"}`} style={{ borderRadius: 20 }}>
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp size={18} className="text-emerald-400" />
                   <span className="font-bold font-mono">Escenario para {drivers} conductores</span>
@@ -1760,7 +1760,7 @@ function SalesLogisticsTab() {
                 </div>
               </div>
 
-              <div className="card-premium p-6" style={{ borderRadius: 20 }}>
+              <div className="card-premium p-4 sm:p-6" style={{ borderRadius: 20 }}>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Capacidad ofrecible a empresas</div>
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div className="rounded-xl border border-white/10 p-4">
@@ -1781,7 +1781,7 @@ function SalesLogisticsTab() {
                 </div>
               </div>
 
-              <div className="card-premium p-6" style={{ borderRadius: 20 }}>
+              <div className="card-premium p-4 sm:p-6" style={{ borderRadius: 20 }}>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Escenarios de referencia</div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -1810,7 +1810,7 @@ function SalesLogisticsTab() {
               </div>
 
               {b2c && (
-                <div className="card-premium p-6" style={{ borderRadius: 20 }}>
+                <div className="card-premium p-4 sm:p-6" style={{ borderRadius: 20 }}>
                   <div className="flex items-center gap-2 mb-3">
                     <Users size={16} className="text-emerald-400" />
                     <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono">Lado B2C (usuario final)</span>
@@ -1890,7 +1890,7 @@ function SuperAdminsTab() {
       </p>
 
       {isRoot && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 mb-6">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 mb-6">
           <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Crear nuevo SuperAdmin</h3>
           <form onSubmit={handleCreate} className="grid md:grid-cols-4 gap-3">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
@@ -2081,12 +2081,15 @@ function AdminPanel() {
             </div>
             <button onClick={handleLogout} className="h-9 w-9 rounded-lg border border-red-500/30 flex items-center justify-center hover:bg-red-500/10 transition-all"><LogOut className="h-4 w-4 text-red-400" /></button>
           </div>
-          <div className="flex gap-1.5 overflow-x-auto px-4 pb-3 no-scrollbar">
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs whitespace-nowrap transition-all ${activeTab === t.id ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "text-neutral-400 border border-white/10 hover:bg-white/5"}`}>
-                <t.icon className="h-3.5 w-3.5" /> {t.label}
-              </button>
-            ))}
+          <div className="relative">
+            <div className="flex gap-1.5 overflow-x-auto px-4 pb-3 no-scrollbar">
+              {TABS.map(t => (
+                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs whitespace-nowrap transition-all ${activeTab === t.id ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "text-neutral-400 border border-white/10 hover:bg-white/5"}`}>
+                  <t.icon className="h-3.5 w-3.5" /> {t.label}
+                </button>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-black/60 to-transparent" />
           </div>
         </div>
         {/* Desktop section header */}
