@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { MapContainer, TileLayer, CircleMarker, Circle, Popup, useMapEvents } from "react-leaflet";
 import { useAuth } from "../auth/AuthContext";
-import { api, formatApiError, superAdminAPI, adminAPI, companyAPI, analyticsAPI, geofencesAPI, versionsAPI } from "../lib/api";
+import { api, API_BASE, formatApiError, superAdminAPI, adminAPI, companyAPI, analyticsAPI, geofencesAPI, versionsAPI } from "../lib/api";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import PremiumModal from "../components/ui/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -1616,7 +1616,7 @@ function VersionsTab() {
                 </div>
                 {v.notes && <div className="text-xs text-neutral-500 truncate max-w-md">{v.notes}</div>}
                 {v.download_url?.startsWith("/uploads/")
-                  ? <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90"><Download className="h-3 w-3" /> {v.download_url.split("/").pop()}</span>
+                  ? <a href={`${API_BASE}${v.download_url}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> {v.download_url.split("/").pop()}</a>
                   : <a href={v.download_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> Enlace de descarga</a>}
               </div>
             </div>
