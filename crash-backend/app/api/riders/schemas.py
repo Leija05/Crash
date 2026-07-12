@@ -23,3 +23,9 @@ class ThresholdInput(BaseModel):
     auto_call: Optional[bool] = True
     auto_whatsapp: Optional[bool] = True
     location_tracking_enabled: Optional[bool] = True
+
+
+class PermissionLocationInput(BaseModel):
+    latitude: float
+    longitude: float
+    accuracy: Optional[float] = None
