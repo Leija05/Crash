@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { COLORS, RADIUS, SPACING, SHADOWS } from '../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../src/theme';
 import { useBluetooth } from '../src/context/BluetoothContext';
 import { useI18n } from '../src/i18n';
 import type { ScanDevice } from '../src/services/bluetooth';
@@ -38,10 +38,11 @@ export default function DevicesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.goldGlow} pointerEvents="none" />
       <View style={styles.header}>
         <Text style={styles.title}>{t('devices.title')}</Text>
         <TouchableOpacity onPress={scan} disabled={scanning} style={styles.refreshBtn}>
-          {scanning ? <ActivityIndicator color={COLORS.accent} size="small" /> : <Ionicons name="refresh" size={20} color={COLORS.accent} />}
+          {scanning ? <ActivityIndicator color={GOLD} size="small" /> : <Ionicons name="refresh" size={20} color={GOLD} />}
         </TouchableOpacity>
       </View>
 
@@ -56,7 +57,7 @@ export default function DevicesScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card} onPress={() => handleConnect(item.id)} activeOpacity={0.7}>
             <View style={styles.bluetoothIcon}>
-              <Ionicons name="bluetooth" size={20} color={COLORS.accent} />
+              <Ionicons name="bluetooth" size={20} color={GOLD} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.deviceName}>{item.name}</Text>
@@ -82,33 +83,42 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg, padding: SPACING.md },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(204,255,0,0.010)',
+    backgroundColor: 'rgba(255,215,0,0.010)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
+  },
+  goldGlow: {
+    position: 'absolute',
+    top: -40,
+    alignSelf: 'center',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,215,0,0.03)',
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md, paddingTop: SPACING.sm },
   title: { color: COLORS.text, fontSize: 18, fontWeight: '900', letterSpacing: 2 },
-  refreshBtn: { width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
+  refreshBtn: { width: 36, height: 36, borderRadius: RADIUS.md, backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
   nameCard: {
-    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
-    padding: 14, borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md,
+    padding: 14, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
     marginBottom: SPACING.md,
   },
   nameLabel: { color: COLORS.textSec, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8, textTransform: 'uppercase' },
   nameInput: {
-    backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: COLORS.bg, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
     color: COLORS.text, borderRadius: RADIUS.md, paddingHorizontal: 12,
     paddingVertical: 12, fontSize: 15,
   },
   listContent: { paddingBottom: 20 },
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.glassBg, padding: 14, borderRadius: RADIUS.md,
-    marginBottom: 8, gap: 12, borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: 'rgba(10,10,10,0.85)', padding: 14, borderRadius: RADIUS.md,
+    marginBottom: 8, gap: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
   },
   bluetoothIcon: {
     width: 38, height: 38, borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.accentSoft, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)',
+    backgroundColor: 'rgba(255,215,0,0.10)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
   },
   deviceName: { color: COLORS.text, fontWeight: '700', fontSize: 15 },
   deviceAddr: { color: COLORS.textDim, fontSize: 11, marginTop: 2, fontFamily: 'monospace' as any },

@@ -9,13 +9,13 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 import { impactsAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../../src/theme';
 
 function sevColor(s: string) {
   if (s === 'low') return COLORS.success;
-  if (s === 'medium') return COLORS.warning;
+  if (s === 'medium') return GOLD;
   if (s === 'high') return '#FB923C';
-  return COLORS.primary;
+  return COLORS.danger;
 }
 
 export default function ImpactsScreen() {
@@ -61,7 +61,7 @@ export default function ImpactsScreen() {
           <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
           {item.ai_diagnosis && (
             <View style={styles.aiBadge}>
-              <Ionicons name="sparkles" size={10} color={COLORS.accent} />
+              <Ionicons name="sparkles" size={10} color={GOLD} />
               <Text style={styles.aiText}>{t('impacts.aiDiagnosis')}</Text>
             </View>
           )}
@@ -76,6 +76,7 @@ export default function ImpactsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.goldGlow} pointerEvents="none" />
       <Animated.View entering={FadeInUp.duration(500).springify()} style={styles.headerSection}>
         <View>
           <Text style={styles.title}>{t('impacts.title')}</Text>
@@ -84,14 +85,14 @@ export default function ImpactsScreen() {
       </Animated.View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
       ) : (
         <FlatList
           data={impacts}
           keyExtractor={(item) => item.id}
           renderItem={renderImpact}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchImpacts(); }} tintColor={COLORS.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchImpacts(); }} tintColor={GOLD} />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name="shield-checkmark" size={32} color={COLORS.success} /></View>
@@ -109,8 +110,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(255,59,48,0.015)',
+    backgroundColor: 'rgba(255,215,0,0.015)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
+  },
+  goldGlow: {
+    position: 'absolute',
+    top: -40,
+    alignSelf: 'center',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,215,0,0.03)',
   },
   headerSection: { paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: 6 },
   title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
@@ -118,8 +128,8 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: 80 },
   card: {
     flexDirection: 'row', alignItems: 'stretch',
-    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
-    marginBottom: 10, borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md,
+    marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
     overflow: 'hidden',
   },
   sevStrip: { width: 4, borderRadius: 2, margin: 6 },
@@ -131,10 +141,10 @@ const styles = StyleSheet.create({
   cardGUnit: { fontSize: 12, fontWeight: '600', opacity: 0.6 },
   aiBadge: {
     flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 4,
-    backgroundColor: COLORS.accentSoft, paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: RADIUS.sm, marginTop: 8, borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)',
+    backgroundColor: 'rgba(255,215,0,0.10)', paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: RADIUS.sm, marginTop: 8, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
   },
-  aiText: { fontSize: 9, fontWeight: '800', color: COLORS.accent, letterSpacing: 1 },
+  aiText: { fontSize: 9, fontWeight: '800', color: GOLD, letterSpacing: 1 },
   chevronWrap: { justifyContent: 'center', paddingRight: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
   empty: { alignItems: 'center', paddingTop: 60 },

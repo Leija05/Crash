@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import Animated, { FadeIn, FadeInDown, SlideInUp, SlideInRight } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel, GOLD } from '../../src/theme';
 import PremiumModal from '../../src/components/PremiumModal';
 import { CrashLogoMark } from '../../src/components/CrashLogo';
 import { useAuth } from '../../src/context/AuthContext';
@@ -414,8 +414,9 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.goldGlow} pointerEvents="none" />
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />}
         contentContainerStyle={styles.scroll}
       >
         <Stagger index={0}>
@@ -483,13 +484,13 @@ export default function DashboardScreen() {
               <Text style={styles.bentoTitle}>{t('dashboard.location')}</Text>
               {permissionGranted === false ? (
                 <TouchableOpacity style={styles.locationBtn} onPress={requestPermission} activeOpacity={0.8}>
-                  <Ionicons name="location-outline" size={16} color={COLORS.accent} />
+                  <Ionicons name="location-outline" size={16} color={GOLD} />
                   <Text style={styles.locationBtnText}>{t('dashboard.enableLocation')}</Text>
                 </TouchableOpacity>
               ) : (
                 <View>
                   <View style={styles.locationPermBadge}>
-                    <Ionicons name="location" size={12} color={COLORS.accent} />
+                    <Ionicons name="location" size={12} color={GOLD} />
                     <Text style={styles.locationPermText}>{t('dashboard.permissionLocation')}</Text>
                   </View>
                   {grantedLocation ? (
@@ -542,7 +543,7 @@ export default function DashboardScreen() {
             <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="rad/s" color={COLORS.warning} live={liveData} delay={0} />
             <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="rad/s" color={COLORS.warning} live={liveData} delay={1} />
             <MetricCard label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="rad/s" color="#FB923C" live={liveData} delay={2} />
-            <MetricCard label={t('dashboard.gForce')} value={telemetryForDisplay?.g_force} unit="g" color={COLORS.accent} live={liveData} delay={3} />
+            <MetricCard label={t('dashboard.gForce')} value={telemetryForDisplay?.g_force} unit="g" color={GOLD} live={liveData} delay={3} />
           </View>
         </Stagger>
 
@@ -554,7 +555,7 @@ export default function DashboardScreen() {
               activeOpacity={0.8}
               testID="disconnect-btn"
             >
-              <Ionicons name="bluetooth" size={18} color="#FFF" />
+              <Ionicons name="bluetooth" size={18} color="#000" />
               <Text style={styles.primaryBtnText}>{t('dashboard.disconnectHelmet')}</Text>
             </TouchableOpacity>
           ) : (
@@ -564,8 +565,8 @@ export default function DashboardScreen() {
               activeOpacity={0.8}
               testID="connect-btn"
             >
-              <Ionicons name="bluetooth" size={18} color={COLORS.bg} />
-              <Text style={[styles.primaryBtnText, { color: COLORS.bg }]}>{t('dashboard.connectHelmet')}</Text>
+              <Ionicons name="bluetooth" size={18} color="#000" />
+              <Text style={[styles.primaryBtnText]}>{t('dashboard.connectHelmet')}</Text>
             </TouchableOpacity>
           )}
         </Stagger>
@@ -604,7 +605,7 @@ export default function DashboardScreen() {
         onClose={() => setCountdown(null)}
         title={t('dashboard.impactDetected')}
         eyebrow={t('dashboard.alertEyebrow')}
-        accent={COLORS.primary}
+        accent={GOLD}
         closeOnBackdrop={false}
       >
         <Text style={styles.dialogText}>{t('dashboard.alertMessage')}</Text>
@@ -620,7 +621,7 @@ export default function DashboardScreen() {
             onPress={() => { setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
           >
             {sending ? (
-              <ActivityIndicator color="#FFF" />
+              <ActivityIndicator color="#000" />
             ) : (
               <Text style={styles.cancelText}>{t('dashboard.sendNow')}</Text>
             )}
@@ -633,7 +634,7 @@ export default function DashboardScreen() {
         onClose={() => setAlertResult(null)}
         title={alertResult?.alerts_sent ? t('dashboard.sentTitle') : t('dashboard.notSentTitle')}
         eyebrow={t('dashboard.reportEyebrow')}
-        accent={alertResult?.alerts_sent ? COLORS.success : COLORS.primary}
+        accent={alertResult?.alerts_sent ? COLORS.success : GOLD}
         closeOnBackdrop={false}
       >
         <Text style={styles.dialogText}>
@@ -735,8 +736,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 280,
-    backgroundColor: 'rgba(255,59,48,0.02)',
+    backgroundColor: 'rgba(255,215,0,0.02)',
     borderBottomLeftRadius: 100, borderBottomRightRadius: 100,
+  },
+  goldGlow: {
+    position: 'absolute',
+    top: -60,
+    alignSelf: 'center',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,215,0,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 20 },
 
@@ -762,7 +772,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.border,
     borderRadius: RADIUS.md, padding: 14, marginBottom: SPACING.md,
   },
-  statusBarConnected: { borderColor: 'rgba(255,59,48,0.25)' },
+  statusBarConnected: { borderColor: 'rgba(255,215,0,0.25)' },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusLabel: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
   statusDetail: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
@@ -835,14 +845,14 @@ const styles = StyleSheet.create({
   locationBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     marginTop: 10, paddingVertical: 10, borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.accentSoft, borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)',
+    backgroundColor: 'rgba(255,215,0,0.10)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
   },
-  locationBtnText: { color: COLORS.accent, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
+  locationBtnText: { color: GOLD, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
   locationPermBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     marginTop: 4, marginBottom: 6,
   },
-  locationPermText: { color: COLORS.accent, fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+  locationPermText: { color: GOLD, fontSize: 8, fontWeight: '800', letterSpacing: 1 },
   coordsGeo: { color: COLORS.textDim, fontSize: 12, letterSpacing: 0.5, lineHeight: 18 },
   coordsGeoDim: { color: COLORS.textDim, fontSize: 12 },
   liveTrackingBadge: {
@@ -884,14 +894,14 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: COLORS.primary, borderRadius: RADIUS.md, height: 50,
+    backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 52,
     marginBottom: SPACING.md,
-    ...SHADOWS.glow(COLORS.primary),
+    ...SHADOWS.glow(GOLD),
   },
   primaryBtnDanger: {
-    backgroundColor: COLORS.primaryHover,
+    backgroundColor: COLORS.danger,
   },
-  primaryBtnText: { color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+  primaryBtnText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
 
   infoBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -909,13 +919,13 @@ const styles = StyleSheet.create({
 
   dialogText: { color: COLORS.textSec, fontSize: 14, marginBottom: 8, lineHeight: 20, textAlign: 'center' },
   countdownLabel: { color: COLORS.textDim, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 8 },
-  countdownValue: { color: COLORS.warning, fontSize: 64, fontWeight: '900', marginTop: 4, marginBottom: 20 },
+  countdownValue: { color: GOLD, fontSize: 64, fontWeight: '900', marginTop: 4, marginBottom: 20 },
   dialogActions: { flexDirection: 'row', gap: 10, width: '100%' },
   cancelBtnSoft: { flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 14, alignItems: 'center' },
   cancelSoftText: { color: COLORS.text, fontWeight: '800', letterSpacing: 0.7 },
-  cancelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center' },
-  cancelText: { color: '#FFF', fontWeight: '900', letterSpacing: 1 },
-  okBtnWide: { backgroundColor: COLORS.accent, borderRadius: RADIUS.md, paddingVertical: 14, marginTop: 14, width: '100%', alignItems: 'center' },
+  cancelBtn: { flex: 1, backgroundColor: GOLD, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center' },
+  cancelText: { color: '#000', fontWeight: '900', letterSpacing: 1 },
+  okBtnWide: { backgroundColor: GOLD, borderRadius: RADIUS.pill, paddingVertical: 14, marginTop: 14, width: '100%', alignItems: 'center' },
   okBtnText: { color: '#000', fontWeight: '900', letterSpacing: 1, fontSize: 14 },
   contactSent: { color: COLORS.textSec, fontSize: 13, marginBottom: 4, textAlign: 'center' },
 });

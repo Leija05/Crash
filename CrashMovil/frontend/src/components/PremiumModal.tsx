@@ -1,17 +1,17 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, SHADOWS } from '../theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../theme';
 
-export function BrandLogo({ size = 46, color = COLORS.primary }: { size?: number; color?: string }) {
+export function BrandLogo({ size = 46, color = GOLD }: { size?: number; color?: string }) {
   return (
     <View
       style={[
         styles.brandBadge,
-        { width: size, height: size, borderRadius: size * 0.28, borderColor: 'rgba(255,59,48,0.35)' },
+        { width: size, height: size, borderRadius: size * 0.28, borderColor: 'rgba(255,215,0,0.35)' },
       ]}
     >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,59,48,0.12)' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,215,0,0.12)' }]} />
       <Ionicons name="shield-checkmark" size={size * 0.5} color={color} />
     </View>
   );
@@ -33,7 +33,7 @@ export default function PremiumModal({
   onClose,
   title,
   eyebrow,
-  accent = COLORS.primary,
+  accent = GOLD,
   children,
   footer,
   closeOnBackdrop = false,

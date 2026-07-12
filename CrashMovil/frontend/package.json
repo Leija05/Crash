@@ -8,7 +8,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "version:register": "node scripts/register-version.js",
+    "version:current": "node -p \"require('./app.json').expo.version\"",
+    "build:android:preview": "npx eas build --platform android --profile preview",
+    "build:android:register": "eas build --platform android --profile preview && node scripts/register-version.js $(node -p \"require('./app.json').expo.version\")"
   },
   "dependencies": {
     "@babel/runtime": "^7.20.6",

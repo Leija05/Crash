@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, SHADOWS, FONT } from '../theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, FONT, GOLD } from '../theme';
 
 export type AlertKind = 'alert' | 'confirm' | 'prompt';
 
@@ -21,12 +21,9 @@ export type AlertConfig = {
   message?: string;
   eyebrow?: string;
   accent?: string;
-  /** alert / confirm */
   confirmText?: string;
-  /** confirm / prompt */
   cancelText?: string;
   destructive?: boolean;
-  /** prompt */
   placeholder?: string;
   defaultValue?: string;
   secureTextEntry?: boolean;
@@ -36,15 +33,15 @@ export type AlertConfig = {
 
 type Props = AlertConfig;
 
-export function BrandMark({ size = 52, color = COLORS.primary }: { size?: number; color?: string }) {
+export function BrandMark({ size = 52, color = GOLD }: { size?: number; color?: string }) {
   return (
     <View
       style={[
         styles.brandBadge,
-        { width: size, height: size, borderRadius: size * 0.3, borderColor: 'rgba(255,59,48,0.4)' },
+        { width: size, height: size, borderRadius: size * 0.3, borderColor: 'rgba(255,215,0,0.4)' },
       ]}
     >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,59,48,0.14)' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,215,0,0.14)' }]} />
       <Ionicons name="shield-checkmark" size={size * 0.5} color={color} />
     </View>
   );
@@ -55,7 +52,7 @@ export default function FullScreenAlert({
   title,
   message,
   eyebrow = 'C.R.A.S.H.',
-  accent = COLORS.primary,
+  accent = GOLD,
   confirmText = 'Aceptar',
   cancelText = 'Cancelar',
   destructive = false,
@@ -240,15 +237,15 @@ const styles = StyleSheet.create({
   actions: { width: '100%', marginTop: SPACING.lg, gap: SPACING.sm },
   btn: {
     width: '100%',
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.pill,
     paddingVertical: SPACING.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnPrimary: { backgroundColor: COLORS.primary },
+  btnPrimary: { backgroundColor: GOLD },
   btnDanger: { backgroundColor: COLORS.danger },
   btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.borderStrong },
   btnText: { fontSize: 16, fontWeight: '800' },
-  btnPrimaryText: { color: '#FFFFFF' },
+  btnPrimaryText: { color: '#000' },
   btnGhostText: { color: COLORS.textSec },
 });

@@ -10,7 +10,7 @@ import { AlertProvider } from '../src/context/AlertContext';
 import { LocationProvider } from '../src/context/LocationContext';
 import { I18nProvider } from '../src/i18n';
 import UpdateGate from '../src/components/UpdateGate';
-import { COLORS } from '../src/theme';
+import { COLORS, GOLD } from '../src/theme';
 
 export default function RootLayout() {
   return (
@@ -24,12 +24,17 @@ export default function RootLayout() {
                 <StatusBar style="light" translucent />
                 <Animated.View
                   entering={FadeIn.duration(800).springify().damping(20)}
-                  style={styles.topRedLine}
+                  style={styles.topGoldLine}
                   pointerEvents="none"
                 />
                 <Animated.View
                   entering={FadeIn.duration(1000).delay(200).springify().damping(24)}
                   style={styles.ambientGlow}
+                  pointerEvents="none"
+                />
+                <Animated.View
+                  entering={FadeIn.duration(1200).delay(400).springify()}
+                  style={styles.goldGlow}
                   pointerEvents="none"
                 />
                 <Stack
@@ -55,15 +60,25 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  topRedLine: {
+  topGoldLine: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-    backgroundColor: COLORS.primary,
+    backgroundColor: GOLD,
     zIndex: 100,
   },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-    backgroundColor: 'rgba(255,59,48,0.015)',
+    backgroundColor: 'rgba(255,215,0,0.015)',
     borderBottomLeftRadius: 150, borderBottomRightRadius: 150,
+    zIndex: 0,
+  },
+  goldGlow: {
+    position: 'absolute',
+    top: -80,
+    alignSelf: 'center',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(255,215,0,0.03)',
     zIndex: 0,
   },
 });

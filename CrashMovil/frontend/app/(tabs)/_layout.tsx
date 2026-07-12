@@ -3,7 +3,7 @@ import { memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View, Platform } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, FONT } from '../../src/theme';
+import { COLORS, RADIUS, SHADOWS, FONT, GOLD } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 
@@ -57,9 +57,9 @@ function HomeIcon({ color, size, focused }: { color: string; size: number; focus
       <View style={[styles.iconDot, focused && styles.iconDotActive]} />
       <Animated.View
         entering={FadeIn.duration(300)}
-        style={[styles.iconWrap, focused && [styles.iconWrapActive, { backgroundColor: 'rgba(255,59,48,0.15)' }], animatedStyle]}
+        style={[styles.iconWrap, focused && [styles.iconWrapActive, { backgroundColor: 'rgba(255,215,0,0.15)' }], animatedStyle]}
       >
-        <AnimatedIonicon name="flash" size={size - 2} color={focused ? COLORS.primary : color} />
+        <AnimatedIonicon name="flash" size={size - 2} color={focused ? GOLD : color} />
       </Animated.View>
     </View>
   );
@@ -78,7 +78,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: GOLD,
         tabBarInactiveTintColor: COLORS.textDim,
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: { paddingTop: 4 },
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     paddingTop: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,59,48,0.10)',
+    borderColor: 'rgba(255,215,0,0.10)',
     ...SHADOWS.md,
   },
   tabLabel: {
@@ -129,8 +129,8 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   iconDotActive: {
-    backgroundColor: COLORS.primary,
-    ...SHADOWS.glow(COLORS.primary),
+    backgroundColor: GOLD,
+    ...SHADOWS.glow(GOLD),
   },
   iconWrap: {
     width: 34,
@@ -140,6 +140,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   iconWrapActive: {
-    backgroundColor: 'rgba(255,59,48,0.10)',
+    backgroundColor: 'rgba(255,215,0,0.10)',
   },
 });

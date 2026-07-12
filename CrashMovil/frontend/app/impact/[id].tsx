@@ -7,15 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { impactsAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../../src/theme';
 import SeverityBadge from '../../src/components/SeverityBadge';
 import MetricTile from '../../src/components/MetricTile';
 
 function sevColor(s: string) {
   if (s === 'low') return COLORS.success;
-  if (s === 'medium') return COLORS.warning;
+  if (s === 'medium') return GOLD;
   if (s === 'high') return '#FB923C';
-  return COLORS.primary;
+  return COLORS.danger;
 }
 
 function DataItem({ label, value, unit }: { label: string; value?: string; unit: string }) {
@@ -44,7 +44,7 @@ export default function ImpactDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
       </SafeAreaView>
     );
   }
@@ -72,10 +72,11 @@ export default function ImpactDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.goldGlow} pointerEvents="none" />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
           <TouchableOpacity testID="impact-detail-back-btn" onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color={COLORS.text} />
+            <Ionicons name="arrow-back" size={20} color={GOLD} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>DETALLE DEL IMPACTO</Text>
           <View style={{ width: 40 }} />
@@ -96,7 +97,7 @@ export default function ImpactDetailScreen() {
             <Text style={styles.dateText}>{date}</Text>
             {impact.alerts_sent && (
               <View style={styles.alertSentBadge}>
-                <Ionicons name="notifications" size={10} color={COLORS.accent} />
+                <Ionicons name="notifications" size={10} color={GOLD} />
                 <Text style={styles.alertSentText}>Alertas enviadas</Text>
               </View>
             )}
@@ -119,7 +120,7 @@ export default function ImpactDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>UBICACIÓN</Text>
             <View style={styles.locRow}>
-              <Ionicons name="location" size={16} color={COLORS.primary} />
+              <Ionicons name="location" size={16} color={GOLD} />
               <Text style={styles.locText}>
                 {impact.location.latitude?.toFixed(4)}, {impact.location.longitude?.toFixed(4)}
               </Text>
@@ -135,7 +136,7 @@ export default function ImpactDetailScreen() {
         {d ? (
           <View style={styles.section}>
             <View style={styles.aiHeader}>
-              <Ionicons name="sparkles" size={16} color={COLORS.accent} />
+              <Ionicons name="sparkles" size={16} color={GOLD} />
               <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>DIAGNÓSTICO IA</Text>
             </View>
             <View style={styles.diagDivider} />
@@ -183,7 +184,7 @@ export default function ImpactDetailScreen() {
                 <Text style={styles.diagLabel}>RECOMENDACIONES</Text>
                 {d.emergency_recommendations.map((item: string, i: number) => (
                   <View key={i} style={styles.listItem}>
-                    <Ionicons name="medkit" size={14} color={COLORS.primary} />
+                    <Ionicons name="medkit" size={14} color={GOLD} />
                     <Text style={styles.listText}>{item}</Text>
                   </View>
                 ))}
@@ -207,20 +208,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 280,
-    backgroundColor: 'rgba(255,59,48,0.02)',
+    backgroundColor: 'rgba(255,215,0,0.02)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
+  },
+  goldGlow: {
+    position: 'absolute',
+    top: -60,
+    alignSelf: 'center',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,215,0,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   errorText: { color: COLORS.textDim, fontSize: 16 },
   backLink: { padding: 12 },
-  backLinkText: { color: COLORS.accent, fontSize: 14, fontWeight: '700' },
+  backLinkText: { color: GOLD, fontSize: 14, fontWeight: '700' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: SPACING.md,
   },
-  backBtn: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
-  headerTitle: { fontSize: 14, fontWeight: '800', color: COLORS.text, letterSpacing: 2 },
+  backBtn: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  headerTitle: { fontSize: 14, fontWeight: '800', color: GOLD, letterSpacing: 2 },
   sevBanner: {
     borderRadius: RADIUS.lg, padding: SPACING.lg, borderWidth: 1,
     marginBottom: SPACING.md, ...SHADOWS.md,
@@ -233,11 +243,11 @@ const styles = StyleSheet.create({
   gUnit: { fontSize: 18, fontWeight: '700', color: COLORS.textDim, marginBottom: 6, marginLeft: 2 },
   sevMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   dateText: { fontSize: 11, color: COLORS.textSec, flex: 1 },
-  alertSentBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: COLORS.accentSoft },
-  alertSentText: { fontSize: 10, color: COLORS.accent, fontWeight: '800' },
+  alertSentBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255,215,0,0.10)' },
+  alertSentText: { fontSize: 10, color: GOLD, fontWeight: '800' },
   section: {
-    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
-    padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md,
+    padding: SPACING.md, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
     marginBottom: SPACING.md, ...SHADOWS.sm,
   },
   sectionTitle: { fontSize: 10, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 12 },
@@ -245,30 +255,30 @@ const styles = StyleSheet.create({
   dataItem: {
     width: '48%', flexGrow: 1, backgroundColor: COLORS.bg,
     borderRadius: RADIUS.sm, padding: 12,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
   },
   dataLabel: { fontSize: 9, fontWeight: '700', color: COLORS.textDim, letterSpacing: 1, marginBottom: 4 },
   dataValue: { fontSize: 17, fontWeight: '900', color: COLORS.text, fontFamily: 'monospace' as any },
   dataUnit: { fontSize: 9, color: COLORS.textDim, marginTop: 2 },
-  locRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.bg, padding: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.glassBorder },
+  locRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.bg, padding: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
   locText: { fontSize: 13, color: COLORS.text, fontFamily: 'monospace' as any, letterSpacing: 0.5 },
   replayBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: COLORS.accent, borderRadius: RADIUS.md, height: 50,
-    marginBottom: SPACING.md, ...SHADOWS.glow(COLORS.accent),
+    backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 50,
+    marginBottom: SPACING.md, ...SHADOWS.glow(GOLD),
   },
   replayBtnText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
   aiHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  diagDivider: { height: 1, backgroundColor: COLORS.glassBorder, marginVertical: 12 },
+  diagDivider: { height: 1, backgroundColor: 'rgba(255,215,0,0.10)', marginVertical: 12 },
   diagBlock: { marginBottom: 20 },
-  diagLabel: { fontSize: 9, fontWeight: '700', color: COLORS.accent, letterSpacing: 2, marginBottom: 8 },
+  diagLabel: { fontSize: 9, fontWeight: '700', color: GOLD, letterSpacing: 2, marginBottom: 8 },
   diagValue: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
   priorityBadge: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   priorityText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
   listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
   listText: { fontSize: 13, color: COLORS.text, flex: 1, lineHeight: 20 },
-  stepNum: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
-  stepNumText: { fontSize: 11, fontWeight: '800', color: COLORS.accent },
+  stepNum: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  stepNumText: { fontSize: 11, fontWeight: '800', color: GOLD },
   noDiag: { alignItems: 'center', paddingVertical: 16, gap: 8 },
   noDiagText: { fontSize: 13, color: COLORS.textDim },
 });

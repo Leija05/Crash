@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, GOLD_SOFT } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
@@ -133,7 +133,7 @@ export default function SettingsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
       </SafeAreaView>
     );
   }
@@ -141,6 +141,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.goldGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
@@ -292,7 +293,7 @@ export default function SettingsScreen() {
                 <Ionicons name="call-outline" size={18} color={COLORS.text} />
                 <Text style={styles.toggleLabel}>{t('settings.autoCalls')}</Text>
               </View>
-              <Switch value={autoCall} onValueChange={setAutoCall} trackColor={{ false: '#2A2A34', true: 'rgba(204,255,0,0.4)' }} thumbColor={autoCall ? COLORS.accent : '#9A9AA8'} />
+              <Switch value={autoCall} onValueChange={setAutoCall} trackColor={{ false: '#2A2A34', true: 'rgba(255,215,0,0.4)' }} thumbColor={autoCall ? GOLD : '#9A9AA8'} />
             </View>
             <View style={styles.toggleRow}>
               <View style={styles.toggleLabelRow}>
@@ -313,10 +314,10 @@ export default function SettingsScreen() {
           </GlassCard>
 
           <TouchableOpacity testID="logout-btn" style={styles.logoutBtn} onPress={() => setLogoutOpen(true)}>
-            <Ionicons name="log-out-outline" size={18} color={COLORS.primary} />
+            <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
             <Text style={styles.logoutText}>{t('settings.logout')}</Text>
           </TouchableOpacity>
-          <Text style={styles.version}>C.R.A.S.H. v1.0</Text>
+          <Text style={styles.version}>C.R.A.S.H. v3.0 · Gold Edition</Text>
         </ScrollView>
 
         <PremiumModal
@@ -324,7 +325,7 @@ export default function SettingsScreen() {
           onClose={() => setLogoutOpen(false)}
           title={t('settings.logoutConfirmTitle')}
           eyebrow="C.R.A.S.H. · Cuenta"
-          accent={COLORS.primary}
+          accent={GOLD}
           closeOnBackdrop={false}
         >
           <Text style={{ color: COLORS.textSec, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
@@ -339,7 +340,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={doLogout}
-              style={{ flex: 1, backgroundColor: COLORS.primary, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center' }}
+              style={{ flex: 1, backgroundColor: COLORS.danger, borderRadius: RADIUS.md, paddingVertical: 14, alignItems: 'center' }}
             >
               <Text style={{ color: '#FFF', fontWeight: '900', letterSpacing: 1 }}>{t('settings.logoutYes')}</Text>
             </TouchableOpacity>
@@ -354,29 +355,38 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(204,255,0,0.010)',
+    backgroundColor: 'rgba(255,215,0,0.010)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
+  },
+  goldGlow: {
+    position: 'absolute',
+    top: -40,
+    alignSelf: 'center',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,215,0,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: SPACING.md },
   title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
   subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 4 },
-  deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder, marginBottom: SPACING.md },
+  deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)', marginBottom: SPACING.md },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusLabel: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
   statusDevice: { fontSize: 13, color: COLORS.textSec, marginTop: 2 },
-  inlineBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, borderWidth: 1, borderColor: COLORS.glassBorder },
-  inlineBtnAccent: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
+  inlineBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.md, backgroundColor: 'rgba(10,10,10,0.85)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  inlineBtnAccent: { backgroundColor: GOLD, borderColor: GOLD },
   inlineBtnText: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1 },
   inputGroup: { marginBottom: SPACING.md },
   label: { fontSize: 10, fontWeight: '800', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
   helper: { fontSize: 11, color: COLORS.textDim, marginBottom: 8, lineHeight: 16 },
-  input: { backgroundColor: COLORS.bg, borderRadius: RADIUS.md, paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: 15, borderWidth: 1, borderColor: COLORS.glassBorder },
+  input: { backgroundColor: COLORS.bg, borderRadius: RADIUS.md, paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: 15, borderWidth: 1, borderColor: COLORS.border },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  saveInlineBtn: { backgroundColor: COLORS.accent, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 12 },
+  saveInlineBtn: { backgroundColor: GOLD, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 12 },
   saveInlineBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 1 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 12, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)' },
   toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   toggleLabel: { fontSize: 14, color: COLORS.text },
   warnBox: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', backgroundColor: 'rgba(96,165,250,0.06)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.15)', padding: 10, borderRadius: RADIUS.md, marginTop: 4 },
@@ -384,16 +394,16 @@ const styles = StyleSheet.create({
   thresholdRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   gSymbol: { fontSize: 22, fontWeight: '900', color: COLORS.textSec },
   thresholdScale: { flexDirection: 'row', gap: 8 },
-  threshBtn: { flex: 1, paddingVertical: 8, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center', backgroundColor: COLORS.glassBg },
+  threshBtn: { flex: 1, paddingVertical: 8, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center', backgroundColor: 'rgba(10,10,10,0.85)' },
   threshText: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   threshVal: { fontSize: 14, fontWeight: '900', marginTop: 2 },
-  saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent, borderRadius: RADIUS.md, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 8, ...SHADOWS.glow(GOLD) },
   saveBtnText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
-  langBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center', backgroundColor: COLORS.glassBg },
-  langBtnActive: { borderColor: COLORS.accent, backgroundColor: COLORS.accentSoft },
+  langBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)', alignItems: 'center', backgroundColor: 'rgba(10,10,10,0.85)' },
+  langBtnActive: { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.10)' },
   langBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.textSec },
-  langBtnTextActive: { color: COLORS.accent },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: COLORS.primarySoft, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)', marginTop: 8 },
-  logoutText: { fontSize: 14, color: COLORS.primary, fontWeight: '700' },
+  langBtnTextActive: { color: GOLD },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: 'rgba(255,59,48,0.10)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)', marginTop: 8 },
+  logoutText: { fontSize: 14, color: COLORS.danger, fontWeight: '700' },
   version: { textAlign: 'center', color: COLORS.textDim, fontSize: 11, marginTop: 12 },
 });

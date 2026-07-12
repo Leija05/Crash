@@ -6,9 +6,9 @@ import PremiumModal from './PremiumModal';
 import GlassButton from './GlassButton';
 import { API_BASE, versionsAPI } from '../services/api';
 import { useI18n } from '../i18n';
-import { COLORS } from '../theme';
+import { COLORS, GOLD } from '../theme';
 
-const DISMISS_KEY = 'crash.update.dismissed.v1';
+const DISMISS_KEY = 'crash.update.dismissed.v2';
 
 type LatestVersion = {
   version?: string;
@@ -86,7 +86,7 @@ export default function UpdateGate() {
     <PremiumModal
       visible={visible}
       onClose={mandatory ? undefined : handleLater}
-      accent={COLORS.accent}
+      accent={GOLD}
       eyebrow={t('update.eyebrow', 'Nueva versión')}
       title={t('update.title', 'Actualización disponible')}
       closeOnBackdrop={false}
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   versionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   versionOld: { color: COLORS.textDim, fontSize: 15, fontWeight: '700' },
   arrow: { color: COLORS.textSec, fontSize: 15 },
-  versionNew: { color: COLORS.accent, fontSize: 18, fontWeight: '900' },
+  versionNew: { color: GOLD, fontSize: 18, fontWeight: '900' },
   desc: { color: COLORS.textSec, fontSize: 13, textAlign: 'center', lineHeight: 19 },
   notes: {
     color: COLORS.textDim,

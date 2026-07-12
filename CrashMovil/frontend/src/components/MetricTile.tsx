@@ -1,7 +1,7 @@
 import { Text, StyleSheet, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
-import { COLORS, RADIUS, FONT } from '../theme';
+import { COLORS, RADIUS, FONT, GOLD } from '../theme';
 
 interface MetricTileProps {
   label: string;
@@ -19,7 +19,7 @@ export default function MetricTile({
   label,
   value,
   icon,
-  color = COLORS.accent,
+  color = GOLD,
   style,
   size = 'md',
   delay = 0,
@@ -58,10 +58,10 @@ export default function MetricTile({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: COLORS.glassBg,
+    backgroundColor: 'rgba(10,10,10,0.85)',
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
+    borderColor: 'rgba(255,215,0,0.10)',
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',

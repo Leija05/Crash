@@ -1,6 +1,6 @@
 import { StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS } from '../theme';
+import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_SOFT } from '../theme';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -28,14 +28,14 @@ export default function GlassCard({
       ...SHADOWS.lg,
     },
     accent: {
-      backgroundColor: COLORS.accentSoft,
-      borderColor: 'rgba(204,255,0,0.2)',
-      ...SHADOWS.glow(COLORS.accent),
+      backgroundColor: GOLD_SOFT,
+      borderColor: 'rgba(255,215,0,0.2)',
+      ...SHADOWS.glow(GOLD),
     },
     danger: {
-      backgroundColor: COLORS.primarySoft,
+      backgroundColor: 'rgba(255,59,48,0.08)',
       borderColor: 'rgba(255,59,48,0.25)',
-      ...SHADOWS.glow(COLORS.primary),
+      ...SHADOWS.glow('#FF3B30'),
     },
   };
 
@@ -56,7 +56,7 @@ export default function GlassCard({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
     overflow: 'hidden',
   },

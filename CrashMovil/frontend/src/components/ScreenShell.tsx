@@ -1,6 +1,6 @@
 import { View, ScrollView, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { COLORS, SPACING } from '../theme';
+import { COLORS, SPACING, GOLD } from '../theme';
 
 interface ScreenShellProps {
   children: React.ReactNode;
@@ -31,6 +31,7 @@ export default function ScreenShell({
   return (
     <View style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.goldGlow} pointerEvents="none" />
       {header}
       {scroll ? (
         <ScrollView
@@ -53,13 +54,22 @@ const styles = StyleSheet.create({
   },
   ambientGlow: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 280,
-    backgroundColor: 'rgba(204,255,0,0.015)',
-    borderBottomLeftRadius: 120,
-    borderBottomRightRadius: 120,
+    top: -100,
+    left: -100,
+    right: -100,
+    height: 400,
+    backgroundColor: 'rgba(255,215,0,0.015)',
+    borderBottomLeftRadius: 200,
+    borderBottomRightRadius: 200,
+  },
+  goldGlow: {
+    position: 'absolute',
+    top: -60,
+    alignSelf: 'center',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,215,0,0.03)',
   },
   scrollContent: {
     flexGrow: 1,

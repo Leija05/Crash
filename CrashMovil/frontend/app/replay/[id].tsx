@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { impactsAPI, telemetryAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD } from '../../src/theme';
 
 const PLAYBACK_INTERVAL_MS = 500;
 
@@ -109,7 +109,7 @@ export default function ReplayScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.accent} />
+          <ActivityIndicator size="large" color={GOLD} />
           <Text style={styles.loadingText}>Cargando datos del accidente...</Text>
         </View>
       </SafeAreaView>
@@ -120,7 +120,7 @@ export default function ReplayScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Ionicons name="alert-circle" size={48} color={COLORS.primary} />
+          <Ionicons name="alert-circle" size={48} color={COLORS.danger} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backBtnText}>Volver</Text>
@@ -135,7 +135,7 @@ export default function ReplayScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtnSmall}>
-            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+            <Ionicons name="arrow-back" size={22} color={GOLD} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>REPLAY</Text>
           <View style={{ width: 40 }} />
@@ -154,7 +154,7 @@ export default function ReplayScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtnSmall}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+          <Ionicons name="arrow-back" size={22} color={GOLD} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>REPLAY DEL ACCIDENTE</Text>
         <View style={{ width: 40 }} />
@@ -209,7 +209,7 @@ export default function ReplayScreen() {
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaLabel}>FUERZA G</Text>
-              <Text style={[styles.metaValue, current?.__impact && { color: COLORS.primary }]}>
+              <Text style={[styles.metaValue, current?.__impact && { color: GOLD }]}>
                 {gForce.toFixed(2)}
                 <Text style={styles.metaUnit}> G</Text>
               </Text>
@@ -221,7 +221,7 @@ export default function ReplayScreen() {
               <View style={[styles.impactDot, { left: `${impactMarkerPercent}%` }]} />
               {currentIndex === impactIndex && (
                 <View style={styles.impactBadge}>
-                  <Ionicons name="warning" size={14} color={COLORS.primary} />
+                  <Ionicons name="warning" size={14} color={GOLD} />
                   <Text style={styles.impactBadgeText}>Momento del impacto</Text>
                 </View>
               )}
@@ -233,7 +233,7 @@ export default function ReplayScreen() {
               style={styles.controlBtn}
               onPress={() => { setCurrentIndex(0); setPlaying(false); }}
             >
-              <Ionicons name="play-skip-back" size={20} color={COLORS.text} />
+              <Ionicons name="play-skip-back" size={20} color={GOLD} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.playBtn, playing && styles.playBtnActive]}
@@ -247,14 +247,14 @@ export default function ReplayScreen() {
               <Ionicons
                 name={playing ? 'pause' : 'play'}
                 size={24}
-                color={playing ? COLORS.text : '#0A0A0A'}
+                color={playing ? GOLD : '#0A0A0A'}
               />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.controlBtn}
               onPress={() => { setCurrentIndex(maxIndex); setPlaying(false); }}
             >
-              <Ionicons name="play-skip-forward" size={20} color={COLORS.text} />
+              <Ionicons name="play-skip-forward" size={20} color={GOLD} />
             </TouchableOpacity>
           </View>
         </View>
@@ -294,7 +294,7 @@ export default function ReplayScreen() {
           )}
           {impact?.alerts_sent && (
             <View style={styles.alertsBadge}>
-              <Ionicons name="notifications" size={14} color={COLORS.accent} />
+              <Ionicons name="notifications" size={14} color={GOLD} />
               <Text style={styles.alertsBadgeText}>Alertas enviadas a contactos de emergencia</Text>
             </View>
           )}
@@ -311,18 +311,18 @@ const styles = StyleSheet.create({
   loadingText: { color: COLORS.textSec, fontSize: 14, marginTop: 8 },
   errorText: { color: COLORS.textSec, fontSize: 15, textAlign: 'center' },
   noDataText: { color: COLORS.textSec, fontSize: 15, lineHeight: 22, textAlign: 'center' },
-  backBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder },
-  backBtnText: { color: COLORS.accent, fontWeight: '700' },
+  backBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  backBtnText: { color: GOLD, fontWeight: '700' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm,
   },
-  backBtnSmall: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
-  headerTitle: { fontSize: 14, fontWeight: '800', color: COLORS.accent, letterSpacing: 2 },
+  backBtnSmall: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  headerTitle: { fontSize: 14, fontWeight: '800', color: GOLD, letterSpacing: 2 },
 
   replayCard: {
-    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
     padding: SPACING.md, marginBottom: SPACING.md,
     ...SHADOWS.md,
   },
@@ -337,16 +337,16 @@ const styles = StyleSheet.create({
     position: 'relative', overflow: 'hidden',
   },
   trackFill: {
-    height: '100%', backgroundColor: COLORS.accent, borderRadius: 3,
-    ...SHADOWS.glow(COLORS.accent),
+    height: '100%', backgroundColor: GOLD, borderRadius: 3,
+    ...SHADOWS.glow(GOLD),
   },
   impactMarker: {
     position: 'absolute', top: -4, width: 3, height: 14,
-    backgroundColor: COLORS.primary, borderRadius: 1.5,
+    backgroundColor: COLORS.danger, borderRadius: 1.5,
   },
   thumb: {
     position: 'absolute', top: 12, width: 20, height: 20,
-    borderRadius: 10, backgroundColor: COLORS.accent,
+    borderRadius: 10, backgroundColor: GOLD,
     marginLeft: -10, ...SHADOWS.md,
   },
   trackTouchArea: { height: 40, justifyContent: 'center' },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   },
   metaItem: {
     flex: 1, backgroundColor: COLORS.bg, borderRadius: RADIUS.sm,
-    padding: 12, borderWidth: 1, borderColor: COLORS.glassBorder,
+    padding: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
   },
   metaLabel: { fontSize: 8, fontWeight: '900', color: COLORS.textDim, letterSpacing: 1.5, marginBottom: 4 },
   metaValue: { fontSize: 18, fontWeight: '900', color: COLORS.text },
@@ -365,49 +365,49 @@ const styles = StyleSheet.create({
   impactSection: { height: 24, position: 'relative', marginBottom: SPACING.sm },
   impactDot: {
     position: 'absolute', top: 6, width: 12, height: 12,
-    borderRadius: 6, backgroundColor: COLORS.primary,
-    marginLeft: -6, zIndex: 2, ...SHADOWS.glow(COLORS.primary),
+    borderRadius: 6, backgroundColor: COLORS.danger,
+    marginLeft: -6, zIndex: 2, ...SHADOWS.glow(COLORS.danger),
   },
   impactBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,59,48,0.1)', borderRadius: RADIUS.sm,
-    borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)',
+    backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: RADIUS.sm,
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.2)',
     paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
   },
-  impactBadgeText: { fontSize: 10, color: COLORS.primary, fontWeight: '700' },
+  impactBadgeText: { fontSize: 10, color: GOLD, fontWeight: '700' },
 
   controls: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 20, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: COLORS.glassBorder,
+    gap: 20, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,215,0,0.10)',
   },
   controlBtn: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
   },
   playBtn: {
     width: 56, height: 56, borderRadius: 28,
-    backgroundColor: COLORS.accent, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: GOLD, alignItems: 'center', justifyContent: 'center',
     ...SHADOWS.md,
   },
-  playBtnActive: { backgroundColor: COLORS.primary, ...SHADOWS.glow(COLORS.primary) },
+  playBtnActive: { backgroundColor: 'rgba(10,10,10,0.85)', borderWidth: 1, borderColor: GOLD, ...SHADOWS.glow(GOLD) },
 
   impactInfoCard: {
-    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.glassBorder,
+    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
     padding: SPACING.md,
     ...SHADOWS.sm,
   },
   infoTitle: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.sm },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.glassBorder },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)' },
   infoLabel: { fontSize: 12, color: COLORS.textSec },
   infoValue: { fontSize: 13, fontWeight: '700', color: COLORS.text },
   infoValueMono: { fontSize: 12, color: COLORS.text, fontFamily: 'monospace' as any },
   alertsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 10, backgroundColor: COLORS.accentSoft,
+    marginTop: 10, backgroundColor: 'rgba(255,215,0,0.10)',
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.sm,
-    borderWidth: 1, borderColor: 'rgba(204,255,0,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
   },
-  alertsBadgeText: { fontSize: 11, color: COLORS.accent, fontWeight: '700' },
+  alertsBadgeText: { fontSize: 11, color: GOLD, fontWeight: '700' },
 });

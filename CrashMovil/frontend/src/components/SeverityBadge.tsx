@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.glassBg,
+    backgroundColor: 'rgba(10,10,10,0.85)',
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     paddingHorizontal: 10,

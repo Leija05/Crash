@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT } from '../theme';
+import { COLORS, FONT, GOLD, GOLD_SOFT } from '../theme';
 
 interface SectionHeaderProps {
   title: string;
@@ -22,7 +22,7 @@ export default function SectionHeader({
           <Ionicons
             name={icon}
             size={14}
-            color={accent ? COLORS.accent : COLORS.textDim}
+            color={accent ? GOLD : COLORS.textDim}
           />
         </View>
       )}
@@ -47,15 +47,15 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: COLORS.glassBg,
+    backgroundColor: 'rgba(10,10,10,0.85)',
     borderWidth: 1,
-    borderColor: COLORS.glassBorder,
+    borderColor: 'rgba(255,215,0,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconBoxAccent: {
-    backgroundColor: COLORS.accentSoft,
-    borderColor: 'rgba(204,255,0,0.2)',
+    backgroundColor: GOLD_SOFT,
+    borderColor: 'rgba(255,215,0,0.2)',
   },
   textWrap: {
     flex: 1,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   titleAccent: {
-    color: COLORS.accent,
+    color: GOLD,
   },
   subtitle: {
     fontSize: 11,

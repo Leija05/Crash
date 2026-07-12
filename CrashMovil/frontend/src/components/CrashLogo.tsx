@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, G } from 'react-native-svg';
-import { COLORS, RADIUS } from '../theme';
+import { COLORS, RADIUS, GOLD } from '../theme';
 
 const SVG_PATHS = [
   "M1535 2895 c-44 -37 -295 -160 -407 -199 -179 -64 -366 -107 -573 -131 -212 -25 -202 -23 -208 -48 -3 -12 -11 -106 -18 -209 -10 -149 -10 -229 0 -390 7 -111 16 -209 20 -216 5 -9 14 2 26 35 17 42 19 72 16 255 -4 260 7 464 25 482 7 8 44 17 81 20 104 11 285 44 413 76 203 51 360 112 548 210 118 62 144 69 177 47 44 -30 176 -97 275 -140 216 -93 459 -156 743 -191 60 -8 114 -19 120 -25 8 -8 12 -111 14 -325 2 -264 5 -320 19 -355 9 -22 20 -41 24 -41 9 0 17 67 26 215 5 106 -10 504 -22 552 -7 27 -2 26 -199 48 -371 41 -727 157 -981 320 -64 41 -79 42 -119 10z",
@@ -12,7 +12,7 @@ const SVG_PATHS = [
   "M805 785 c-38 -14 -112 -81 -101 -92 3 -3 19 6 36 20 41 35 95 49 143 37 48 -10 69 -29 92 -81 23 -50 51 -50 48 0 -4 82 -127 148 -218 116z",
 ];
 
-export function CrashLogoSVG({ size = 36, color = COLORS.primary }: { size?: number; color?: string }) {
+export function CrashLogoSVG({ size = 36, color = GOLD }: { size?: number; color?: string }) {
   const scale = size / 333;
   const height = size * (306 / 333);
   return (
@@ -26,7 +26,7 @@ export function CrashLogoSVG({ size = 36, color = COLORS.primary }: { size?: num
   );
 }
 
-export function CrashLogo({ size = 36, color = COLORS.primary }: CrashLogoProps) {
+export function CrashLogo({ size = 36, color = GOLD }: CrashLogoProps) {
   return (
     <View
       style={{
@@ -59,7 +59,7 @@ export function CrashLogoFull({ size = 28 }: { size?: number }) {
           },
         ]}
       >
-        <CrashLogoSVG size={size} color={COLORS.primary} />
+        <CrashLogoSVG size={size} color={GOLD} />
       </View>
       <View>
         <Text style={[styles.badge, { fontSize: size > 30 ? 9 : 7 }]}>CRITICAL RESPONSE</Text>
@@ -79,13 +79,13 @@ export function CrashLogoIcon({ size = 24, color }: { size?: number; color?: str
         height: (size + 8) * (306 / 333),
         borderRadius: (size + 8) / 3,
         borderWidth: 1.5,
-        borderColor: 'rgba(255,59,48,0.4)',
-        backgroundColor: 'rgba(255,59,48,0.10)',
+        borderColor: 'rgba(255,215,0,0.4)',
+        backgroundColor: 'rgba(255,215,0,0.10)',
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <CrashLogoSVG size={size} color={color || COLORS.primary} />
+      <CrashLogoSVG size={size} color={color || GOLD} />
     </View>
   );
 }
@@ -97,10 +97,10 @@ export function CrashLogoMark({ size = 40 }: { size?: number }) {
         width: size,
         height: size * (306 / 333),
         borderRadius: size / 4,
-        backgroundColor: COLORS.primary,
+        backgroundColor: GOLD,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: COLORS.primary,
+        shadowColor: GOLD,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.5,
         shadowRadius: 20,
@@ -120,14 +120,14 @@ const styles = StyleSheet.create({
   },
   logoBox: {
     borderWidth: 1.5,
-    borderColor: 'rgba(255,59,48,0.35)',
-    backgroundColor: 'rgba(255,59,48,0.10)',
+    borderColor: 'rgba(255,215,0,0.35)',
+    backgroundColor: 'rgba(255,215,0,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   badge: {
     letterSpacing: 3.5,
-    color: COLORS.primary,
+    color: GOLD,
     fontWeight: '800',
   },
   name: {

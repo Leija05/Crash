@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS } from '../theme';
+import { COLORS, RADIUS, SHADOWS, GOLD } from '../theme';
 
 interface GlassButtonProps {
   title: string;
@@ -42,14 +42,14 @@ export default function GlassButton({
 
   const variantStyles: Record<string, ViewStyle> = {
     primary: {
-      backgroundColor: COLORS.primary,
+      backgroundColor: GOLD,
       borderColor: 'transparent',
-      ...SHADOWS.glow(COLORS.primary),
+      ...SHADOWS.glow(GOLD),
     },
     accent: {
-      backgroundColor: COLORS.accent,
+      backgroundColor: GOLD,
       borderColor: 'transparent',
-      ...SHADOWS.glow(COLORS.accent),
+      ...SHADOWS.glow(GOLD),
     },
     ghost: {
       backgroundColor: COLORS.glassBg,
@@ -57,12 +57,12 @@ export default function GlassButton({
     },
     danger: {
       backgroundColor: COLORS.primarySoft,
-      borderColor: 'rgba(255,59,48,0.3)',
+      borderColor: 'rgba(255,215,0,0.3)',
     },
   };
 
   const variantText: Record<string, TextStyle> = {
-    primary: { color: '#fff' },
+    primary: { color: '#000' },
     accent: { color: '#000' },
     ghost: { color: COLORS.text },
     danger: { color: COLORS.primary },
@@ -106,7 +106,7 @@ export default function GlassButton({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === 'accent' ? '#000' : '#fff'}
+            color={variant === 'accent' ? '#000' : '#000'}
           />
         ) : (
           <>
@@ -114,7 +114,7 @@ export default function GlassButton({
               <AnimatedIonicon
                 name={icon}
                 size={s.iconSize}
-                color={(variantText[variant] as any).color || '#fff'}
+                color={(variantText[variant] as any).color || '#000'}
                 style={{ marginRight: 6 }}
               />
             )}
@@ -137,7 +137,7 @@ export default function GlassButton({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
