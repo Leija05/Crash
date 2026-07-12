@@ -1615,7 +1615,7 @@ function VersionsTab() {
                   {v.mandatory && <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300">Obligatoria</span>}
                 </div>
                 {v.notes && <div className="text-xs text-neutral-500 truncate max-w-md">{v.notes}</div>}
-                <a href={`/api/versions/${v.id}/download`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> {v.download_url?.startsWith("/uploads/") ? v.download_url.split("/").pop() : "Descargar"}</a>
+                <button onClick={() => window.open(`${api.defaults.baseURL}/versions/${v.id}/download`, '_blank')} className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> {v.download_url?.startsWith("/uploads/") ? v.download_url.split("/").pop() : "Descargar"}</button>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">

@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
-from starlette.responses import RedirectResponse
+import os
+
+from fastapi import APIRouter, Depends, File, Query, UploadFile
+from starlette.responses import FileResponse, RedirectResponse
 
 from app.api.versions.service import (
     create_version,
@@ -10,6 +12,7 @@ from app.api.versions.service import (
     upload_apk,
     get_version_download_url,
 )
+from app.core.config import settings
 from app.core.security import get_current_superadmin
 
 router = APIRouter(prefix="/versions", tags=["versions"])
@@ -37,10 +40,12 @@ async def versions_create(data: dict, _: dict = Depends(get_current_superadmin))
 
 
 @router.get("/{version_id}/download")
-async def versions_download(version_id: str, request: Request):
+async def versions_download(version_id: str):
     url = await get_version_download_url(version_id)
     if url.startswith("/"):
-        url = str(request.base_url).rstrip("/") + url
+        filename = os.path.basename(url)
+        filepath = os.path.join(settings.UPLOAD_DIR, filename)
+        return FileResponse(filepath, filename=filename)
     return RedirectResponse(url=url, status_code=302)
 
 
