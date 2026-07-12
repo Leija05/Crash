@@ -17,11 +17,11 @@ function severityScore(impact) {
 
 function CrashStatsWidget() {
   const { t } = useI18n();
-  const STATUS_LABEL = {
+  const STATUS_LABEL = useMemo(() => ({
     pending: t("crashStats.statusPending", "Pendiente"),
     acknowledged: t("crashStats.statusAcknowledged", "Atendido"),
     false_alarm: t("crashStats.statusFalseAlarm", "Falsa alarma"),
-  };
+  }), [t]);
 
   function severityLabel(score) {
     if (!score) return t("crashStats.severityNoData", "Sin datos");
@@ -75,7 +75,7 @@ function CrashStatsWidget() {
     const counts = { pending: 0, acknowledged: 0, false_alarm: 0 };
     impacts.forEach((i) => { if (counts[i.status] != null) counts[i.status] += 1; });
     return Object.keys(counts).map((key) => ({ name: STATUS_LABEL[key], value: counts[key], color: STATUS_COLOR[key] }));
-  }, [impacts]);
+  }, [impacts, STATUS_LABEL]);
 
   const trendChart = useMemo(() => {
     const map = new Map();

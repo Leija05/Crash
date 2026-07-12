@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker, Circle, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Crosshair, Flame } from "lucide-react";
+import { Crosshair } from "lucide-react";
 import { useI18n } from "../i18n";
 
 delete L.Icon.Default.prototype._getIconUrl;

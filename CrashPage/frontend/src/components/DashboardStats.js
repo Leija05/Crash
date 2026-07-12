@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, formatApiError } from "../lib/api";
 import { useI18n } from "../i18n";
-import { TrendingUp, Users, AlertTriangle, Activity, Clock, BarChart3 } from "lucide-react";
+import { TrendingUp, Users, AlertTriangle, Activity, BarChart3 } from "lucide-react";
 
 export default function DashboardStats() {
   const { t } = useI18n();

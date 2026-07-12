@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
-import { LifeBuoy, Send, X, Flame } from "lucide-react";
+import { LifeBuoy, Send, Flame } from "lucide-react";
 import Topbar from "../components/Topbar";
 import LiveMap from "../components/LiveMap";
 import DriverList from "../components/DriverList";
@@ -38,7 +38,7 @@ function SupportModal({ onClose }) {
       onClose();
     } catch (err) { toast.error(formatApiError(err)); }
     setBusy(false);
-  }, [type, message, onClose]);
+  }, [type, message, onClose, t]);
 
   return (
     <PremiumModal
@@ -153,7 +153,7 @@ function Dashboard() {
       }
     }
     return merged;
-  }, [isMonitor, visibleDrivers, roster, user?.company_id]);
+  }, [isMonitor, visibleDrivers, roster, user?.company_id, t]);
 
   const visibleAlerts = useMemo(() => {
     if (!isMonitor) return alerts;

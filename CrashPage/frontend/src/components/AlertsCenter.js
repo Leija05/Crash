@@ -73,14 +73,14 @@ function IncidentWorkflow({ alert, onOpenDriverDetail }) {
   useEffect(() => { localStorage.setItem(storageKey, JSON.stringify(state)); }, [state, storageKey]);
 
   const { t } = useI18n();
-  const stepLabel = {
+  const stepLabel = useMemo(() => ({
     location: t("alertsCenter.stepLocation", "Ver ubicación"),
     medical: t("alertsCenter.stepMedical", "Revisar datos médicos"),
     call: t("alertsCenter.stepCall", "Llamar contacto principal"),
     message: t("alertsCenter.stepMessage", "Confirmar WhatsApp/SMS"),
     escalate: t("alertsCenter.stepEscalate", "Escalar a emergencias"),
     close: t("alertsCenter.stepClose", "Cerrar incidente con nota"),
-  };
+  }), [t]);
 
   const toggle = useCallback((step) => {
     setState((prev) => {
@@ -88,7 +88,7 @@ function IncidentWorkflow({ alert, onOpenDriverDetail }) {
       const log = [{ at: new Date().toISOString(), text: `${nextChecked[step.key] ? t("alertsCenter.completed", "Completó") : t("alertsCenter.reopened", "Reabrió")}: ${stepLabel[step.key]}` }, ...(prev.log || [])].slice(0, 6);
       return { ...prev, checked: nextChecked, log };
     });
-  }, []);
+  }, [stepLabel, t]);
 
   const completed = EMERGENCY_STEPS.filter((step) => state.checked?.[step.key]).length;
   const firstResponse = state.log?.[state.log.length - 1]?.at;

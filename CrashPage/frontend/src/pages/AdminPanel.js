@@ -14,7 +14,7 @@ import {
   LayoutDashboard, Building2, CreditCard, Users, Key, LogOut,
   Plus, Trash2, Edit3, Copy, RefreshCw, Loader2, Check, X,
   ChevronDown, ChevronRight, Shield, Activity, Mail, Phone,
-  AlertCircle, Settings, BarChart3, Clock, Eye, Package, TrendingUp,
+  AlertCircle, BarChart3, Clock, Eye, Package, TrendingUp,
   UserPlus, ScrollText, LifeBuoy, Map as MapIcon, Bell, Webhook,
   CalendarClock, Send, CheckCircle2, CalendarPlus, Slack,
   PanelLeftClose, PanelLeftOpen, LineChart as LineChartIcon, Globe,
@@ -309,7 +309,7 @@ function SubscriptionPanel({ company, onChanged }) {
       onChanged?.();
     } catch (e) { err(e); }
     setBusy(false);
-  }, [cid, onChanged]);
+  }, [cid, onChanged, t]);
 
   return (
     <div className="mt-5">
@@ -367,12 +367,12 @@ function WebhooksPanel({ company }) {
     try { await companyAPI.setWebhooks(cid, cfg);       ok(t("admin.webhooksSaved", "Webhooks guardados")); }
     catch (e) { err(e); }
     setBusy(false);
-  }, [cid, cfg]);
+  }, [cid, cfg, t]);
 
   const test = useCallback(async () => {
     try { const { data } = await companyAPI.testWebhook(cid); ok(`${t("admin.testSent", "Prueba enviada")} · Slack: ${data.slack ? t("admin.ok", "ok") : "—"} · WhatsApp: ${data.whatsapp ? t("admin.ok", "ok") : "—"}`); }
     catch (e) { err(e); }
-  }, [cid]);
+  }, [cid, t]);
 
   if (!cfg) return null;
   const inputCls = "w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all";
@@ -430,7 +430,7 @@ function ReportSchedulePanel({ company }) {
     try {       await companyAPI.setReportSchedule(cid, cfg); ok(t("admin.scheduleSaved", "Programación guardada")); }
     catch (e) { err(e); }
     setBusy(false);
-  }, [cid, cfg]);
+  }, [cid, cfg, t]);
 
   const selCls = "bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none";
   return (
@@ -540,7 +540,7 @@ function CompaniesTab() {
       setPendingDelete(null);
       load();
     } catch (err) { toast.error(formatApiError(err)); setDeleting(false); }
-  }, [pendingDelete, load]);
+  }, [pendingDelete, load, t]);
 
   const handleRegenToken = useCallback(async (id, planId, cycle) => {
     try {
@@ -577,7 +577,7 @@ function CompaniesTab() {
       loadTokens(id);
       load();
     } catch (err) { toast.error(formatApiError(err)); }
-  }, [loadTokens, load]);
+  }, [loadTokens, load, t]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
 
@@ -999,11 +999,11 @@ const SUPPORT_TYPE_LABELS = {
 };
 
 function TempPasswordModal({ result, onClose }) {
+  const { t } = useI18n();
   const copy = useCallback(() => {
     navigator.clipboard?.writeText(result.temp_password);
     ok(t("admin.passwordCopied", "Contraseña copiada"));
-  }, [result]);
-  const { t } = useI18n();
+  }, [result, t]);
   return (
     <PremiumModal
       open
@@ -1047,10 +1047,10 @@ function SupportTab() {
 
   const forward = useCallback(async (id) => {
      try { await adminAPI.supportForward(id); ok(t("admin.forwardedToSupport", "Reenviado a soporte")); load(); } catch (e) { err(e); }
-  }, [load]);
+  }, [load, t]);
   const resolve = useCallback(async (id) => {
     try { await adminAPI.supportResolve(id, ""); ok(t("admin.markedResolved", "Marcado como resuelto")); load(); } catch (e) { err(e); }
-  }, [load]);
+  }, [load, t]);
 
   const resetPassword = useCallback(async (r) => {
     setResetPrompt({ id: r.id, suggested: r.requested_by_email || "" });
@@ -1069,7 +1069,7 @@ function SupportTab() {
       load();
     } catch (e) { err(e); }
     setBusyId(null);
-  }, [resetPrompt, load]);
+  }, [resetPrompt, load, t]);
 
   const revokeToken = useCallback(async () => {
     if (!pendingRevoke) return;
@@ -1081,7 +1081,7 @@ function SupportTab() {
       load();
     } catch (e) { err(e); }
     setRevoking(false);
-  }, [pendingRevoke, load]);
+  }, [pendingRevoke, load, t]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return reqs;
