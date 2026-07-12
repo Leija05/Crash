@@ -570,8 +570,8 @@ body[data-theme='light'] .red-accent-panel::after{border-color:rgba(220,38,38,.2
   animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .slide-in-right {
