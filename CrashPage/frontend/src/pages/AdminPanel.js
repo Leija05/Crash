@@ -1513,6 +1513,7 @@ function VersionsTab() {
   const [form, setForm] = useState({ version: "", platform: "android", download_url: "", notes: "", mandatory: false, published: true, size_mb: null });
   const [apkFile, setApkFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
@@ -1529,12 +1530,14 @@ function VersionsTab() {
   }, [load]);
 
   const handleCreate = useCallback(async (e) => {
-    e.preventDefault(); setBusy(true); setUploading(true); setError("");
+    e.preventDefault(); setBusy(true); setUploading(true); setProgress(0); setError("");
     try {
       let download_url = form.download_url;
       let size_mb = form.size_mb;
       if (apkFile) {
-        const { data } = await versionsAPI.uploadApk(apkFile);
+        const { data } = await versionsAPI.uploadApk(apkFile, (e) => {
+          if (e.total) setProgress(Math.round((e.loaded / e.total) * 100));
+        });
         download_url = data.url;
         if (!size_mb && data.size_mb) size_mb = data.size_mb;
       }
@@ -1543,7 +1546,7 @@ function VersionsTab() {
       setApkFile(null);
       load(); ok("Versión publicada");
     } catch (er) { setError(formatApiError(er)); }
-    setBusy(false); setUploading(false);
+    setBusy(false); setUploading(false); setProgress(0);
   }, [form, apkFile, load]);
 
   const togglePublish = useCallback(async (v) => {
@@ -1592,8 +1595,14 @@ function VersionsTab() {
           <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Novedades / changelog (opcional)" rows={3} className="md:col-span-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none resize-none" />
           <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={form.mandatory} onChange={(e) => setForm(f => ({ ...f, mandatory: e.target.checked }))} className="accent-emerald-500" /> Actualización obligatoria</label>
           <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={form.published} onChange={(e) => setForm(f => ({ ...f, published: e.target.checked }))} className="accent-emerald-500" /> Publicar de inmediato</label>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 space-y-3">
             <button disabled={busy || !form.version || (!apkFile && !form.download_url)} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? (uploading ? "Subiendo APK..." : "Publicando...") : "Publicar versión"}</button>
+            {uploading && (
+              <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
+                <div className="h-full bg-emerald-400 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+              </div>
+            )}
+            {uploading && <p className="text-xs text-neutral-500 text-right">{progress}%</p>}
           </div>
         </form>
         {error && <div className="mt-3 text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-xl px-3 py-2.5">{error}</div>}

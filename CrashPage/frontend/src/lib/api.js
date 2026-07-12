@@ -107,12 +107,13 @@ export const versionsAPI = {
   update: (id, payload) => api.put(`/versions/${id}`, payload),
   remove: (id) => api.delete(`/versions/${id}`),
   latest: (platform = "android") => api.get("/versions/latest", { params: { platform } }),
-  uploadApk: (file) => {
+  uploadApk: (file, onProgress) => {
     const fd = new FormData();
     fd.append("file", file);
     return api.post("/versions/upload", fd, {
       headers: { "Content-Type": "multipart/form-data" },
       timeout: 300000,
+      onUploadProgress: onProgress,
     });
   },
 };
