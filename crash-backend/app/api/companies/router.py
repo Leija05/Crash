@@ -14,6 +14,7 @@ from app.core.security import (
     get_current_monitor_user,
     get_current_admin,
     get_current_company_admin,
+    get_current_company_monitor,
 )
 
 router = APIRouter(prefix="/companies", tags=["companies"])
@@ -98,7 +99,7 @@ async def company_monitors(company_id: str, _=Depends(get_current_company_admin)
 
 
 @router.get("/{company_id}/drivers")
-async def company_drivers(company_id: str, _=Depends(get_current_company_admin)):
+async def company_drivers(company_id: str, _=Depends(get_current_company_monitor)):
     return await get_company_drivers(company_id)
 
 

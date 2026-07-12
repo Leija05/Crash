@@ -213,6 +213,56 @@ async def get_current_company_admin(
     return user
 
 
+async def get_current_company_monitor(
+    request: Request,
+    company_id: str,
+) -> dict:
+    """Monitor access scoped to a single company.
+
+    Accepts monitor operators (any role) and superadmin users.
+    SuperAdmins may access any company; others are restricted to their own.
+    """
+    from app.core.database import get_db
+
+    db = await get_db()
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    try:
+        payload = decode_token(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+
+    # Try monitor operators first
+    user = await db.monitor_operators.find_one(
+        {"id": payload["sub"]}, {"_id": 0, "password_hash": 0}
+    )
+    if user:
+        user["token_version"] = payload.get("ver", 1)
+        if user.get("company_id") != company_id:
+            raise HTTPException(status_code=403, detail="No autorizado para esta empresa")
+        return user
+
+    # Fallback: superadmin from users collection
+    try:
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+    except Exception:
+        user = None
+    if user and user.get("role") == "superadmin":
+        user["id"] = str(user["_id"])
+        user.pop("_id", None)
+        user.pop("password_hash", None)
+        user["token_version"] = payload.get("ver", 1)
+        return user
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+
 async def get_current_superadmin(request: Request) -> dict:
     from app.core.database import get_db
 
