@@ -2029,7 +2029,7 @@ function AdminPanel() {
       <div className="pointer-events-none fixed -bottom-40 -right-40 h-96 w-96 rounded-full bg-red-500/[0.05] blur-[120px]" />
 
       <aside className={`relative z-10 ${collapsed ? "w-[76px]" : "w-64"} border-r border-white/10 bg-black/40 backdrop-blur-xl p-3 flex-col flex-shrink-0 hidden lg:flex sticky top-0 h-screen transition-[width] duration-300 ease-out`}>
-        <div className={`flex items-center gap-3 mb-5 px-1 ${collapsed ? "justify-center" : ""}`}>
+        <button onClick={() => navigate("/")} className={`flex items-center gap-3 mb-5 px-1 w-full text-left ${collapsed ? "justify-center" : ""}`}>
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500/25 to-red-500/5 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)] flex-shrink-0">
             <Shield className="h-5 w-5 text-red-400" />
           </div>
@@ -2039,7 +2039,7 @@ function AdminPanel() {
               <div className="text-base font-bold leading-tight tracking-tight">C.R.A.S.H.</div>
             </div>
           )}
-        </div>
+        </button>
 
         <button
           onClick={toggleSidebar}
@@ -2075,10 +2075,10 @@ function AdminPanel() {
         {/* Mobile header + horizontal tabs */}
         <div className="lg:hidden sticky top-0 z-20 bg-black/60 backdrop-blur-xl border-b border-white/10">
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-2.5">
+            <button onClick={() => navigate("/")} className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-red-500/15 border border-red-500/40 flex items-center justify-center"><Shield className="h-4 w-4 text-red-400" /></div>
               <div><div className="text-[9px] uppercase tracking-[0.3em] text-neutral-500 leading-none">SuperAdmin</div><div className="font-bold text-sm leading-tight">{activeLabel}</div></div>
-            </div>
+            </button>
             <button onClick={handleLogout} className="h-9 w-9 rounded-lg border border-red-500/30 flex items-center justify-center hover:bg-red-500/10 transition-all"><LogOut className="h-4 w-4 text-red-400" /></button>
           </div>
           <div className="relative">

@@ -624,7 +624,7 @@ function Landing() {
         <section className="relative overflow-hidden">
           <motion.div className="absolute inset-0" style={{ scale: heroScale }}>
             <img src={HERO} alt={t("landing.heroAlt", "Motociclista de noche")} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/78" />
+            <div className="absolute inset-0 bg-black/85" />
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 40%,#050505)" }} />
           </motion.div>
           <div className="relative max-w-6xl mx-auto px-4 py-20 sm:py-28 lg:py-40">
@@ -645,7 +645,7 @@ function Landing() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="font-bold font-mono text-4xl sm:text-5xl lg:text-7xl tracking-tight max-w-4xl leading-[1.05]"
+              className="text-white font-bold font-mono text-4xl sm:text-5xl lg:text-7xl tracking-tight max-w-4xl leading-[1.05] drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
             >
               {t("landing.heroTitle", "Alerta crítica que previene y responde al accidente en tiempo real.")}
             </motion.h1>
@@ -653,7 +653,7 @@ function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="text-zinc-300 text-base md:text-lg mt-6 max-w-xl"
+              className="text-zinc-200 text-base md:text-lg mt-6 max-w-xl drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]"
             >
               {t("landing.heroSub", "C.R.A.S.H. (Critical Response Alert System for Helmets) detecta impactos en el casco, analiza la gravedad con IA y alerta de inmediato con ubicación a tus contactos y al centro de monitoreo.")}
             </motion.p>
