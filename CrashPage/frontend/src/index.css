@@ -668,6 +668,7 @@ textarea:focus-visible {
 /* Animated hero orbs */
 .orb-float { animation: orbFloat 14s ease-in-out infinite; }
 .orb-float-2 { animation: orbFloat 18s ease-in-out infinite reverse; }
+.orb-float-3 { animation: orbFloat 22s ease-in-out infinite; }
 @keyframes orbFloat {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(40px, -30px) scale(1.08); }

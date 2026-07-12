@@ -1,4 +1,5 @@
-import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import { StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { COLORS, RADIUS, SHADOWS } from '../theme';
 
 interface GlassCardProps {
@@ -6,6 +7,7 @@ interface GlassCardProps {
   style?: StyleProp<ViewStyle>;
   variant?: 'default' | 'elevated' | 'accent' | 'danger';
   padding?: number;
+  delay?: number;
 }
 
 export default function GlassCard({
@@ -13,6 +15,7 @@ export default function GlassCard({
   style,
   variant = 'default',
   padding = 16,
+  delay = 0,
 }: GlassCardProps) {
   const variantStyles: Record<string, ViewStyle> = {
     default: {
@@ -37,7 +40,8 @@ export default function GlassCard({
   };
 
   return (
-    <View
+    <Animated.View
+      entering={FadeIn.duration(500).delay(delay).springify().damping(20)}
       style={[
         styles.base,
         variantStyles[variant],
@@ -46,7 +50,7 @@ export default function GlassCard({
       ]}
     >
       {children}
-    </View>
+    </Animated.View>
   );
 }
 

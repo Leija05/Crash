@@ -5,9 +5,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, FadeInUp, SlideInUp } from 'react-native-reanimated';
 import { useAuth } from '../src/context/AuthContext';
 import { useI18n } from '../src/i18n';
-import { CrashLogoFull } from '../src/components/CrashLogo';
+import { CrashLogoMark, CrashLogoFull } from '../src/components/CrashLogo';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING, SHADOWS, FONT } from '../src/theme';
 
@@ -36,15 +37,15 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.topRedLine} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.header}>
-            <View style={styles.logoGlow}>
-              <CrashLogoFull size={34} />
-            </View>
-          </View>
+          <Animated.View entering={FadeInUp.duration(600).springify().damping(20)} style={styles.header}>
+            <CrashLogoMark size={56} />
+            <CrashLogoFull size={30} />
+          </Animated.View>
 
-          <View style={styles.card}>
+          <Animated.View entering={FadeInDown.duration(500).delay(100).springify().damping(22)} style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.badge}>{t('login.badge')}</Text>
               <Text style={styles.cardTitle}>{t('login.title')}</Text>
@@ -53,13 +54,13 @@ export default function LoginScreen() {
             </View>
 
             {error ? (
-              <View style={styles.errorBox}>
+              <Animated.View entering={FadeInDown.duration(300)} style={styles.errorBox}>
                 <Ionicons name="alert-circle" size={16} color={COLORS.primary} />
                 <Text style={styles.errorText}>{error}</Text>
-              </View>
+              </Animated.View>
             ) : null}
 
-            <View style={styles.inputGroup}>
+            <Animated.View entering={FadeInDown.duration(400).delay(150).springify()} style={styles.inputGroup}>
               <Text style={styles.label}>{t('login.email')}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={16} color={COLORS.textSec} />
@@ -75,9 +76,9 @@ export default function LoginScreen() {
                   autoCorrect={false}
                 />
               </View>
-            </View>
+            </Animated.View>
 
-            <View style={styles.inputGroup}>
+            <Animated.View entering={FadeInDown.duration(400).delay(220).springify()} style={styles.inputGroup}>
               <Text style={styles.label}>{t('login.password')}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed-outline" size={16} color={COLORS.textSec} />
@@ -94,33 +95,37 @@ export default function LoginScreen() {
                   <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color={COLORS.textSec} />
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
 
-            <TouchableOpacity
-              testID="login-submit-btn"
-              style={[styles.button, loading && styles.buttonDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <>
-                  <Text style={styles.buttonText}>{t('login.submit')}</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#FFF" style={{ marginLeft: 8 }} />
-                </>
-              )}
-            </TouchableOpacity>
+            <Animated.View entering={FadeInDown.duration(400).delay(290).springify()}>
+              <TouchableOpacity
+                testID="login-submit-btn"
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleLogin}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Text style={styles.buttonText}>{t('login.submit')}</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#FFF" style={{ marginLeft: 8 }} />
+                  </>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
 
-            <TouchableOpacity testID="go-to-register-btn" style={styles.linkBtn} onPress={() => router.push('/register')}>
-              <Text style={styles.linkText}>
-                {t('login.register')} <Text style={styles.linkAccent}>→</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
+            <Animated.View entering={FadeInDown.duration(400).delay(360).springify()}>
+              <TouchableOpacity testID="go-to-register-btn" style={styles.linkBtn} onPress={() => router.push('/register')}>
+                <Text style={styles.linkText}>
+                  {t('login.register')} <Text style={styles.linkAccent}>→</Text>
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
 
-          <Text style={styles.footer}>C.R.A.S.H. v2.0 · Encrypted</Text>
+          <Animated.Text entering={FadeInUp.duration(400).delay(400)} style={styles.footer}>C.R.A.S.H. v2.0 · Encrypted</Animated.Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -129,38 +134,38 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
+  topRedLine: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+    backgroundColor: COLORS.primary,
+    zIndex: 10,
+  },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 400,
-    backgroundColor: 'rgba(255,59,48,0.03)',
+    backgroundColor: 'rgba(255,59,48,0.04)',
     borderBottomLeftRadius: 180, borderBottomRightRadius: 180,
   },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: SPACING.lg },
-  header: { alignItems: 'center', marginBottom: 36 },
-  logoGlow: {
-    ...SHADOWS.glow(COLORS.primary),
-    borderRadius: 32,
-    padding: 4,
-  },
+  header: { alignItems: 'center', marginBottom: 36, gap: 12 },
   card: {
     backgroundColor: COLORS.glassBg,
     borderRadius: RADIUS.xl,
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
-    ...SHADOWS.lg,
+    ...SHADOWS.md,
   },
   cardHeader: { marginBottom: 20, alignItems: 'center' },
   badge: {
     fontSize: 9, color: COLORS.primary, letterSpacing: 4,
     marginBottom: 8, fontWeight: '800',
   },
-  cardTitle: { fontSize: 30, fontFamily: FONT.headingBold, fontWeight: '900', color: COLORS.text, letterSpacing: 0.5, textTransform: 'uppercase' },
+  cardTitle: { fontSize: 28, fontFamily: FONT.headingBold, fontWeight: '900', color: COLORS.text, letterSpacing: 0.5, textTransform: 'uppercase' },
   titleAccent: { width: 40, height: 3, borderRadius: 2, backgroundColor: COLORS.primary, marginTop: 10 },
   cardDesc: { fontSize: 12, color: COLORS.textSec, marginTop: 12, letterSpacing: 0.3 },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(255,59,48,0.08)',
-    borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)',
+    backgroundColor: 'rgba(255,59,48,0.10)',
+    borderWidth: 1, borderColor: 'rgba(255,59,48,0.25)',
     padding: 12, borderRadius: RADIUS.md, marginBottom: SPACING.md,
   },
   errorText: { color: COLORS.primary, fontSize: 13, flex: 1 },
@@ -171,7 +176,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.bg, borderRadius: RADIUS.md,
+    backgroundColor: COLORS.bgElevated, borderRadius: RADIUS.md,
     paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.border,
     gap: 10, height: 50,
   },
@@ -186,6 +191,6 @@ const styles = StyleSheet.create({
   buttonText: { color: '#FFF', fontSize: 14, fontFamily: FONT.headingBold, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
   linkBtn: { alignItems: 'center', marginTop: SPACING.md, paddingVertical: 4 },
   linkText: { color: COLORS.textDim, fontSize: 13 },
-  linkAccent: { color: COLORS.accent, fontWeight: '700' },
+  linkAccent: { color: COLORS.primary, fontWeight: '700' },
   footer: { textAlign: 'center', color: COLORS.textDim, fontSize: 10, marginTop: SPACING.lg, letterSpacing: 1 },
 });

@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/context/AuthContext';
 import { useI18n } from '../src/i18n';
+import { CrashLogoMark } from '../src/components/CrashLogo';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING, SHADOWS } from '../src/theme';
 
@@ -51,9 +52,7 @@ export default function RegisterScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <View style={styles.logoOuter}>
-              <Ionicons name="shield-checkmark" size={40} color={COLORS.primary} />
-            </View>
+            <CrashLogoMark size={56} />
             <Text style={styles.title}>{t('register.subtitle')}</Text>
             <Text style={styles.subtitle}>{t('register.title')}</Text>
           </View>

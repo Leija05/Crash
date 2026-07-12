@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
-import { COLORS } from '../src/theme';
+import { CrashLogoMark } from '../src/components/CrashLogo';
+import { COLORS, SHADOWS } from '../src/theme';
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -21,10 +22,13 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.loaderWrap}>
-        <ActivityIndicator size="large" color={COLORS.accent} />
-      </View>
+      <View style={styles.topRedLine} pointerEvents="none" />
+      <CrashLogoMark size={64} />
       <Text style={styles.text}>C.R.A.S.H.</Text>
+      <Text style={styles.sub}>CRITICAL RESPONSE</Text>
+      <View style={styles.loaderWrap}>
+        <ActivityIndicator size="small" color={COLORS.primary} />
+      </View>
     </View>
   );
 }
@@ -35,22 +39,30 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 12,
+  },
+  topRedLine: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+    backgroundColor: COLORS.primary,
   },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-    backgroundColor: 'rgba(204,255,0,0.015)',
+    backgroundColor: 'rgba(255,59,48,0.03)',
     borderBottomLeftRadius: 150, borderBottomRightRadius: 150,
   },
   loaderWrap: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.glassBorder,
-    marginBottom: 16,
+    marginTop: 8,
   },
   text: {
     color: COLORS.text,
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: '900',
+    letterSpacing: 6,
+  },
+  sub: {
+    color: COLORS.primary,
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 4,
   },
 });

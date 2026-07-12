@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/context/AuthContext';
 import { AppSettingsProvider } from '../src/context/AppSettingsContext';
@@ -21,15 +22,28 @@ export default function RootLayout() {
               <LocationProvider>
               <AlertProvider>
                 <StatusBar style="light" translucent />
-              <View style={styles.ambientGlow} pointerEvents="none" />
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: COLORS.bg },
-                  animation: 'slide_from_right',
-                }}
-              />
-              <UpdateGate />
+                <Animated.View
+                  entering={FadeIn.duration(800).springify().damping(20)}
+                  style={styles.topRedLine}
+                  pointerEvents="none"
+                />
+                <Animated.View
+                  entering={FadeIn.duration(1000).delay(200).springify().damping(24)}
+                  style={styles.ambientGlow}
+                  pointerEvents="none"
+                />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: COLORS.bg },
+                    animation: 'slide_from_right',
+                  }}
+                />
+                <Animated.View
+                  entering={SlideInDown.duration(500).delay(400).springify()}
+                >
+                  <UpdateGate />
+                </Animated.View>
               </AlertProvider>
               </LocationProvider>
             </BluetoothProvider>
@@ -41,9 +55,14 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  topRedLine: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+    backgroundColor: COLORS.primary,
+    zIndex: 100,
+  },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-    backgroundColor: 'rgba(204,255,0,0.015)',
+    backgroundColor: 'rgba(255,59,48,0.015)',
     borderBottomLeftRadius: 150, borderBottomRightRadius: 150,
     zIndex: 0,
   },

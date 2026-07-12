@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, Animated,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, Animated as RNAnimated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
+import Animated, { FadeIn, FadeInDown, SlideInUp, SlideInRight } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel } from '../../src/theme';
 import PremiumModal from '../../src/components/PremiumModal';
+import { CrashLogoMark } from '../../src/components/CrashLogo';
 import { useAuth } from '../../src/context/AuthContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
@@ -17,6 +19,8 @@ import { useLocation } from '../../src/context/LocationContext';
 import { useI18n } from '../../src/i18n';
 import { contactsAPI, impactsAPI, settingsAPI, telemetryAPI } from '../../src/services/api';
 import { foregroundService } from '../../src/services/foregroundService';
+
+const STAGGER = 60;
 
 function estimateSpeed(ax: number, ay: number, az: number): number {
   const magnitude = Math.sqrt(ax * ax + ay * ay + az * az);
@@ -40,6 +44,16 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+function Stagger({ children, index = 0 }: { children: React.ReactNode; index?: number }) {
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(400).delay(index * STAGGER).springify().damping(22)}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 export default function DashboardScreen() {
   const { t } = useI18n();
@@ -79,7 +93,7 @@ export default function DashboardScreen() {
   const lastNotificationUpdateRef = useRef(0);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new RNAnimated.Value(0)).current;
 
   useEffect(() => {
     if (!telemetry) return;
@@ -174,10 +188,10 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (highImpact) {
-      const loop = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1, duration: 620, useNativeDriver: false }),
-          Animated.timing(pulseAnim, { toValue: 0, duration: 620, useNativeDriver: false }),
+      const loop = RNAnimated.loop(
+        RNAnimated.sequence([
+          RNAnimated.timing(pulseAnim, { toValue: 1, duration: 620, useNativeDriver: false }),
+          RNAnimated.timing(pulseAnim, { toValue: 0, duration: 620, useNativeDriver: false }),
         ])
       );
       loop.start();
@@ -404,172 +418,187 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />}
         contentContainerStyle={styles.scroll}
       >
-        {/* Header minimal */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{t('dashboard.greeting')}, {greetingName}</Text>
-            <Text style={styles.appName}>{t('dashboard.appName')}</Text>
-          </View>
-          <View style={styles.modePill}>
-            <View style={[styles.modeDot, { backgroundColor: liveData ? COLORS.success : COLORS.textDim }]} />
-            <Text style={[styles.modeText, { color: liveData ? COLORS.success : COLORS.textDim }]}>{t('dashboard.modeReal')}</Text>
-          </View>
-        </View>
-
-        {/* Status bar */}
-        <TouchableOpacity
-          style={[styles.statusBar, liveData && styles.statusBarConnected]}
-          onPress={() => router.push('/devices')}
-          activeOpacity={0.7}
-          testID="dashboard-status-bar"
-        >
-          <View style={[styles.statusDot, { backgroundColor: liveData ? COLORS.success : connected ? COLORS.warning : COLORS.textDim }]} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.statusLabel}>
-              {liveData ? t('dashboard.connected') : connected ? t('dashboard.noData') : t('dashboard.disconnected')}
-            </Text>
-            <Text style={styles.statusDetail} numberOfLines={1}>
-              {connected
-                ? staleData ? (statusDetail || t('dashboard.waitingTelemetry')) : `${deviceName}${batteryLevel !== null ? ` · ${t('dashboard.battery')} ${batteryLevel}%` : ''}`
-                : t('dashboard.tapToConnect')}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={COLORS.textDim} />
-        </TouchableOpacity>
-
-        {/* Force Ring */}
-        <View style={[styles.ringCard, highImpact && styles.ringCardCritical]}>
-          {highImpact && (
-            <Animated.View pointerEvents="none" style={[styles.criticalPulse, { opacity: pulseAnim }]} />
-          )}
-          <ForceRing gForce={gForce} liveData={liveData} color={sevColor} severity={sevLabel} t={t} />
-          <View style={styles.peakRow}>
-            <Text style={styles.peakLabel}>{t('dashboard.peak')}</Text>
-            <Text style={styles.peakValue}>{peakG.toFixed(2)} G</Text>
-          </View>
-        </View>
-
-        {/* Bento: Acceleration + Permission Location */}
-        <View style={styles.bentoRow}>
-          <View style={[styles.bentoCard, styles.bentoHalf]}>
-            <Text style={styles.bentoTitle}>{t('dashboard.acceleration')}</Text>
-            <View style={styles.coordsGrid}>
-              <CoordItem label="X" value={telemetryForDisplay?.acceleration_x} live={liveData} />
-              <CoordItem label="Y" value={telemetryForDisplay?.acceleration_y} live={liveData} />
-              <CoordItem label="Z" value={telemetryForDisplay?.acceleration_z} live={liveData} />
-            </View>
-          </View>
-          <View style={[styles.bentoCard, styles.bentoHalf]}>
-            <Text style={styles.bentoTitle}>{t('dashboard.location')}</Text>
-            {permissionGranted === false ? (
-              <TouchableOpacity style={styles.locationBtn} onPress={requestPermission} activeOpacity={0.8}>
-                <Ionicons name="location-outline" size={16} color={COLORS.accent} />
-                <Text style={styles.locationBtnText}>{t('dashboard.enableLocation')}</Text>
-              </TouchableOpacity>
-            ) : (
+        <Stagger index={0}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <CrashLogoMark size={36} />
               <View>
-                <View style={styles.locationPermBadge}>
-                  <Ionicons name="location" size={12} color={COLORS.accent} />
-                  <Text style={styles.locationPermText}>{t('dashboard.permissionLocation')}</Text>
-                </View>
-                {grantedLocation ? (
-                  <Text style={styles.coordsGeo}>
-                    {grantedLocation.latitude.toFixed(5)}, {grantedLocation.longitude.toFixed(5)}
-                  </Text>
-                ) : (
-                  <Text style={styles.coordsGeoDim}>{t('dashboard.obtaining')}</Text>
-                )}
-                {isTracking && currentLocation && (
-                  <View style={styles.liveTrackingBadge}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.liveTrackingText}>{t('dashboard.live')} · {currentLocation.latitude.toFixed(5)}, {currentLocation.longitude.toFixed(5)}</Text>
-                  </View>
-                )}
-                {!isTracking && permissionGranted && (
-                  <Text style={styles.trackingStatus}>{t('dashboard.permissionGranted')}</Text>
-                )}
+                <Text style={styles.greeting}>{t('dashboard.greeting')}, {greetingName}</Text>
+                <Text style={styles.appName}>{t('dashboard.appName')}</Text>
               </View>
-            )}
-          </View>
-        </View>
-
-        {/* Live Tracking Status */}
-        <View style={styles.trackingCard}>
-          <Ionicons name={isTracking ? "radio" : "radio-outline"} size={18} color={isTracking ? COLORS.success : COLORS.textDim} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.trackingTitle}>{t('dashboard.liveTracking')}</Text>
-            <Text style={styles.trackingDesc}>
-              {isTracking ? t('dashboard.trackingActive') : t('dashboard.trackingInactive')}
-            </Text>
-          </View>
-          <View style={[styles.trackingDot, { backgroundColor: isTracking ? COLORS.success : COLORS.textDim }]} />
-        </View>
-
-        {/* Telemetry Section */}
-        <View style={styles.sectionHead}>
-          <Text style={styles.sectionTitle}>{t('dashboard.telemetryTitle')}</Text>
-          <View style={[styles.liveBadge, liveData && styles.liveBadgeOn]}>
-            <View style={[styles.liveDotSm, { backgroundColor: liveData ? COLORS.success : COLORS.textDim }]} />
-            <Text style={[styles.liveText, { color: liveData ? COLORS.success : COLORS.textDim }]}>{t('dashboard.liveBadge')}</Text>
-          </View>
-        </View>
-
-        <View style={styles.grid}>
-          <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="rad/s" color={COLORS.warning} live={liveData} />
-          <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="rad/s" color={COLORS.warning} live={liveData} />
-          <MetricCard label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="rad/s" color="#FB923C" live={liveData} />
-          <MetricCard label={t('dashboard.gForce')} value={telemetryForDisplay?.g_force} unit="g" color={COLORS.accent} live={liveData} />
-        </View>
-
-        {/* Connect / Disconnect */}
-        {connected ? (
-          <TouchableOpacity
-            style={[styles.primaryBtn, styles.primaryBtnDanger]}
-            onPress={disconnect}
-            activeOpacity={0.8}
-            testID="disconnect-btn"
-          >
-            <Ionicons name="bluetooth" size={18} color="#FFF" />
-            <Text style={styles.primaryBtnText}>{t('dashboard.disconnectHelmet')}</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => router.push('/devices')}
-            activeOpacity={0.8}
-            testID="connect-btn"
-          >
-            <Ionicons name="bluetooth" size={18} color={COLORS.bg} />
-            <Text style={[styles.primaryBtnText, { color: COLORS.bg }]}>{t('dashboard.connectHelmet')}</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Info / Warnings */}
-        {!nativeAvailable && (
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle" size={14} color={COLORS.info} />
-            <Text style={styles.infoText}>{t('dashboard.nativeBluetoothInfo')}</Text>
-          </View>
-        )}
-        {nativeAvailable && !connected && (
-          <View style={styles.infoBox}>
-            <Ionicons name="radio" size={14} color={COLORS.info} />
-            <Text style={styles.infoText}>{t('dashboard.scanningFor')} {pattern} · HC-05 · HC-10 · HM-10 · MLT-BT05 · CRASH</Text>
-          </View>
-        )}
-        {!hasEmergencyContacts && (
-          <TouchableOpacity style={styles.warningCard} onPress={() => router.push('/contacts')} activeOpacity={0.85}>
-            <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.warningTitle}>{t('dashboard.noContacts')}</Text>
-              <Text style={styles.warningText}>{t('dashboard.noContactsDesc')}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={COLORS.textDim} />
+            <View style={styles.modePill}>
+              <View style={[styles.modeDot, { backgroundColor: liveData ? COLORS.success : COLORS.textDim }]} />
+              <Text style={[styles.modeText, { color: liveData ? COLORS.success : COLORS.textDim }]}>{t('dashboard.modeReal')}</Text>
+            </View>
+          </View>
+        </Stagger>
+
+        <Stagger index={1}>
+          <TouchableOpacity
+            style={[styles.statusBar, liveData && styles.statusBarConnected]}
+            onPress={() => router.push('/devices')}
+            activeOpacity={0.7}
+            testID="dashboard-status-bar"
+          >
+            <View style={[styles.statusDot, { backgroundColor: liveData ? COLORS.success : connected ? COLORS.warning : COLORS.textDim }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.statusLabel}>
+                {liveData ? t('dashboard.connected') : connected ? t('dashboard.noData') : t('dashboard.disconnected')}
+              </Text>
+              <Text style={styles.statusDetail} numberOfLines={1}>
+                {connected
+                  ? staleData ? (statusDetail || t('dashboard.waitingTelemetry')) : `${deviceName}${batteryLevel !== null ? ` · ${t('dashboard.battery')} ${batteryLevel}%` : ''}`
+                  : t('dashboard.tapToConnect')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.textDim} />
           </TouchableOpacity>
-        )}
+        </Stagger>
+
+        <Stagger index={2}>
+          <View style={[styles.ringCard, highImpact && styles.ringCardCritical]}>
+            {highImpact && (
+              <RNAnimated.View pointerEvents="none" style={[styles.criticalPulse, { opacity: pulseAnim }]} />
+            )}
+            <ForceRing gForce={gForce} liveData={liveData} color={sevColor} severity={sevLabel} t={t} />
+            <Animated.View entering={SlideInUp.duration(300).delay(200).springify()} style={styles.peakRow}>
+              <Text style={styles.peakLabel}>{t('dashboard.peak')}</Text>
+              <Text style={styles.peakValue}>{peakG.toFixed(2)} G</Text>
+            </Animated.View>
+          </View>
+        </Stagger>
+
+        <Stagger index={3}>
+          <View style={styles.bentoRow}>
+            <View style={[styles.bentoCard, styles.bentoHalf]}>
+              <Text style={styles.bentoTitle}>{t('dashboard.acceleration')}</Text>
+              <View style={styles.coordsGrid}>
+                <CoordItem label="X" value={telemetryForDisplay?.acceleration_x} live={liveData} delay={0} />
+                <CoordItem label="Y" value={telemetryForDisplay?.acceleration_y} live={liveData} delay={1} />
+                <CoordItem label="Z" value={telemetryForDisplay?.acceleration_z} live={liveData} delay={2} />
+              </View>
+            </View>
+            <View style={[styles.bentoCard, styles.bentoHalf]}>
+              <Text style={styles.bentoTitle}>{t('dashboard.location')}</Text>
+              {permissionGranted === false ? (
+                <TouchableOpacity style={styles.locationBtn} onPress={requestPermission} activeOpacity={0.8}>
+                  <Ionicons name="location-outline" size={16} color={COLORS.accent} />
+                  <Text style={styles.locationBtnText}>{t('dashboard.enableLocation')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <View>
+                  <View style={styles.locationPermBadge}>
+                    <Ionicons name="location" size={12} color={COLORS.accent} />
+                    <Text style={styles.locationPermText}>{t('dashboard.permissionLocation')}</Text>
+                  </View>
+                  {grantedLocation ? (
+                    <Text style={styles.coordsGeo}>
+                      {grantedLocation.latitude.toFixed(5)}, {grantedLocation.longitude.toFixed(5)}
+                    </Text>
+                  ) : (
+                    <Text style={styles.coordsGeoDim}>{t('dashboard.obtaining')}</Text>
+                  )}
+                  {isTracking && currentLocation && (
+                    <View style={styles.liveTrackingBadge}>
+                      <View style={styles.liveDot} />
+                      <Text style={styles.liveTrackingText}>{t('dashboard.live')} · {currentLocation.latitude.toFixed(5)}, {currentLocation.longitude.toFixed(5)}</Text>
+                    </View>
+                  )}
+                  {!isTracking && permissionGranted && (
+                    <Text style={styles.trackingStatus}>{t('dashboard.permissionGranted')}</Text>
+                  )}
+                </View>
+              )}
+            </View>
+          </View>
+        </Stagger>
+
+        <Stagger index={4}>
+          <View style={styles.trackingCard}>
+            <Ionicons name={isTracking ? "radio" : "radio-outline"} size={18} color={isTracking ? COLORS.success : COLORS.textDim} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.trackingTitle}>{t('dashboard.liveTracking')}</Text>
+              <Text style={styles.trackingDesc}>
+                {isTracking ? t('dashboard.trackingActive') : t('dashboard.trackingInactive')}
+              </Text>
+            </View>
+            <View style={[styles.trackingDot, { backgroundColor: isTracking ? COLORS.success : COLORS.textDim }]} />
+          </View>
+        </Stagger>
+
+        <Stagger index={5}>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>{t('dashboard.telemetryTitle')}</Text>
+            <View style={[styles.liveBadge, liveData && styles.liveBadgeOn]}>
+              <View style={[styles.liveDotSm, { backgroundColor: liveData ? COLORS.success : COLORS.textDim }]} />
+              <Text style={[styles.liveText, { color: liveData ? COLORS.success : COLORS.textDim }]}>{t('dashboard.liveBadge')}</Text>
+            </View>
+          </View>
+        </Stagger>
+
+        <Stagger index={6}>
+          <View style={styles.grid}>
+            <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="rad/s" color={COLORS.warning} live={liveData} delay={0} />
+            <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="rad/s" color={COLORS.warning} live={liveData} delay={1} />
+            <MetricCard label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="rad/s" color="#FB923C" live={liveData} delay={2} />
+            <MetricCard label={t('dashboard.gForce')} value={telemetryForDisplay?.g_force} unit="g" color={COLORS.accent} live={liveData} delay={3} />
+          </View>
+        </Stagger>
+
+        <Stagger index={7}>
+          {connected ? (
+            <TouchableOpacity
+              style={[styles.primaryBtn, styles.primaryBtnDanger]}
+              onPress={disconnect}
+              activeOpacity={0.8}
+              testID="disconnect-btn"
+            >
+              <Ionicons name="bluetooth" size={18} color="#FFF" />
+              <Text style={styles.primaryBtnText}>{t('dashboard.disconnectHelmet')}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => router.push('/devices')}
+              activeOpacity={0.8}
+              testID="connect-btn"
+            >
+              <Ionicons name="bluetooth" size={18} color={COLORS.bg} />
+              <Text style={[styles.primaryBtnText, { color: COLORS.bg }]}>{t('dashboard.connectHelmet')}</Text>
+            </TouchableOpacity>
+          )}
+        </Stagger>
+
+        <Stagger index={8}>
+          {!nativeAvailable && (
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={14} color={COLORS.info} />
+              <Text style={styles.infoText}>{t('dashboard.nativeBluetoothInfo')}</Text>
+            </View>
+          )}
+          {nativeAvailable && !connected && (
+            <View style={styles.infoBox}>
+              <Ionicons name="radio" size={14} color={COLORS.info} />
+              <Text style={styles.infoText}>{t('dashboard.scanningFor')} {pattern} · HC-05 · HC-10 · HM-10 · MLT-BT05 · CRASH</Text>
+            </View>
+          )}
+        </Stagger>
+
+        <Stagger index={9}>
+          {!hasEmergencyContacts && (
+            <TouchableOpacity style={styles.warningCard} onPress={() => router.push('/contacts')} activeOpacity={0.85}>
+              <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.warningTitle}>{t('dashboard.noContacts')}</Text>
+                <Text style={styles.warningText}>{t('dashboard.noContactsDesc')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textDim} />
+            </TouchableOpacity>
+          )}
+        </Stagger>
       </ScrollView>
 
-      {/* Impact Countdown Modal */}
       <PremiumModal
         visible={countdown !== null}
         onClose={() => setCountdown(null)}
@@ -599,7 +628,6 @@ export default function DashboardScreen() {
         </View>
       </PremiumModal>
 
-      {/* Result Modal */}
       <PremiumModal
         visible={!!alertResult}
         onClose={() => setAlertResult(null)}
@@ -636,8 +664,9 @@ function ForceRing({ gForce, liveData, color, severity, t }: { gForce: number; l
         {Array.from({ length: SEGMENTS }).map((_, i) => {
           const active = liveData && i < filled;
           return (
-            <View
+            <Animated.View
               key={`seg-${i}`}
+              entering={FadeIn.duration(200).delay(i * 5).springify()}
               style={[
                 styles.segment,
                 {
@@ -650,7 +679,12 @@ function ForceRing({ gForce, liveData, color, severity, t }: { gForce: number; l
           );
         })}
         <View style={styles.ringInner}>
-          <Text style={[styles.gValue, { color: liveData ? COLORS.text : COLORS.textDim }]}>{liveData ? gForce.toFixed(2) : '0.00'}</Text>
+          <Animated.Text
+            entering={SlideInUp.duration(300).springify()}
+            style={[styles.gValue, { color: liveData ? COLORS.text : COLORS.textDim }]}
+          >
+            {liveData ? gForce.toFixed(2) : '0.00'}
+          </Animated.Text>
           <Text style={styles.gTitle}>{t('dashboard.gForceValue')}</Text>
           <View style={styles.gSubRow}>
             <View style={[styles.gBullet, { backgroundColor: liveData ? color : COLORS.textDim }]} />
@@ -664,26 +698,36 @@ function ForceRing({ gForce, liveData, color, severity, t }: { gForce: number; l
   );
 }
 
-function CoordItem({ label, value, live }: { label: string; value?: number; live: boolean }) {
+function CoordItem({ label, value, live, delay = 0 }: { label: string; value?: number; live: boolean; delay?: number }) {
   return (
-    <View style={styles.coordCell}>
+    <Animated.View
+      entering={FadeIn.duration(300).delay(delay * 80).springify()}
+      style={styles.coordCell}
+    >
       <Text style={styles.coordLabel}>{label}</Text>
       <Text style={styles.coordValue}>{live && value !== undefined ? value.toFixed(2) : '--.--'}</Text>
-    </View>
+    </Animated.View>
   );
 }
 
-function MetricCard({ label, value, unit, color, live }: {
-  label: string; value?: number; unit: string; color: string; live: boolean;
+function MetricCard({ label, value, unit, color, live, delay = 0 }: {
+  label: string; value?: number; unit: string; color: string; live: boolean; delay?: number;
 }) {
   return (
-    <View style={styles.metric} testID={`metric-${label.toLowerCase().replace(/[\s-]+/g, '-')}`}>
+    <Animated.View
+      entering={FadeIn.duration(300).delay(delay * 80).springify()}
+      style={styles.metric}
+      testID={`metric-${label.toLowerCase().replace(/[\s-]+/g, '-')}`}
+    >
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, { color: live ? color : COLORS.textDim }]}>
+      <Animated.Text
+        entering={SlideInUp.duration(200).delay(delay * 80 + 50).springify()}
+        style={[styles.metricValue, { color: live ? color : COLORS.textDim }]}
+      >
         {live && value !== undefined ? value.toFixed(3) : '—.——'}
-      </Text>
+      </Animated.Text>
       <Text style={styles.metricUnit}>{unit}</Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -691,7 +735,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 280,
-    backgroundColor: 'rgba(204,255,0,0.012)',
+    backgroundColor: 'rgba(255,59,48,0.02)',
     borderBottomLeftRadius: 100, borderBottomRightRadius: 100,
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 20 },
@@ -700,8 +744,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: SPACING.md, paddingTop: SPACING.sm,
   },
-  greeting: { fontSize: 13, color: COLORS.textSec },
-  appName: { fontSize: 22, fontWeight: '900', color: COLORS.text, letterSpacing: 4, marginTop: 2 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  greeting: { fontSize: 12, color: COLORS.textSec },
+  appName: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 4, marginTop: 1 },
   modePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.pill,
@@ -717,7 +762,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.border,
     borderRadius: RADIUS.md, padding: 14, marginBottom: SPACING.md,
   },
-  statusBarConnected: { borderColor: 'rgba(52,211,153,0.20)' },
+  statusBarConnected: { borderColor: 'rgba(255,59,48,0.25)' },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusLabel: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
   statusDetail: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
@@ -839,11 +884,12 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: COLORS.accent, borderRadius: RADIUS.md, height: 50,
+    backgroundColor: COLORS.primary, borderRadius: RADIUS.md, height: 50,
     marginBottom: SPACING.md,
+    ...SHADOWS.glow(COLORS.primary),
   },
   primaryBtnDanger: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primaryHover,
   },
   primaryBtnText: { color: '#FFF', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
 

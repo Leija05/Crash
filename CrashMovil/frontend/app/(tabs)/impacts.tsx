@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, FlatList, RefreshControl, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
@@ -41,44 +42,46 @@ export default function ImpactsScreen() {
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderImpact = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      testID={`impact-item-${item.id}`}
-      style={styles.card}
-      onPress={() => router.push(`/impact/${item.id}`)}
-      activeOpacity={0.75}
-    >
-      <View style={[styles.sevStrip, { backgroundColor: sevColor(item.severity) }]} />
-      <View style={styles.cardBody}>
-        <View style={styles.cardTopRow}>
-          <Text style={[styles.cardSeverity, { color: sevColor(item.severity) }]}>
-            {item.severity_label || (t(`impacts.severity.${item.severity}`) || item.severity)}
-          </Text>
-          <Text style={[styles.cardGForce, { color: sevColor(item.severity) }]}>{item.g_force?.toFixed(1)}<Text style={styles.cardGUnit}>G</Text></Text>
-        </View>
-        <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
-        {item.ai_diagnosis && (
-          <View style={styles.aiBadge}>
-            <Ionicons name="sparkles" size={10} color={COLORS.accent} />
-            <Text style={styles.aiText}>{t('impacts.aiDiagnosis')}</Text>
+  const renderImpact = ({ item, index }: { item: any; index: number }) => (
+    <Animated.View entering={FadeInDown.duration(300).delay(index * 50).springify().damping(24)}>
+      <TouchableOpacity
+        testID={`impact-item-${item.id}`}
+        style={styles.card}
+        onPress={() => router.push(`/impact/${item.id}`)}
+        activeOpacity={0.75}
+      >
+        <View style={[styles.sevStrip, { backgroundColor: sevColor(item.severity) }]} />
+        <View style={styles.cardBody}>
+          <View style={styles.cardTopRow}>
+            <Text style={[styles.cardSeverity, { color: sevColor(item.severity) }]}>
+              {item.severity_label || (t(`impacts.severity.${item.severity}`) || item.severity)}
+            </Text>
+            <Text style={[styles.cardGForce, { color: sevColor(item.severity) }]}>{item.g_force?.toFixed(1)}<Text style={styles.cardGUnit}>G</Text></Text>
           </View>
-        )}
-      </View>
-      <View style={styles.chevronWrap}>
-        <Ionicons name="chevron-forward" size={16} color={COLORS.textDim} />
-      </View>
-    </TouchableOpacity>
+          <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
+          {item.ai_diagnosis && (
+            <View style={styles.aiBadge}>
+              <Ionicons name="sparkles" size={10} color={COLORS.accent} />
+              <Text style={styles.aiText}>{t('impacts.aiDiagnosis')}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.chevronWrap}>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textDim} />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.headerSection}>
+      <Animated.View entering={FadeInUp.duration(500).springify()} style={styles.headerSection}>
         <View>
           <Text style={styles.title}>{t('impacts.title')}</Text>
           <Text style={styles.countText}>{impacts.length} {t('impacts.count')}</Text>
         </View>
-      </View>
+      </Animated.View>
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>

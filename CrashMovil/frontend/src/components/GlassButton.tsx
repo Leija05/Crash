@@ -1,12 +1,13 @@
 import {
-  TouchableOpacity,
   Text,
   StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
   type ViewStyle,
   type TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { COLORS, RADIUS, SHADOWS } from '../theme';
 
 interface GlassButtonProps {
@@ -22,6 +23,9 @@ interface GlassButtonProps {
   fullWidth?: boolean;
 }
 
+const AnimatedIonicon = Animated.createAnimatedComponent(Ionicons);
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
 export default function GlassButton({
   title,
   onPress,
@@ -34,6 +38,8 @@ export default function GlassButton({
   size = 'md',
   fullWidth = true,
 }: GlassButtonProps) {
+  const scale = useSharedValue(1);
+
   const variantStyles: Record<string, ViewStyle> = {
     primary: {
       backgroundColor: COLORS.primary,
@@ -70,51 +76,62 @@ export default function GlassButton({
 
   const s = sizeStyles[size];
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.7}
-      style={[
-        styles.base,
-        variantStyles[variant],
-        {
-          paddingVertical: s.py,
-          paddingHorizontal: s.py * 1.5,
-          opacity: disabled ? 0.4 : 1,
-        },
-        fullWidth && styles.fullWidth,
-        style,
-      ]}
+    <Animated.View
+      entering={FadeIn.duration(400).springify()}
+      style={animatedStyle}
     >
-      {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'accent' ? '#000' : '#fff'}
-        />
-      ) : (
-        <>
-          {icon && (
-            <Ionicons
-              name={icon}
-              size={s.iconSize}
-              color={(variantText[variant] as any).color || '#fff'}
-              style={{ marginRight: 6 }}
-            />
-          )}
-          <Text
-            style={[
-              styles.text,
-              variantText[variant],
-              { fontSize: s.fontSize },
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
-        </>
-      )}
-    </TouchableOpacity>
+      <AnimatedTouchable
+        onPress={onPress}
+        disabled={disabled || loading}
+        activeOpacity={0.85}
+        onPressIn={() => { scale.value = withSpring(0.96, { stiffness: 300, damping: 15 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { stiffness: 300, damping: 15 }); }}
+        style={[
+          styles.base,
+          variantStyles[variant],
+          {
+            paddingVertical: s.py,
+            paddingHorizontal: s.py * 1.5,
+            opacity: disabled ? 0.4 : 1,
+          },
+          fullWidth && styles.fullWidth,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={variant === 'accent' ? '#000' : '#fff'}
+          />
+        ) : (
+          <>
+            {icon && (
+              <AnimatedIonicon
+                name={icon}
+                size={s.iconSize}
+                color={(variantText[variant] as any).color || '#fff'}
+                style={{ marginRight: 6 }}
+              />
+            )}
+            <Text
+              style={[
+                styles.text,
+                variantText[variant],
+                { fontSize: s.fontSize },
+                textStyle,
+              ]}
+            >
+              {title}
+            </Text>
+          </>
+        )}
+      </AnimatedTouchable>
+    </Animated.View>
   );
 }
 

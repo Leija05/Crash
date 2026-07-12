@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet, type ViewStyle } from 'react-native';
+import { Text, StyleSheet, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 import { COLORS, RADIUS, FONT } from '../theme';
 
 interface MetricTileProps {
@@ -9,7 +10,10 @@ interface MetricTileProps {
   color?: string;
   style?: ViewStyle;
   size?: 'sm' | 'md' | 'lg';
+  delay?: number;
 }
+
+const AnimatedIonicon = Animated.createAnimatedComponent(Ionicons);
 
 export default function MetricTile({
   label,
@@ -18,28 +22,36 @@ export default function MetricTile({
   color = COLORS.accent,
   style,
   size = 'md',
+  delay = 0,
 }: MetricTileProps) {
   const dims = { sm: 80, md: 100, lg: 140 }[size];
   const iconSize = { sm: 14, md: 18, lg: 22 }[size];
   const fontSize = { sm: 16, md: 20, lg: 28 }[size];
 
   return (
-    <View style={[styles.card, { minHeight: dims }, style]}>
+    <Animated.View
+      entering={FadeIn.duration(400).delay(delay).springify().damping(24)}
+      style={[styles.card, { minHeight: dims }, style]}
+    >
       {icon && (
-        <Ionicons
+        <AnimatedIonicon
           name={icon}
           size={iconSize}
           color={color}
           style={styles.icon}
         />
       )}
-      <Text style={[styles.value, { color, fontSize }]} numberOfLines={1}>
+      <Animated.Text
+        entering={SlideInUp.duration(300).delay(delay + 80).springify()}
+        style={[styles.value, { color, fontSize }]}
+        numberOfLines={1}
+      >
         {value}
-      </Text>
+      </Animated.Text>
       <Text style={styles.label} numberOfLines={1}>
         {label}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 

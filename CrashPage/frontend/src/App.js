@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Toaster } from "sonner";
 import "./App.css";
 import { analyticsAPI } from "./lib/api";
@@ -15,12 +16,18 @@ const History = lazy(() => import("./pages/History"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const ProtectedRoute = lazy(() => import("./auth/ProtectedRoute"));
 
+const pageTransition = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+  exit: { opacity: 0, y: -12, transition: { duration: 0.2 } },
+};
+
 function LoadingFallback() {
   return (
     <div className="h-screen w-full flex items-center justify-center bg-[#0A0A0A] text-white">
       <div className="flex flex-col items-center gap-4">
         <div className="relative">
-          <div className="h-12 w-12 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+          <div className="h-12 w-12 rounded-full border-2 border-red-500/20 border-t-red-500 animate-spin" />
           <div className="absolute inset-0 h-12 w-12 rounded-full border-2 border-red-500/10 border-b-red-500 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '0.8s' }} />
         </div>
         <span className="text-xs uppercase tracking-[0.3em] text-neutral-500 breathe-animation">
@@ -38,34 +45,38 @@ function AnimatedRoutes() {
   }, [location.pathname]);
   return (
     <div className="min-h-screen">
-      <Routes location={location}>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/history/:driverId"
-          element={
-            <ProtectedRoute>
-              <History />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute role="superadmin">
-              <AdminPanel />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
+      <AnimatePresence mode="wait">
+        <motion.div key={location.pathname} variants={pageTransition} initial="initial" animate="animate" exit="exit">
+          <Routes location={location}>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history/:driverId"
+              element={
+                <ProtectedRoute>
+                  <History />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/*"
+              element={
+                <ProtectedRoute role="superadmin">
+                  <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

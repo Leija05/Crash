@@ -1,4 +1,5 @@
 import { View, ScrollView, StyleSheet, type ViewStyle } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { COLORS, SPACING } from '../theme';
 
 interface ScreenShellProps {
@@ -17,11 +18,14 @@ export default function ScreenShell({
   header,
 }: ScreenShellProps) {
   const content = (
-    <View style={[styles.content, !safeTop && { paddingTop: 0 }, style]}>
+    <Animated.View
+      entering={FadeIn.duration(600).springify().damping(24)}
+      style={[styles.content, !safeTop && { paddingTop: 0 }, style]}
+    >
       <View style={styles.inner}>
         {children}
       </View>
-    </View>
+    </Animated.View>
   );
 
   return (
