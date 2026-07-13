@@ -2,11 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const {
   withAndroidManifest,
-  withAppBuildGradle,
   withDangerousMod,
 } = require('@expo/config-plugins');
 
-const MODULE_DIR = 'apkinstaller';
 const PKG_NAME = 'com.crash.helmet';
 
 const KOTLIN_MODULE = `package ${PKG_NAME}.apkinstaller
@@ -114,36 +112,34 @@ module.exports = function withApkInstaller(config) {
     return cfg;
   });
 
-  config = withAppBuildGradle(config, (cfg) => {
-    if (!cfg.modResults.contents.includes('apkinstaller')) {
-      cfg.modResults.contents += `\nandroid.sourceSets.main.java.srcDirs += ["../${MODULE_DIR}"]\n`;
-    }
-    return cfg;
-  });
-
   config = withDangerousMod(config, [
     'android',
     async (cfg) => {
       const projectRoot = cfg.modRequest.projectRoot;
-      const modDir = path.join(projectRoot, MODULE_DIR);
-      fs.mkdirSync(modDir, { recursive: true });
-      fs.writeFileSync(path.join(modDir, 'ApkInstallerModule.kt'), KOTLIN_MODULE);
-      fs.writeFileSync(path.join(modDir, 'ApkInstallerPackage.kt'), KOTLIN_PACKAGE);
-
-      const resXml = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res', 'xml');
-      fs.mkdirSync(resXml, { recursive: true });
-      fs.writeFileSync(path.join(resXml, 'file_paths.xml'), FILE_PATHS_PATCH);
-
-      const mainApp = path.join(
+      const javaRoot = path.join(
         projectRoot,
         'android',
         'app',
         'src',
         'main',
         'java',
-        ...PKG_NAME.split('.'),
-        'MainApplication.kt'
+        ...PKG_NAME.split('.')
       );
+
+      fs.mkdirSync(javaRoot, { recursive: true });
+      fs.mkdirSync(path.join(javaRoot, 'apkinstaller'), { recursive: true });
+
+      fs.writeFileSync(path.join(javaRoot, 'ApkInstallerPackage.kt'), KOTLIN_PACKAGE);
+      fs.writeFileSync(
+        path.join(javaRoot, 'apkinstaller', 'ApkInstallerModule.kt'),
+        KOTLIN_MODULE
+      );
+
+      const resXml = path.join(projectRoot, 'android', 'app', 'src', 'main', 'res', 'xml');
+      fs.mkdirSync(resXml, { recursive: true });
+      fs.writeFileSync(path.join(resXml, 'file_paths.xml'), FILE_PATHS_PATCH);
+
+      const mainApp = path.join(javaRoot, 'MainApplication.kt');
       if (fs.existsSync(mainApp)) {
         let src = fs.readFileSync(mainApp, 'utf8');
         if (!src.includes('ApkInstallerPackage()')) {
@@ -151,7 +147,7 @@ module.exports = function withApkInstaller(config) {
             /(return PackageList\(this\)\.getPackages\(\))/,
             `$1.apply { add(ApkInstallerPackage()) }`
           );
-          if (!src.includes('import com.crash.helmet.ApkInstallerPackage')) {
+          if (!src.includes(`import ${PKG_NAME}.ApkInstallerPackage`)) {
             src = src.replace(
               /(^package .*$)/m,
               `$1\nimport ${PKG_NAME}.ApkInstallerPackage`

@@ -62,17 +62,20 @@ export function LineChart({
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  const yMin = useMemo(() => {
-    if (minY !== undefined) return minY;
-    const min = Math.min(...data.map(d => d.y));
-    return min - (Math.abs(min) * 0.1 || 1);
-  }, [data, minY]);
-
-  const yMax = useMemo(() => {
-    if (maxY !== undefined) return maxY;
-    const max = Math.max(...data.map(d => d.y));
-    return max + (Math.abs(max) * 0.1 || 1);
-  }, [data, maxY]);
+  const { yMin, yMax } = useMemo(() => {
+    if (minY !== undefined && maxY !== undefined) return { yMin: minY, yMax: maxY };
+    if (!data.length) return { yMin: 0, yMax: 1 };
+    const rawMin = Math.min(...data.map(d => d.y));
+    const rawMax = Math.max(...data.map(d => d.y));
+    const min = isFinite(rawMin) ? rawMin : 0;
+    const max = isFinite(rawMax) ? rawMax : 1;
+    const lo = isFinite(min - (Math.abs(min) * 0.1 || 1)) ? min - (Math.abs(min) * 0.1 || 1) : min - 1;
+    const hi = isFinite(max + (Math.abs(max) * 0.1 || 1)) ? max + (Math.abs(max) * 0.1 || 1) : max + 1;
+    return {
+      yMin: isFinite(lo) ? lo : 0,
+      yMax: isFinite(hi) ? hi : 1,
+    };
+  }, [data, minY, maxY]);
 
   const xScale = useMemo(() => chartWidth / Math.max(data.length - 1, 1), [chartWidth, data.length]);
   const yScale = useMemo(() => chartHeight / Math.max(yMax - yMin, 0.001), [chartHeight, yMax, yMin]);
@@ -281,13 +284,29 @@ export function MultiLineChart({
 }: MultiLineChartProps) {
   const progress = useSharedValue(0);
   const allData = useMemo(() => datasets.flatMap(d => d.data), [datasets]);
-
-  const yMin = useMemo(() => Math.min(...allData.map(d => d.y)) * 0.95, [allData]);
-  const yMax = useMemo(() => Math.max(...allData.map(d => d.y)) * 1.05, [allData]);
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const xScale = chartWidth / Math.max(allData.length / datasets.length - 1, 1);
-  const yScale = chartHeight / (yMax - yMin);
+
+  const { yMin, yMax, xScale, yScale } = useMemo(() => {
+    if (!allData.length) {
+      return { yMin: 0, yMax: 1, xScale: chartWidth, yScale: chartHeight };
+    }
+    const rawMin = Math.min(...allData.map(d => d.y));
+    const rawMax = Math.max(...allData.map(d => d.y));
+    const min = isFinite(rawMin) ? rawMin : 0;
+    const max = isFinite(rawMax) ? rawMax : 1;
+    const lo = isFinite(min - (Math.abs(min) * 0.1 || 1)) ? min - (Math.abs(min) * 0.1 || 1) : min - 1;
+    const hi = isFinite(max + (Math.abs(max) * 0.1 || 1)) ? max + (Math.abs(max) * 0.1 || 1) : max + 1;
+    const safeLo = isFinite(lo) ? lo : 0;
+    const safeHi = isFinite(hi) ? hi : 1;
+    const span = (safeHi - safeLo) || 1;
+    return {
+      yMin: safeLo,
+      yMax: safeHi,
+      xScale: chartWidth / Math.max(allData.length / datasets.length - 1, 1),
+      yScale: chartHeight / span,
+    };
+  }, [allData, chartWidth, chartHeight, datasets.length]);
 
   React.useEffect(() => {
     if (animate) {

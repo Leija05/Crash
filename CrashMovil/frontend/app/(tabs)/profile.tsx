@@ -175,15 +175,20 @@ export default function ProfileScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       
-      <FloatingActionButton
-        icon="medkit"
-        label={sendingEmergency ? t('common.sending') : t('profile.emergencyAction')}
-        onPress={handleEmergency}
-        variant="danger"
-        position="bottom-center"
-        disabled={sendingEmergency}
-        style={styles.fabProfile}
-      />
+      <View style={styles.emergencyBar}>
+        <TouchableOpacity
+          testID="profile-emergency-btn"
+          style={[styles.emergencyBtn, sendingEmergency && { opacity: 0.6 }]}
+          onPress={handleEmergency}
+          disabled={sendingEmergency}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="medkit" size={20} color="#FFF" />
+          <Text style={styles.emergencyBtnText}>
+            {sendingEmergency ? t('common.sending') : t('profile.emergencyAction')}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -204,13 +209,30 @@ const styles = StyleSheet.create({
     borderRadius: 80,
     backgroundColor: 'rgba(255,215,0,0.03)',
   },
-  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 100 },
-  fabProfile: {
+  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 110 },
+  emergencyBar: {
     position: 'absolute',
-    bottom: 102,
-    alignSelf: 'center',
-    zIndex: 50,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: SPACING.md,
+    paddingTop: 10,
+    paddingBottom: 84,
+    backgroundColor: 'rgba(10,10,10,0.92)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,59,48,0.18)',
   },
+  emergencyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: COLORS.danger,
+    borderRadius: RADIUS.pill,
+    height: 52,
+    ...SHADOWS.glow(COLORS.danger),
+  },
+  emergencyBtnText: { color: '#FFF', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: SPACING.md },
   title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },

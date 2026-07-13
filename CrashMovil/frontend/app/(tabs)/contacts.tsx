@@ -29,8 +29,6 @@ export default function ContactsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fabAnim = useSharedValue(0);
-
   const fetchContacts = useCallback(async () => {
     if (!token) return;
     try {
@@ -162,7 +160,7 @@ export default function ContactsScreen() {
           <Text style={styles.title}>{t('contacts.title')}</Text>
           <Text style={styles.subtitle}>{filteredContacts.length} {t('contacts.count')}</Text>
         </View>
-        <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => { haptics.light(); setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}>
+        <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => { haptics.light(); setShowAdd(true); }}>
           <Ionicons name="add" size={24} color="#000" />
         </TouchableOpacity>
       </Animated.View>
@@ -235,18 +233,6 @@ export default function ContactsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Animated.View
-        style={styles.fab}
-        entering={FadeIn.duration(500).delay(300).springify().damping(26).stiffness(200)}
-      >
-        <TouchableOpacity
-          style={styles.fabBtn}
-          onPress={() => { haptics.light(); setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="person-add" size={28} color="#000" />
-        </TouchableOpacity>
-      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -339,14 +325,4 @@ const styles = StyleSheet.create({
     ...SHADOWS.glow(GOLD),
   },
   submitText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
-  fab: {
-    position: 'absolute',
-    bottom: SPACING.xl + 20,
-    right: SPACING.lg,
-  },
-  fabBtn: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: GOLD, alignItems: 'center', justifyContent: 'center',
-    ...SHADOWS.glow(GOLD),
-  },
 });

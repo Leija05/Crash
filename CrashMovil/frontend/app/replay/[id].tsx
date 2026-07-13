@@ -273,28 +273,36 @@ export default function ReplayScreen() {
 
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Fuerza G durante el evento</Text>
-          <LineChart
-            data={chartData}
-            width={CHART_INNER}
-            height={140}
-            color={GOLD}
-            gradientColors={[GOLD, GOLD + '00']}
-            showArea
-            strokeWidth={2}
-          />
+          {chartData.length >= 2 ? (
+            <LineChart
+              data={chartData}
+              width={CHART_INNER}
+              height={140}
+              color={GOLD}
+              gradientColors={[GOLD, GOLD + '00']}
+              showArea
+              strokeWidth={2}
+            />
+          ) : (
+            <Text style={styles.noChartText}>Sin telemetría suficiente para graficar.</Text>
+          )}
         </View>
 
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Velocidad estimada</Text>
-          <LineChart
-            data={speedData}
-            width={CHART_INNER}
-            height={140}
-            color={COLORS.info}
-            gradientColors={[COLORS.info, COLORS.info + '00']}
-            showArea
-            strokeWidth={2}
-          />
+          {speedData.length >= 2 ? (
+            <LineChart
+              data={speedData}
+              width={CHART_INNER}
+              height={140}
+              color={COLORS.info}
+              gradientColors={[COLORS.info, COLORS.info + '00']}
+              showArea
+              strokeWidth={2}
+            />
+          ) : (
+            <Text style={styles.noChartText}>Sin telemetría suficiente para graficar.</Text>
+          )}
         </View>
 
         <View style={styles.impactInfoCard}>
@@ -476,5 +484,11 @@ const styles = StyleSheet.create({
     color: COLORS.textSec,
     letterSpacing: 2,
     marginBottom: SPACING.sm,
+  },
+  noChartText: {
+    color: COLORS.textDim,
+    fontSize: FONT_SIZE.sm,
+    textAlign: 'center',
+    paddingVertical: SPACING.md,
   },
 });

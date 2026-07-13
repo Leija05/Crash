@@ -20,25 +20,42 @@ async def generate_ai_diagnosis(impact: dict, profile: dict | None) -> dict:
             f"Notas de emergencia: {profile.get('emergency_notes', 'N/A')}"
         )
 
+    severity_label = impact.get("severity_label", "N/A")
+    injury_probability = impact.get("injury_probability")
+    triage = impact.get("triage_label") or impact.get("triage_level") or "N/A"
+    speed = impact.get("speed_kmh")
+    speed_text = f"{speed:.0f} km/h" if isinstance(speed, (int, float)) else "No registrada"
+
     system_msg = (
-        "Eres un asistente médico de emergencia especializado en accidentes de motocicleta. "
-        "Analiza los datos de telemetría del impacto y el perfil médico del usuario. "
-        "Responde SIEMPRE en formato JSON válido con las siguientes claves: "
-        "severity_assessment (string), possible_injuries (array de strings), "
-        "first_aid_steps (array de strings), emergency_recommendations (array de strings), "
-        "priority_level (string: bajo/medio/alto/crítico). "
-        "No incluyas markdown, solo JSON puro."
+        "Eres un médico de urgencias especializado en traumatología de accidentes de motocicleta. "
+        "Redactas un INFORME CLÍNICO PRELIMINAR y realista para los paramédicos y el propio rider, "
+        "basado en la telemetría del impacto y el perfil médico. "
+        "Sé preciso, profesional y práctico; no inventes datos que no se derivan de la telemetría. "
+        "Responde SIEMPRE en español, en formato JSON válido y sin markdown, con estas claves exactas:\n"
+        "- severity_assessment (string): 1-2 frases explicando la gravedad estimada y el porqué.\n"
+        "- priority_level (string, uno de: bajo/medio/alto/crítico): nivel de prioridad de atención.\n"
+        "- estimated_injury_probability (string con símbolo %): probabilidad estimada de lesión.\n"
+        "- mechanism_of_injury (string): mecanismo probable del traumatismo según la fuerza G y la aceleración.\n"
+        "- body_areas_at_risk (array de strings): regiones anatómicas más expuestas.\n"
+        "- possible_injuries (array de strings): lesiones específicas y plausibles para ese nivel de energía.\n"
+        "- first_aid_steps (array de strings): pasos de primeros auxilios priorizados y accionables.\n"
+        "- emergency_recommendations (array de strings): recomendaciones claras para emergencias (cuándo llamar, qué indicar).\n"
+        "- profile_warnings (string): advertencias personalizadas según alergias, condiciones o tipo de sangre del perfil; usa 'Ninguna' si no aplica.\n"
+        "- when_to_call_emergency (string): criterio concreto para activar servicios de emergencia (911)."
     )
 
     prompt = (
         f"DATOS DEL IMPACTO:\n"
-        f"- Fuerza G: {impact.get('g_force', 0):.2f}G\n"
-        f"- Severidad: {impact.get('severity_label', 'N/A')}\n"
-        f"- Aceleración: X={impact['acceleration']['x']:.2f}, Y={impact['acceleration']['y']:.2f}, Z={impact['acceleration']['z']:.2f}\n"
-        f"- Giroscopio: X={impact['gyroscope']['x']:.2f}, Y={impact['gyroscope']['y']:.2f}, Z={impact['gyroscope']['z']:.2f}\n"
+        f"- Fuerza G registrada: {impact.get('g_force', 0):.2f}G\n"
+        f"- Clasificación de severidad: {severity_label}\n"
+        f"- Probabilidad de lesión estimada (modelo): {injury_probability if isinstance(injury_probability, (int, float)) else 'N/A'}%\n"
+        f"- Nivel de triaje: {triage}\n"
+        f"- Velocidad estimada: {speed_text}\n"
+        f"- Aceleración (m/s²): X={impact['acceleration']['x']:.2f}, Y={impact['acceleration']['y']:.2f}, Z={impact['acceleration']['z']:.2f}\n"
+        f"- Giroscopio (°/s): X={impact['gyroscope']['x']:.2f}, Y={impact['gyroscope']['y']:.2f}, Z={impact['gyroscope']['z']:.2f}\n"
         f"- Ubicación: {'Lat ' + str(impact['location']['latitude']) + ', Lon ' + str(impact['location']['longitude']) if impact.get('location') else 'No disponible'}\n\n"
         f"PERFIL MÉDICO DEL USUARIO:\n{profile_info or 'No disponible'}\n\n"
-        f"Genera el diagnóstico de emergencia en JSON."
+        f"Genera el informe clínico preliminar en el JSON indicado."
     )
 
     combined_prompt = f"{system_msg}\n\n{prompt}"
@@ -123,13 +140,56 @@ async def generate_ai_diagnosis(impact: dict, profile: dict | None) -> dict:
             if cleaned.endswith("```"):
                 cleaned = cleaned[:-3]
             cleaned = cleaned.strip()
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
+        parsed = json.loads(cleaned)
+
+        def _as_list(v):
+            if isinstance(v, list):
+                return [str(x).strip() for x in v if str(x).strip()]
+            if isinstance(v, str) and v.strip():
+                return [s.strip() for s in v.replace("•", "\n").split("\n") if s.strip()]
+            return []
+
+        def _as_str(v):
+            if v is None:
+                return ""
+            if isinstance(v, str):
+                return v.strip()
+            if isinstance(v, list):
+                return " ".join(str(x) for x in v)
+            return str(v)
+
+        # Normaliza claves para que la app móvil siempre reciba el esquema esperado.
         return {
-            "severity_assessment": f"Impacto de {impact.get('g_force', 0):.1f}G clasificado como {impact.get('severity_label', 'N/A')}",
-            "possible_injuries": ["Evaluación no disponible - consulte a un profesional médico"],
-            "first_aid_steps": ["Llamar a servicios de emergencia", "No mover al paciente", "Mantener vías aéreas despejadas"],
-            "emergency_recommendations": ["Activar servicios de emergencia 911"],
+            "severity_assessment": _as_str(parsed.get("severity_assessment")) or f"Impacto de {impact.get('g_force', 0):.1f}G clasificado como {impact.get('severity_label', 'N/A')}.",
+            "priority_level": str(_as_str(parsed.get("priority_level")) or impact.get("severity", "medio")).lower(),
+            "estimated_injury_probability": _as_str(parsed.get("estimated_injury_probability")) or f"{impact.get('injury_probability', 0)}%",
+            "mechanism_of_injury": _as_str(parsed.get("mechanism_of_injury")) or "Mecanismo no determinado.",
+            "body_areas_at_risk": _as_list(parsed.get("body_areas_at_risk")) or [],
+            "possible_injuries": _as_list(parsed.get("possible_injuries")) or ["Evaluación no disponible - consulte a un profesional médico."],
+            "first_aid_steps": _as_list(parsed.get("first_aid_steps")) or [
+                "Mantener la calma y evaluar si el rider responde.",
+                "No mover al paciente si hay sospecha de lesión cervical.",
+                "Llamar a servicios de emergencia (911).",
+            ],
+            "emergency_recommendations": _as_list(parsed.get("emergency_recommendations")) or ["Activar servicios de emergencia 911."],
+            "profile_warnings": _as_str(parsed.get("profile_warnings")) or "Ninguna",
+            "when_to_call_emergency": _as_str(parsed.get("when_to_call_emergency")) or "Ante pérdida de conocimiento, sangrado abundante o dolor intenso, llamar al 911.",
+        }
+    except json.JSONDecodeError:
+        g = impact.get("g_force", 0)
+        return {
+            "severity_assessment": f"Impacto de {g:.1f}G clasificado como {impact.get('severity_label', 'N/A')}. Evalúe al paciente en sitio y vigile signos de trauma.",
             "priority_level": impact.get("severity", "medio"),
-            "raw_response": response,
+            "estimated_injury_probability": f"{impact.get('injury_probability', 0)}%",
+            "mechanism_of_injury": f"Deceleración brusca de ~{g:.1f}G; energía transferida compatible con traumatismo por impacto.",
+            "body_areas_at_risk": ["Cabeza y cuello", "Columna", "Tórax", "Extremidades"],
+            "possible_injuries": ["Traumatismo craneoencefálico", "Lesión cervical", "Contusiones y fracturas"],
+            "first_aid_steps": [
+                "Mantener la calma y verificar si el rider responde.",
+                "No mover al paciente si hay sospecha de lesión cervical.",
+                "Llamar a servicios de emergencia (911) y compartir ubicación.",
+            ],
+            "emergency_recommendations": ["Activar servicios de emergencia 911.", "No retirar el casco sin inmovilizar la columna."],
+            "profile_warnings": "Ninguna",
+            "when_to_call_emergency": "Ante pérdida de conocimiento, sangrado abundante o dolor intenso, llamar al 911 de inmediato.",
         }

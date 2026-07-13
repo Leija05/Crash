@@ -20,6 +20,23 @@ function sevColor(s: string) {
   return COLORS.danger;
 }
 
+function toText(v: any): string {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+function toItems(v: any): string[] {
+  if (Array.isArray(v)) {
+    return v.map((item) => (typeof item === 'string' ? item : toText(item)));
+  }
+  if (typeof v === 'string' && v.trim()) {
+    return v.split(/\n|•|\d+\./).map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 function DataItem({ label, value, unit }: { label: string; value?: string; unit: string }) {
   return (
     <View style={styles.dataItem}>
@@ -159,12 +176,12 @@ export default function ImpactDetailScreen() {
             </View>
 
             <View style={styles.chartCard}>
-              <Text style={styles.chartTitle}>Acelerómetro</Text>
+              <Text style={styles.chartTitle}>Giroscopio</Text>
               <MultiLineChart
                 datasets={[
-                  { data: [{x:0,y:impact.acceleration?.x||0},{x:1,y:impact.acceleration?.y||0},{x:2,y:impact.acceleration?.z||0}], color: COLORS.info, name: 'X' },
-                  { data: [{x:0,y:impact.acceleration?.x||0},{x:1,y:impact.acceleration?.y||0},{x:2,y:impact.acceleration?.z||0}], color: COLORS.warning, name: 'Y' },
-                  { data: [{x:0,y:impact.acceleration?.x||0},{x:1,y:impact.acceleration?.y||0},{x:2,y:impact.acceleration?.z||0}], color: COLORS.danger, name: 'Z' },
+                  { data: [{x:0,y:impact.gyroscope?.x||0},{x:1,y:impact.gyroscope?.y||0},{x:2,y:impact.gyroscope?.z||0}], color: COLORS.info, name: 'X' },
+                  { data: [{x:0,y:impact.gyroscope?.x||0},{x:1,y:impact.gyroscope?.y||0},{x:2,y:impact.gyroscope?.z||0}], color: COLORS.warning, name: 'Y' },
+                  { data: [{x:0,y:impact.gyroscope?.x||0},{x:1,y:impact.gyroscope?.y||0},{x:2,y:impact.gyroscope?.z||0}], color: COLORS.danger, name: 'Z' },
                 ]}
                 width={CHART_INNER}
                 height={140}
@@ -241,22 +258,50 @@ export default function ImpactDetailScreen() {
                   </View>
                   <View style={styles.diagDivider} />
 
-                  <View style={styles.diagBlock}>
-                    <Text style={styles.diagLabel}>EVALUACIÓN DE SEVERIDAD</Text>
-                    <Text style={styles.diagValue}>{d.severity_assessment}</Text>
-                  </View>
-
-                  <View style={styles.diagBlock}>
-                    <Text style={styles.diagLabel}>NIVEL DE PRIORIDAD</Text>
-                    <View style={[styles.priorityBadge, { backgroundColor: `${color}18` }]}>
-                      <Text style={[styles.priorityText, { color }]}>{d.priority_level?.toUpperCase()}</Text>
+                  {toText(d.severity_assessment) ? (
+                    <View style={styles.diagBlock}>
+                      <Text style={styles.diagLabel}>EVALUACIÓN DE SEVERIDAD</Text>
+                      <Text style={styles.diagValue}>{toText(d.severity_assessment)}</Text>
                     </View>
+                  ) : null}
+
+                  <View style={styles.metricRow}>
+                    <View style={[styles.metricBox, { borderColor: `${color}40` }]}>
+                      <Text style={styles.metricLabel}>PRIORIDAD</Text>
+                      <Text style={[styles.metricValue, { color }]}>{toText(d.priority_level).toUpperCase() || 'MEDIO'}</Text>
+                    </View>
+                    {toText(d.estimated_injury_probability) ? (
+                      <View style={[styles.metricBox, { borderColor: 'rgba(255,215,0,0.25)' }]}>
+                        <Text style={styles.metricLabel}>PROB. DE LESIÓN</Text>
+                        <Text style={[styles.metricValue, { color: GOLD }]}>{toText(d.estimated_injury_probability)}</Text>
+                      </View>
+                    ) : null}
                   </View>
 
-                  {d.possible_injuries?.length > 0 && (
+                  {toText(d.mechanism_of_injury) ? (
+                    <View style={styles.diagBlock}>
+                      <Text style={styles.diagLabel}>MECANISMO DEL TRAUMATISMO</Text>
+                      <Text style={styles.diagValue}>{toText(d.mechanism_of_injury)}</Text>
+                    </View>
+                  ) : null}
+
+                  {toItems(d.body_areas_at_risk).length > 0 && (
+                    <View style={styles.diagBlock}>
+                      <Text style={styles.diagLabel}>ZONAS MÁS EXPUESTAS</Text>
+                      <View style={styles.chipRow}>
+                        {toItems(d.body_areas_at_risk).map((item: string, i: number) => (
+                          <View key={i} style={styles.chip}>
+                            <Text style={styles.chipText}>{item}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {toItems(d.possible_injuries).length > 0 && (
                     <View style={styles.diagBlock}>
                       <Text style={styles.diagLabel}>POSIBLES LESIONES</Text>
-                      {d.possible_injuries.map((item: string, i: number) => (
+                      {toItems(d.possible_injuries).map((item: string, i: number) => (
                         <View key={i} style={styles.listItem}>
                           <Ionicons name="alert-circle" size={14} color={COLORS.warning} />
                           <Text style={styles.listText}>{item}</Text>
@@ -265,10 +310,10 @@ export default function ImpactDetailScreen() {
                     </View>
                   )}
 
-                  {d.first_aid_steps?.length > 0 && (
+                  {toItems(d.first_aid_steps).length > 0 && (
                     <View style={styles.diagBlock}>
                       <Text style={styles.diagLabel}>PRIMEROS AUXILIOS</Text>
-                      {d.first_aid_steps.map((item: string, i: number) => (
+                      {toItems(d.first_aid_steps).map((item: string, i: number) => (
                         <View key={i} style={styles.listItem}>
                           <View style={styles.stepNum}>
                             <Text style={styles.stepNumText}>{i + 1}</Text>
@@ -279,10 +324,17 @@ export default function ImpactDetailScreen() {
                     </View>
                   )}
 
-                  {d.emergency_recommendations?.length > 0 && (
+                  {toText(d.when_to_call_emergency) ? (
+                    <View style={styles.diagBlock}>
+                      <Text style={styles.diagLabel}>CUÁNDO LLAMAR A EMERGENCIA</Text>
+                      <Text style={styles.diagValue}>{toText(d.when_to_call_emergency)}</Text>
+                    </View>
+                  ) : null}
+
+                  {toItems(d.emergency_recommendations).length > 0 && (
                     <View style={styles.diagBlock}>
                       <Text style={styles.diagLabel}>RECOMENDACIONES</Text>
-                      {d.emergency_recommendations.map((item: string, i: number) => (
+                      {toItems(d.emergency_recommendations).map((item: string, i: number) => (
                         <View key={i} style={styles.listItem}>
                           <Ionicons name="medkit" size={14} color={GOLD} />
                           <Text style={styles.listText}>{item}</Text>
@@ -290,6 +342,16 @@ export default function ImpactDetailScreen() {
                       ))}
                     </View>
                   )}
+
+                  {toText(d.profile_warnings) && toText(d.profile_warnings).toUpperCase() !== 'NINGUNA' ? (
+                    <View style={[styles.warnBox, { borderColor: 'rgba(255,149,0,0.3)', backgroundColor: 'rgba(255,149,0,0.08)' }]}>
+                      <Ionicons name="warning" size={14} color={COLORS.warning} />
+                      <Text style={styles.warnBoxText}>
+                        <Text style={{ fontWeight: '800' }}>PERFIL MÉDICO: </Text>
+                        {toText(d.profile_warnings)}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               </>
             ) : (
@@ -428,6 +490,24 @@ const styles = StyleSheet.create({
   diagValue: { fontSize: FONT_SIZE.md, color: COLORS.text, lineHeight: 20 },
   priorityBadge: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   priorityText: { fontSize: FONT_SIZE.md, fontWeight: '800', letterSpacing: 1 },
+  metricRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  metricBox: {
+    flex: 1, backgroundColor: COLORS.bg, borderRadius: RADIUS.sm,
+    padding: 12, borderWidth: 1, alignItems: 'center',
+  },
+  metricLabel: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: COLORS.textDim, letterSpacing: 1.5, marginBottom: 6 },
+  metricValue: { fontSize: FONT_SIZE.lg, fontWeight: '900', letterSpacing: 1, textAlign: 'center' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    backgroundColor: 'rgba(255,215,0,0.10)', borderRadius: RADIUS.pill,
+    paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(255,215,0,0.18)',
+  },
+  chipText: { fontSize: FONT_SIZE.xs, fontWeight: '700', color: GOLD },
+  warnBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    borderRadius: RADIUS.sm, borderWidth: 1, padding: 10, marginTop: 4,
+  },
+  warnBoxText: { fontSize: FONT_SIZE.sm, color: COLORS.text, flex: 1, lineHeight: 18 },
   listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
   listText: { fontSize: FONT_SIZE.md, color: COLORS.text, flex: 1, lineHeight: 20 },
   stepNum: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },

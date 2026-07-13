@@ -21,6 +21,15 @@ import GlassButton from '../../src/components/GlassButton';
 import PremiumModal from '../../src/components/PremiumModal';
 import { DarkSwitch } from '../../src/components/DarkSwitch';
 
+function GroupSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.group}>
+      <Text style={styles.groupLabel}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
@@ -197,264 +206,274 @@ export default function SettingsScreen() {
             <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
           </Animated.View>
 
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(100).springify().damping(26).stiffness(200)}
-            style={{ marginBottom: SPACING.md }}
-          >
-            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-              <SectionHeader title={t('settings.bluetoothDevice')} icon="bluetooth" />
-              <View style={styles.deviceStatus}>
-                <View style={[styles.statusDot, { backgroundColor: connected ? COLORS.success : COLORS.textDim }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statusLabel}>{connected ? t('settings.connected') : t('settings.noConnection')}</Text>
-                  <Text style={styles.statusDevice}>{connected ? liveDevice : t('settings.noDevice')}</Text>
+          <GroupSection label={t('settings.groupDevice')}>
+            <Animated.View
+              entering={FadeInUp.duration(500).delay(100).springify().damping(26).stiffness(200)}
+              style={{ marginBottom: SPACING.md }}
+            >
+              <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+                <SectionHeader title={t('settings.bluetoothDevice')} icon="bluetooth" />
+                <View style={styles.deviceStatus}>
+                  <View style={[styles.statusDot, { backgroundColor: connected ? COLORS.success : COLORS.textDim }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.statusLabel}>{connected ? t('settings.connected') : t('settings.noConnection')}</Text>
+                    <Text style={styles.statusDevice}>{connected ? liveDevice : t('settings.noDevice')}</Text>
+                  </View>
+                  {connected ? (
+                    <TouchableOpacity onPress={disconnect} style={styles.inlineBtn} testID="settings-disconnect-btn">
+                      <Text style={styles.inlineBtnText}>{t('settings.disconnect')}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity onPress={() => router.push('/devices')} style={[styles.inlineBtn, styles.inlineBtnAccent]} testID="settings-scan-btn">
+                      <Text style={[styles.inlineBtnText, { color: '#000' }]}>{t('settings.scan')}</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-                {connected ? (
-                  <TouchableOpacity onPress={disconnect} style={styles.inlineBtn} testID="settings-disconnect-btn">
-                    <Text style={styles.inlineBtnText}>{t('settings.disconnect')}</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={() => router.push('/devices')} style={[styles.inlineBtn, styles.inlineBtnAccent]} testID="settings-scan-btn">
-                    <Text style={[styles.inlineBtnText, { color: '#000' }]}>{t('settings.scan')}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('settings.deviceNameLabel')}</Text>
-                <Text style={styles.helper}>{t('settings.deviceNameHelper')}</Text>
-                <View style={styles.inputRow}>
-                  <TextInput testID="device-name-input" style={[styles.input, { flex: 1 }]} value={deviceInput} onChangeText={setDeviceInput} placeholder="HC-05 CRASH" placeholderTextColor={COLORS.textDim} autoCapitalize="characters" />
-                  <TouchableOpacity onPress={saveDeviceName} style={styles.saveInlineBtn} testID="save-device-name-btn">
-                    <Text style={styles.saveInlineBtnText}>{t('settings.save')}</Text>
-                  </TouchableOpacity>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('settings.deviceNameLabel')}</Text>
+                  <Text style={styles.helper}>{t('settings.deviceNameHelper')}</Text>
+                  <View style={styles.inputRow}>
+                    <TextInput testID="device-name-input" style={[styles.input, { flex: 1 }]} value={deviceInput} onChangeText={setDeviceInput} placeholder="HC-05 CRASH" placeholderTextColor={COLORS.textDim} autoCapitalize="characters" />
+                    <TouchableOpacity onPress={saveDeviceName} style={styles.saveInlineBtn} testID="save-device-name-btn">
+                      <Text style={styles.saveInlineBtnText}>{t('settings.save')}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            </GlassCard>
-          </Animated.View>
+              </GlassCard>
+            </Animated.View>
+          </GroupSection>
 
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(200).springify().damping(26).stiffness(200)}
-            style={{ marginBottom: SPACING.md }}
-          >
-            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-              <SectionHeader title={t('settings.company')} icon="business" accent />
-              {(() => {
-                const isGeneral = company?.company_id === "general";
-                const linked = !!company?.company_id && !isGeneral;
-                if (linked) {
-                  return (
-                    <View style={styles.deviceStatus}>
-                      <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.statusLabel}>{t('settings.linked')}</Text>
-                        <Text style={styles.statusDevice}>{company.company_name}</Text>
-                      </View>
-                      <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
-                        <Text style={styles.inlineBtnText}>{t('settings.unlink')}</Text>
+          <GroupSection label={t('settings.groupAlerts')}>
+            <Animated.View
+              entering={FadeInUp.duration(500).delay(200).springify().damping(26).stiffness(200)}
+              style={{ marginBottom: SPACING.md }}
+            >
+              <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+                <SectionHeader title={t('settings.confirmTime')} icon="timer" />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('settings.countdownLabel')}</Text>
+                  <Text style={styles.helper}>{t('settings.countdownHelper')}</Text>
+                  <View style={styles.thresholdRow}>
+                    <TextInput style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={countdownSeconds} onChangeText={setCountdownSeconds} keyboardType="numeric" />
+                    <Text style={styles.gSymbol}>s</Text>
+                  </View>
+                </View>
+                {!nativeAvailable && (
+                  <View style={styles.warnBox}>
+                    <Ionicons name="information-circle" size={14} color={COLORS.info} />
+                    <Text style={styles.warnBoxText}>{t('settings.nativeBluetoothWarning')}</Text>
+                  </View>
+                )}
+              </GlassCard>
+            </Animated.View>
+
+            <Animated.View
+              entering={FadeInUp.duration(500).delay(300).springify().damping(26).stiffness(200)}
+              style={{ marginBottom: SPACING.md }}
+            >
+              <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+                <SectionHeader title={t('settings.alertsImpact')} icon="warning" accent />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('settings.alertThresholdLabel')}</Text>
+                  <Text style={styles.helper}>{t('settings.alertThresholdHelper')}</Text>
+                  <View style={styles.thresholdRow}>
+                    <TextInput testID="threshold-input" style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={threshold} onChangeText={setThreshold} keyboardType="numeric" />
+                    <Text style={styles.gSymbol}>G</Text>
+                  </View>
+                  <View style={styles.thresholdScale}>
+                    {[
+                      { l: t('settings.thresholdLow'), v: '5' },
+                      { l: t('settings.thresholdMedium'), v: '10' },
+                      { l: t('settings.thresholdHigh'), v: '15' },
+                      { l: t('settings.thresholdCritical'), v: '20' },
+                    ].map((item) => (
+                      <TouchableOpacity key={item.v} style={[styles.threshBtn, { borderColor: severityColor(parseFloat(item.v)) }]} onPress={() => setThreshold(item.v)}>
+                        <Text style={[styles.threshText, { color: severityColor(parseFloat(item.v)) }]}>{item.l}</Text>
+                        <Text style={[styles.threshVal, { color: severityColor(parseFloat(item.v)) }]}>{item.v}G</Text>
                       </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <DarkSwitch
+                  value={locationTrackingEnabled}
+                  onValueChange={setLocationTrackingEnabled}
+                  label={t('settings.trackingLabel')}
+                  icon="location-outline"
+                  trackColor={COLORS.info}
+                />
+
+                <DarkSwitch
+                  value={autoCall}
+                  onValueChange={setAutoCall}
+                  label={t('settings.autoCalls')}
+                  icon="call-outline"
+                  trackColor={GOLD}
+                />
+
+                <DarkSwitch
+                  value={autoWhatsapp}
+                  onValueChange={setAutoWhatsapp}
+                  label={t('settings.autoWhatsapp')}
+                  icon="logo-whatsapp"
+                  trackColor={COLORS.success}
+                />
+
+                <TouchableOpacity testID="save-settings-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveServer} disabled={saving}>
+                  {saving ? <ActivityIndicator color="#000" /> : (
+                    <>
+                      <Ionicons name="save" size={16} color="#000" />
+                      <Text style={styles.saveBtnText}>{t('settings.saveAlerts')}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </GlassCard>
+            </Animated.View>
+          </GroupSection>
+
+          <GroupSection label={t('settings.groupCompany')}>
+            <Animated.View
+              entering={FadeInUp.duration(500).delay(400).springify().damping(26).stiffness(200)}
+              style={{ marginBottom: SPACING.md }}
+            >
+              <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+                <SectionHeader title={t('settings.company')} icon="business" accent />
+                {(() => {
+                  const isGeneral = company?.company_id === "general";
+                  const linked = !!company?.company_id && !isGeneral;
+                  if (linked) {
+                    return (
+                      <View style={styles.deviceStatus}>
+                        <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.statusLabel}>{t('settings.linked')}</Text>
+                          <Text style={styles.statusDevice}>{company.company_name}</Text>
+                        </View>
+                        <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
+                          <Text style={styles.inlineBtnText}>{t('settings.unlink')}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  }
+                  return (
+                    <View style={styles.inputGroup}>
+                      {isGeneral ? (
+                        <Text style={[styles.helper, { color: COLORS.success, marginBottom: 8 }]}>
+                          {t('settings.generalMonitoring')}
+                        </Text>
+                      ) : (
+                        <Text style={styles.label}>{t('settings.companyToken')}</Text>
+                      )}
+                      <Text style={styles.helper}>{t('settings.companyTokenHelper')}</Text>
+                      <View style={styles.inputRow}>
+                        <TextInput
+                          testID="company-token-input"
+                          style={[styles.input, { flex: 1, letterSpacing: 2 }]}
+                          value={companyTokenInput}
+                          onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
+                          placeholder={t('settings.companyTokenPlaceholder')}
+                          placeholderTextColor={COLORS.textDim}
+                          autoCapitalize="characters"
+                        />
+                        <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
+                          {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>{t('settings.link')}</Text>}
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   );
-                }
-                return (
-                  <View style={styles.inputGroup}>
-                    {isGeneral ? (
-                      <Text style={[styles.helper, { color: COLORS.success, marginBottom: 8 }]}>
-                        {t('settings.generalMonitoring')}
-                      </Text>
-                    ) : (
-                      <Text style={styles.label}>{t('settings.companyToken')}</Text>
-                    )}
-                    <Text style={styles.helper}>{t('settings.companyTokenHelper')}</Text>
-                    <View style={styles.inputRow}>
-                      <TextInput
-                        testID="company-token-input"
-                        style={[styles.input, { flex: 1, letterSpacing: 2 }]}
-                        value={companyTokenInput}
-                        onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
-                        placeholder={t('settings.companyTokenPlaceholder')}
-                        placeholderTextColor={COLORS.textDim}
-                        autoCapitalize="characters"
-                      />
-                      <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
-                        {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>{t('settings.link')}</Text>}
-                      </TouchableOpacity>
-                    </View>
+                })()}
+              </GlassCard>
+            </Animated.View>
+          </GroupSection>
+
+          <GroupSection label={t('settings.groupPrefs')}>
+            <Animated.View
+              entering={FadeInUp.duration(500).delay(500).springify().damping(26).stiffness(200)}
+              style={{ marginBottom: SPACING.md }}
+            >
+              <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+                <SectionHeader title={t('settings.languageSection')} icon="globe" accent />
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity style={[styles.langBtn, locale === 'es' && styles.langBtnActive]} onPress={() => setLocale('es')}>
+                    <Text style={[styles.langBtnText, locale === 'es' && styles.langBtnTextActive]}>Español</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.langBtn, locale === 'en' && styles.langBtnActive]} onPress={() => setLocale('en')}>
+                    <Text style={[styles.langBtnText, locale === 'en' && styles.langBtnTextActive]}>English</Text>
+                  </TouchableOpacity>
+                </View>
+              </GlassCard>
+            </Animated.View>
+          </GroupSection>
+
+          <GroupSection label={t('settings.groupUpdate')}>
+            <Animated.View
+              entering={FadeInUp.duration(500).delay(520).springify().damping(26).stiffness(200)}
+              style={{ marginBottom: SPACING.md }}
+            >
+              <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+                <SectionHeader title={t('settings.updateSection')} icon="cloud-download" accent />
+                <View style={styles.updateRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.updateLabel}>{t('settings.updateCurrent')}</Text>
+                    <Text style={styles.updateValue}>v{localVersion}</Text>
                   </View>
-                );
-              })()}
-            </GlassCard>
-          </Animated.View>
-
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(300).springify().damping(26).stiffness(200)}
-            style={{ marginBottom: SPACING.md }}
-          >
-            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-              <SectionHeader title={t('settings.languageSection')} icon="globe" accent />
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={[styles.langBtn, locale === 'es' && styles.langBtnActive]} onPress={() => setLocale('es')}>
-                  <Text style={[styles.langBtnText, locale === 'es' && styles.langBtnTextActive]}>Español</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.langBtn, locale === 'en' && styles.langBtnActive]} onPress={() => setLocale('en')}>
-                  <Text style={[styles.langBtnText, locale === 'en' && styles.langBtnTextActive]}>English</Text>
-                </TouchableOpacity>
-              </View>
-            </GlassCard>
-          </Animated.View>
-
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(400).springify().damping(26).stiffness(200)}
-            style={{ marginBottom: SPACING.md }}
-          >
-            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-              <SectionHeader title={t('settings.confirmTime')} icon="timer" />
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('settings.countdownLabel')}</Text>
-                <Text style={styles.helper}>{t('settings.countdownHelper')}</Text>
-                <View style={styles.thresholdRow}>
-                  <TextInput style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={countdownSeconds} onChangeText={setCountdownSeconds} keyboardType="numeric" />
-                  <Text style={styles.gSymbol}>s</Text>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={styles.updateLabel}>{t('settings.updateLatest')}</Text>
+                    <Text style={[styles.updateValue, { color: updateStatus === 'available' ? GOLD : COLORS.text }]}>
+                      {latestVersion ? `v${latestVersion}` : updateStatus === 'checking' ? '...' : '—'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              {!nativeAvailable && (
-                <View style={styles.warnBox}>
-                  <Ionicons name="information-circle" size={14} color={COLORS.info} />
-                  <Text style={styles.warnBoxText}>{t('settings.nativeBluetoothWarning')}</Text>
-                </View>
-              )}
-            </GlassCard>
-          </Animated.View>
 
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(500).springify().damping(26).stiffness(200)}
-            style={{ marginBottom: SPACING.md }}
-          >
-            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-              <SectionHeader title={t('settings.alertsImpact')} icon="warning" accent />
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>{t('settings.alertThresholdLabel')}</Text>
-                <Text style={styles.helper}>{t('settings.alertThresholdHelper')}</Text>
-                <View style={styles.thresholdRow}>
-                  <TextInput testID="threshold-input" style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={threshold} onChangeText={setThreshold} keyboardType="numeric" />
-                  <Text style={styles.gSymbol}>G</Text>
-                </View>
-                <View style={styles.thresholdScale}>
-                  {[
-                    { l: t('settings.thresholdLow'), v: '5' },
-                    { l: t('settings.thresholdMedium'), v: '10' },
-                    { l: t('settings.thresholdHigh'), v: '15' },
-                    { l: t('settings.thresholdCritical'), v: '20' },
-                  ].map((item) => (
-                    <TouchableOpacity key={item.v} style={[styles.threshBtn, { borderColor: severityColor(parseFloat(item.v)) }]} onPress={() => setThreshold(item.v)}>
-                      <Text style={[styles.threshText, { color: severityColor(parseFloat(item.v)) }]}>{item.l}</Text>
-                      <Text style={[styles.threshVal, { color: severityColor(parseFloat(item.v)) }]}>{item.v}G</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <DarkSwitch
-                value={locationTrackingEnabled}
-                onValueChange={setLocationTrackingEnabled}
-                label={t('settings.trackingLabel')}
-                icon="location-outline"
-                trackColor={COLORS.info}
-              />
-
-              <DarkSwitch
-                value={autoCall}
-                onValueChange={setAutoCall}
-                label={t('settings.autoCalls')}
-                icon="call-outline"
-                trackColor={GOLD}
-              />
-
-              <DarkSwitch
-                value={autoWhatsapp}
-                onValueChange={setAutoWhatsapp}
-                label={t('settings.autoWhatsapp')}
-                icon="logo-whatsapp"
-                trackColor={COLORS.success}
-              />
-
-              <TouchableOpacity testID="save-settings-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveServer} disabled={saving}>
-                {saving ? <ActivityIndicator color="#000" /> : (
-                  <>
-                    <Ionicons name="save" size={16} color="#000" />
-                    <Text style={styles.saveBtnText}>{t('settings.saveAlerts')}</Text>
-                  </>
+                {updateStatus === 'uptodate' && (
+                  <View style={[styles.updateStatusBox, { borderColor: 'rgba(52,199,89,0.25)', backgroundColor: 'rgba(52,199,89,0.08)' }]}>
+                    <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                    <Text style={[styles.updateStatusText, { color: COLORS.success }]}>{t('settings.updateUpToDate')}</Text>
+                  </View>
                 )}
-              </TouchableOpacity>
-            </GlassCard>
-          </Animated.View>
+                {updateStatus === 'available' && (
+                  <View style={[styles.updateStatusBox, { borderColor: GOLD_HAIRLINE, backgroundColor: 'rgba(200,162,60,0.08)' }]}>
+                    <Ionicons name="arrow-up-circle" size={16} color={GOLD} />
+                    <Text style={[styles.updateStatusText, { color: GOLD }]}>{t('settings.updateAvailable')}</Text>
+                  </View>
+                )}
+                {updateStatus === 'error' && (
+                  <View style={[styles.updateStatusBox, { borderColor: 'rgba(255,59,48,0.25)', backgroundColor: 'rgba(255,59,48,0.08)' }]}>
+                    <Ionicons name="alert-circle" size={16} color={COLORS.danger} />
+                    <Text style={[styles.updateStatusText, { color: COLORS.danger }]}>{t('settings.updateError')}</Text>
+                  </View>
+                )}
 
-          <Animated.View
-            entering={FadeInUp.duration(500).delay(520).springify().damping(26).stiffness(200)}
-            style={{ marginBottom: SPACING.md }}
-          >
-            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-              <SectionHeader title={t('settings.updateSection')} icon="cloud-download" accent />
-              <View style={styles.updateRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.updateLabel}>{t('settings.updateCurrent')}</Text>
-                  <Text style={styles.updateValue}>v{localVersion}</Text>
-                </View>
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <Text style={styles.updateLabel}>{t('settings.updateLatest')}</Text>
-                  <Text style={[styles.updateValue, { color: updateStatus === 'available' ? GOLD : COLORS.text }]}>
-                    {latestVersion ? `v${latestVersion}` : updateStatus === 'checking' ? '...' : '—'}
-                  </Text>
-                </View>
-              </View>
+                {updateStatus === 'available' && updateNotes ? (
+                  <View style={styles.updateNotesBox}>
+                    <Text style={styles.updateNotesLabel}>{t('settings.updateNotes')}</Text>
+                    <Text style={styles.updateNotesText}>{updateNotes}</Text>
+                  </View>
+                ) : null}
 
-              {updateStatus === 'uptodate' && (
-                <View style={[styles.updateStatusBox, { borderColor: 'rgba(52,199,89,0.25)', backgroundColor: 'rgba(52,199,89,0.08)' }]}>
-                  <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
-                  <Text style={[styles.updateStatusText, { color: COLORS.success }]}>{t('settings.updateUpToDate')}</Text>
-                </View>
-              )}
-              {updateStatus === 'available' && (
-                <View style={[styles.updateStatusBox, { borderColor: GOLD_HAIRLINE, backgroundColor: 'rgba(200,162,60,0.08)' }]}>
-                  <Ionicons name="arrow-up-circle" size={16} color={GOLD} />
-                  <Text style={[styles.updateStatusText, { color: GOLD }]}>{t('settings.updateAvailable')}</Text>
-                </View>
-              )}
-              {updateStatus === 'error' && (
-                <View style={[styles.updateStatusBox, { borderColor: 'rgba(255,59,48,0.25)', backgroundColor: 'rgba(255,59,48,0.08)' }]}>
-                  <Ionicons name="alert-circle" size={16} color={COLORS.danger} />
-                  <Text style={[styles.updateStatusText, { color: COLORS.danger }]}>{t('settings.updateError')}</Text>
-                </View>
-              )}
-
-              {updateStatus === 'available' && updateNotes ? (
-                <View style={styles.updateNotesBox}>
-                  <Text style={styles.updateNotesLabel}>{t('settings.updateNotes')}</Text>
-                  <Text style={styles.updateNotesText}>{updateNotes}</Text>
-                </View>
-              ) : null}
-
-              <GlassButton
-                title={updateStatus === 'checking' ? t('settings.updateChecking') : t('settings.updateCheck')}
-                onPress={checkForUpdate}
-                variant="ghost"
-                icon="refresh"
-                size="md"
-                loading={updateStatus === 'checking'}
-                disabled={updateStatus === 'checking'}
-                style={{ marginTop: 14 }}
-              />
-              {updateStatus === 'available' ? (
                 <GlassButton
-                  title={t('settings.updateNow')}
-                  onPress={openUpdate}
-                  variant="accent"
-                  icon="download-outline"
+                  title={updateStatus === 'checking' ? t('settings.updateChecking') : t('settings.updateCheck')}
+                  onPress={checkForUpdate}
+                  variant="ghost"
+                  icon="refresh"
                   size="md"
-                  style={{ marginTop: 8 }}
+                  loading={updateStatus === 'checking'}
+                  disabled={updateStatus === 'checking'}
+                  style={{ marginTop: 14 }}
                 />
-              ) : null}
-            </GlassCard>
-          </Animated.View>
+                {updateStatus === 'available' ? (
+                  <GlassButton
+                    title={t('settings.updateNow')}
+                    onPress={openUpdate}
+                    variant="accent"
+                    icon="download-outline"
+                    size="md"
+                    style={{ marginTop: 8 }}
+                  />
+                ) : null}
+              </GlassCard>
+            </Animated.View>
+          </GroupSection>
 
           <TouchableOpacity testID="logout-btn" style={styles.logoutBtn} onPress={() => setLogoutOpen(true)}>
             <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
@@ -515,6 +534,8 @@ const styles = StyleSheet.create({
   header: { marginBottom: SPACING.md },
   title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
   subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 4 },
+  group: { marginBottom: SPACING.lg },
+  groupLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: GOLD, letterSpacing: 2.5, marginBottom: 10, paddingLeft: 2, textTransform: 'uppercase' },
   deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(217,180,91,0.10)', marginBottom: SPACING.md },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
