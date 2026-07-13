@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { impactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import SeverityBadge from '../../src/components/SeverityBadge';
-import { LineChart } from '../../src/components/Charts';
+import { LineChart, MultiLineChart } from '../../src/components/Charts';
 import GPSMap from '../../src/components/GPSMap';
 
 function sevColor(s: string) {
@@ -34,6 +34,9 @@ export default function ImpactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
   const router = useRouter();
+
+  const { width: SCREEN_W } = useWindowDimensions();
+  const CHART_INNER = SCREEN_W - SPACING.md * 4;
   const [impact, setImpact] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'telemetry' | 'location' | 'ai'>('telemetry');
@@ -80,7 +83,7 @@ export default function ImpactDetailScreen() {
       <View style={styles.goldGlow} pointerEvents="none" />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Animated.View
-          entering={FadeIn.duration(400).springify().damping(20)}
+          entering={FadeIn.duration(450).springify().damping(26).stiffness(200)}
           style={styles.header}
         >
           <TouchableOpacity testID="impact-detail-back-btn" onPress={() => router.back()} style={styles.backBtn}>
@@ -91,7 +94,7 @@ export default function ImpactDetailScreen() {
         </Animated.View>
 
         <Animated.View
-          entering={FadeIn.duration(400).delay(50).springify().damping(22)}
+          entering={FadeIn.duration(450).delay(50).springify().damping(26).stiffness(200)}
           style={[styles.sevBanner, { backgroundColor: `${color}10`, borderColor: `${color}30` }]}
         >
           <View style={styles.sevRow}>
@@ -116,7 +119,7 @@ export default function ImpactDetailScreen() {
         </Animated.View>
 
         <Animated.View
-          entering={SlideInRight.duration(400).delay(100).springify().damping(22)}
+          entering={SlideInRight.duration(450).delay(100).springify().damping(26).stiffness(200)}
           style={styles.tabBar}
         >
           {(['telemetry', 'location', 'ai'] as const).map((tab, i) => (
@@ -140,7 +143,7 @@ export default function ImpactDetailScreen() {
 
         {activeTab === 'telemetry' && (
           <Animated.View
-            entering={FadeIn.duration(300).delay(150).springify()}
+            entering={FadeIn.duration(320).delay(150).springify().damping(25).stiffness(200)}
             style={styles.tabContent}
           >
             <View style={styles.section}>
@@ -157,13 +160,13 @@ export default function ImpactDetailScreen() {
 
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>Acelerómetro</Text>
-              <LineChart
+              <MultiLineChart
                 datasets={[
                   { data: [{x:0,y:impact.acceleration?.x||0},{x:1,y:impact.acceleration?.y||0},{x:2,y:impact.acceleration?.z||0}], color: COLORS.info, name: 'X' },
                   { data: [{x:0,y:impact.acceleration?.x||0},{x:1,y:impact.acceleration?.y||0},{x:2,y:impact.acceleration?.z||0}], color: COLORS.warning, name: 'Y' },
                   { data: [{x:0,y:impact.acceleration?.x||0},{x:1,y:impact.acceleration?.y||0},{x:2,y:impact.acceleration?.z||0}], color: COLORS.danger, name: 'Z' },
                 ]}
-                width={340}
+                width={CHART_INNER}
                 height={140}
                 showArea
                 showLegend
@@ -172,13 +175,13 @@ export default function ImpactDetailScreen() {
 
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>Giroscopio</Text>
-              <LineChart
+              <MultiLineChart
                 datasets={[
                   { data: [{x:0,y:impact.gyroscope?.x||0},{x:1,y:impact.gyroscope?.y||0},{x:2,y:impact.gyroscope?.z||0}], color: COLORS.info, name: 'X' },
                   { data: [{x:0,y:impact.gyroscope?.x||0},{x:1,y:impact.gyroscope?.y||0},{x:2,y:impact.gyroscope?.z||0}], color: COLORS.warning, name: 'Y' },
                   { data: [{x:0,y:impact.gyroscope?.x||0},{x:1,y:impact.gyroscope?.y||0},{x:2,y:impact.gyroscope?.z||0}], color: COLORS.danger, name: 'Z' },
                 ]}
-                width={340}
+                width={CHART_INNER}
                 height={140}
                 showArea
                 showLegend
@@ -189,7 +192,7 @@ export default function ImpactDetailScreen() {
 
         {activeTab === 'location' && (
           <Animated.View
-            entering={FadeIn.duration(300).delay(150).springify()}
+            entering={FadeIn.duration(320).delay(150).springify().damping(25).stiffness(200)}
             style={styles.tabContent}
           >
             {impact.location && impact.location.latitude ? (
@@ -202,7 +205,7 @@ export default function ImpactDetailScreen() {
                     longitude: impact.location.longitude,
                   }}
                   currentLocation={undefined}
-                  width={340}
+                  width={CHART_INNER}
                   height={280}
                   animateRoute={true}
                 />
@@ -226,7 +229,7 @@ export default function ImpactDetailScreen() {
 
         {activeTab === 'ai' && (
           <Animated.View
-            entering={FadeIn.duration(300).delay(150).springify()}
+            entering={FadeIn.duration(320).delay(150).springify().damping(25).stiffness(200)}
             style={styles.tabContent}
           >
             {d ? (
@@ -357,7 +360,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: SPACING.md,
-    padding: 4,
     position: 'relative',
   },
   tabBtn: {
@@ -371,13 +373,13 @@ const styles = StyleSheet.create({
   tabBtnTextActive: { color: COLORS.text },
   tabIndicator: {
     position: 'absolute',
+    top: 4,
     bottom: 4,
-    height: 'calc(100% - 8px)',
     borderRadius: RADIUS.sm,
     backgroundColor: GOLD,
     ...SHADOWS.glow(GOLD, 0.3, 8),
   },
-  tabIndicatorTelemetry: { left: 4, width: '33.33%' },
+  tabIndicatorTelemetry: { left: 0, width: '33.33%' },
   tabIndicatorLocation: { left: '33.33%', width: '33.33%' },
   tabIndicatorAI: { left: '66.66%', width: '33.33%' },
   tabContent: { marginTop: SPACING.sm },

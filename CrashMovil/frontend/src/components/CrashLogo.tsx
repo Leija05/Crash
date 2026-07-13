@@ -79,8 +79,8 @@ export function CrashLogoIcon({ size = 24, color }: { size?: number; color?: str
         height: (size + 8) * (306 / 333),
         borderRadius: (size + 8) / 3,
         borderWidth: 1.5,
-        borderColor: 'rgba(255,215,0,0.4)',
-        backgroundColor: 'rgba(255,215,0,0.10)',
+        borderColor: 'rgba(200,162,60,0.4)',
+        backgroundColor: 'rgba(200,162,60,0.10)',
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
   },
   logoBox: {
     borderWidth: 1.5,
-    borderColor: 'rgba(255,215,0,0.35)',
-    backgroundColor: 'rgba(255,215,0,0.10)',
+    borderColor: 'rgba(200,162,60,0.35)',
+    backgroundColor: 'rgba(200,162,60,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },

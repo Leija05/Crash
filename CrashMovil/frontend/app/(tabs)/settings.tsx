@@ -148,13 +148,13 @@ export default function SettingsScreen() {
       <View style={styles.goldGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.header}>
+          <Animated.View entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)} style={styles.header}>
             <Text style={styles.title}>{t('settings.title').toUpperCase()}</Text>
             <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
           </Animated.View>
 
           <Animated.View
-            entering={FadeInUp.duration(500).delay(100).springify().damping(22)}
+            entering={FadeInUp.duration(500).delay(100).springify().damping(26).stiffness(200)}
             style={{ marginBottom: SPACING.md }}
           >
             <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
@@ -189,7 +189,7 @@ export default function SettingsScreen() {
           </Animated.View>
 
           <Animated.View
-            entering={FadeInUp.duration(500).delay(200).springify().damping(22)}
+            entering={FadeInUp.duration(500).delay(200).springify().damping(26).stiffness(200)}
             style={{ marginBottom: SPACING.md }}
           >
             <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
@@ -242,7 +242,7 @@ export default function SettingsScreen() {
           </Animated.View>
 
           <Animated.View
-            entering={FadeInUp.duration(500).delay(300).springify().damping(22)}
+            entering={FadeInUp.duration(500).delay(300).springify().damping(26).stiffness(200)}
             style={{ marginBottom: SPACING.md }}
           >
             <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
@@ -259,7 +259,7 @@ export default function SettingsScreen() {
           </Animated.View>
 
           <Animated.View
-            entering={FadeInUp.duration(500).delay(400).springify().damping(22)}
+            entering={FadeInUp.duration(500).delay(400).springify().damping(26).stiffness(200)}
             style={{ marginBottom: SPACING.md }}
           >
             <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
@@ -282,7 +282,7 @@ export default function SettingsScreen() {
           </Animated.View>
 
           <Animated.View
-            entering={FadeInUp.duration(500).delay(500).springify().damping(22)}
+            entering={FadeInUp.duration(500).delay(500).springify().damping(26).stiffness(200)}
             style={{ marginBottom: SPACING.md }}
           >
             <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>

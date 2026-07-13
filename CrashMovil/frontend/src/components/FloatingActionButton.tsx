@@ -1,10 +1,12 @@
-import React, { useSharedValue, useAnimatedStyle, withTiming, withSpring, Easing } from 'react';
+import React from 'react';
+import { useSharedValue, useAnimatedStyle, withTiming, withSpring, Easing } from 'react-native-reanimated';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, useAnimatedStyle as useReanimatedStyle, interpolate, Extrapolate } from 'react-native-reanimated';
+import Animated, { FadeIn, interpolate, Extrapolate } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, GOLD } from '../theme';
 
 const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 interface FloatingActionButtonProps {
   icon: string;
@@ -14,6 +16,7 @@ interface FloatingActionButtonProps {
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   style?: any;
+  position?: 'bottom-right' | 'bottom-left' | 'bottom-center' | string;
 }
 
 const sizeConfig = {
@@ -45,11 +48,11 @@ export function FloatingActionButton({
   const { btnSize, iconSize, labelFontSize } = sizeConfig[size];
   const vs = variantStyles[variant];
 
-  const animatedStyle = useReanimatedStyle(() => ({
+  const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const labelAnimatedStyle = useReanimatedStyle(() => ({
+  const labelAnimatedStyle = useAnimatedStyle(() => ({
     opacity: labelOpacity.value,
     transform: [{ translateX: labelTranslateX.value }],
   }));
@@ -82,7 +85,7 @@ export function FloatingActionButton({
           </Animated.View>
         </Animated.View>
       )}
-      <Animated.TouchableOpacity
+      <AnimatedTouchableOpacity
         style={[
           styles.fab,
           {
@@ -100,8 +103,8 @@ export function FloatingActionButton({
         disabled={disabled}
         activeOpacity={disabled ? 1 : 0.85}
       >
-        <AnimatedIonicons name={icon} size={iconSize} color={vs.iconColor} />
-      </Animated.TouchableOpacity>
+        <AnimatedIonicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={iconSize} color={vs.iconColor} />
+      </AnimatedTouchableOpacity>
     </View>
   );
 }
@@ -154,7 +157,7 @@ export function SpeedDial({
   const mainBg = mainVariant === 'danger' ? COLORS.danger : COLORS.primary;
   const mainIconColor = mainVariant === 'danger' ? '#FFF' : '#000';
 
-  const mainAnimatedStyle = useReanimatedStyle(() => ({
+  const mainAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
       { scale: mainScale.value },
       { rotate: `${mainRotate.value}deg` },
@@ -186,7 +189,7 @@ export function SpeedDial({
         <Animated.View
           key={action.label}
           style={styles.actionWrapper}
-          entering={FadeIn.duration(200).delay(index * 50).springify()}
+          entering={FadeIn.duration(200).delay(index * 50).springify().damping(26).stiffness(200)}
         >
           <Animated.View
             style={[
@@ -214,7 +217,7 @@ export function SpeedDial({
               style={styles.actionBtnContent}
             >
               <Ionicons
-                name={action.icon}
+                name={action.icon as React.ComponentProps<typeof Ionicons>['name']}
                 size={20}
                 color={action.variant === 'danger' ? '#FFF' : '#000'}
               />
@@ -242,7 +245,7 @@ export function SpeedDial({
           </Animated.View>
         </Animated.View>
       ))}
-      <Animated.TouchableOpacity
+      <AnimatedTouchableOpacity
         style={[
           styles.mainFab,
           { backgroundColor: mainBg },
@@ -254,14 +257,14 @@ export function SpeedDial({
         activeOpacity={0.85}
       >
         <AnimatedIonicons
-          name={mainIcon}
+          name={mainIcon as React.ComponentProps<typeof Ionicons>['name']}
           size={28}
           color={mainIconColor}
           style={{
-            transform: [{ rotate: `${interpolate(mainRotate.value, [0, 1], ['0deg', '45deg'])}` }],
+            transform: [{ rotate: `${interpolate(mainRotate.value, [0, 1], [0, 45])}deg` }],
           }}
         />
-      </Animated.TouchableOpacity>
+      </AnimatedTouchableOpacity>
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withTiming, interpolateColor, useDerivedValue } from 'react-native-reanimated';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withTiming, interpolate, interpolateColor, useDerivedValue } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, severityColor, severityLabel, IMPACT_SEGMENTS, MAX_G_RING, ANIMATION } from '../theme';
 
 interface GForceRingProps {
@@ -49,7 +49,7 @@ export default function GForceRing({
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: pulseAnim.value,
-    transform: [{ scale: interpolateColor(pulseAnim.value, [0, 1], [1, 1.3]) }],
+    transform: [{ scale: interpolate(pulseAnim.value, [0, 1], [1, 1.3]) }],
   }));
 
   React.useEffect(() => {
@@ -71,23 +71,32 @@ export default function GForceRing({
 
   React.useEffect(() => {
     if (liveData && gForce > 0) {
-      ringScale.value = withSpring(1.02, ANIMATION.spring);
-      centerScale.value = withSpring(1.02, ANIMATION.spring);
+      ringScale.value = withSpring(1.015, ANIMATION.springGentle);
+      centerScale.value = withSpring(1.015, ANIMATION.springGentle);
       setTimeout(() => {
-        ringScale.value = withSpring(1, ANIMATION.spring);
-        centerScale.value = withSpring(1, ANIMATION.spring);
+        ringScale.value = withSpring(1, ANIMATION.springGentle);
+        centerScale.value = withSpring(1, ANIMATION.springGentle);
       }, 150);
     }
   }, [gForce, liveData]);
 
   const segmentAngle = 360 / segments;
-  const innerRadius = size * 0.32;
   const outerRadius = size * 0.48;
-  const segmentHeight = outerRadius - innerRadius;
+  const center = size / 2;
   const segmentWidth = 3;
+  const segmentHeight = outerRadius;
 
   return (
-    <Animated.View style={[styles.container, { width: size, height: size }]} onPress={onPress}>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      disabled={!onPress}
+      style={{ alignItems: 'center', justifyContent: 'center', width: size, height: size }}
+    >
+      <Animated.View
+        style={[styles.container, animatedStyle, { width: size, height: size }]}
+        pointerEvents="none"
+      >
       <View style={styles.ringTrack} pointerEvents="none">
         {Array.from({ length: segments }).map((_, i) => {
           const active = liveData && i < filled;
@@ -101,15 +110,17 @@ export default function GForceRing({
           return (
             <Animated.View
               key={`seg-${i}`}
-              entering={FadeIn.duration(150).delay(i * 3).springify()}
-              style={[
+              entering={FadeIn.duration(150).delay(i * 3).springify().damping(25).stiffness(200)}
+               style={[
                 styles.segment,
                 {
                   width: segmentWidth,
                   height: segmentHeight,
+                  top: center - segmentHeight,
+                  left: center - segmentWidth / 2,
                   backgroundColor: segmentColor,
                   opacity: active ? 1 : 0.4,
-                  transform: [{ rotate: `${angle}deg` }, { translateY: -outerRadius }],
+                  transform: [{ rotate: `${angle}deg` }],
                 },
               ]}
             />
@@ -119,10 +130,10 @@ export default function GForceRing({
         <Animated.View style={[styles.ringInner, centerAnimatedStyle]}>
           <View style={styles.innerContent}>
             <Animated.Text
-              entering={FadeIn.duration(400).springify()}
+              entering={FadeIn.duration(400).springify().damping(25).stiffness(200)}
               style={[
                 styles.gValue,
-                { color: liveData ? COLORS.text : COLORS.textDim, fontSize: size * 0.18 },
+                { color: liveData ? COLORS.text : COLORS.textDim, fontSize: size * 0.18, lineHeight: size * 0.2 },
               ]}
             >
               {liveData ? gForce.toFixed(2) : '0.00'}
@@ -154,12 +165,13 @@ export default function GForceRing({
         </Animated.View>
       </View>
       <Animated.Text
-        entering={FadeIn.duration(400).delay(200).springify()}
+        entering={FadeIn.duration(400).delay(200).springify().damping(25).stiffness(200)}
         style={[styles.ms2, { fontSize: size * 0.03 }]}
       >
         {t ? t('dashboard.mPerSecond') : 'm/s²'}
       </Animated.Text>
-    </Animated.View>
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
@@ -208,8 +220,8 @@ const styles = StyleSheet.create({
   gValue: {
     fontFamily: FONT.mono,
     fontWeight: '900',
-    lineHeight: 60,
     textAlign: 'center',
+    includeFontPadding: false,
   },
   gTitle: {
     color: COLORS.textSec,

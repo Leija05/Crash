@@ -1,17 +1,17 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, GOLD_HAIRLINE } from '../theme';
 
 export function BrandLogo({ size = 46, color = GOLD }: { size?: number; color?: string }) {
   return (
     <View
       style={[
         styles.brandBadge,
-        { width: size, height: size, borderRadius: size * 0.28, borderColor: 'rgba(255,215,0,0.35)' },
+        { width: size, height: size, borderRadius: size * 0.28, borderColor: 'rgba(200,162,60,0.35)' },
       ]}
     >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,215,0,0.12)' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(200,162,60,0.12)' }]} />
       <Ionicons name="shield-checkmark" size={size * 0.5} color={color} />
     </View>
   );
@@ -48,6 +48,7 @@ export default function PremiumModal({
         />
         <View style={styles.dialog} onStartShouldSetResponder={() => true}>
           <View style={[styles.glow, { backgroundColor: accent }]} pointerEvents="none" />
+          <View style={styles.topHighlight} pointerEvents="none" />
           <View style={styles.header}>
             <BrandLogo size={46} />
             <View style={{ flex: 1 }}>
@@ -79,14 +80,23 @@ const styles = StyleSheet.create({
   dialog: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: 'rgba(20,20,28,0.97)',
+    backgroundColor: 'rgba(18,16,10,0.97)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: GOLD_HAIRLINE,
     borderRadius: RADIUS.xl,
     padding: 24,
     alignItems: 'center',
     overflow: 'hidden',
     ...SHADOWS.lg,
+  },
+  topHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: GOLD_HAIRLINE,
+    opacity: 0.8,
   },
   glow: {
     position: 'absolute',

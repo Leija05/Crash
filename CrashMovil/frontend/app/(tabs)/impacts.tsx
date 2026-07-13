@@ -43,7 +43,7 @@ export default function ImpactsScreen() {
   };
 
   const renderImpact = ({ item, index }: { item: any; index: number }) => (
-    <Animated.View entering={FadeInDown.duration(300).delay(index * 50).springify().damping(24)}>
+    <Animated.View entering={FadeInDown.duration(300).delay(index * 50).springify().damping(26).stiffness(200)}>
       <TouchableOpacity
         testID={`impact-item-${item.id}`}
         style={styles.card}
@@ -77,7 +77,7 @@ export default function ImpactsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
-      <Animated.View entering={FadeInUp.duration(500).springify()} style={styles.headerSection}>
+      <Animated.View entering={FadeInUp.duration(500).springify().damping(26).stiffness(200)} style={styles.headerSection}>
         <View>
           <Text style={styles.title}>{t('impacts.title')}</Text>
           <Text style={styles.countText}>{impacts.length} {t('impacts.count')}</Text>

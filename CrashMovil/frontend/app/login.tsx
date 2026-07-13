@@ -41,13 +41,13 @@ export default function LoginScreen() {
       <View style={styles.topGoldLine} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <Animated.View entering={FadeInUp.duration(600).springify().damping(20)} style={styles.header}>
+          <Animated.View entering={FadeInUp.duration(600).springify().damping(26).stiffness(200)} style={styles.header}>
             <CrashLogoMark size={56} />
             <Text style={styles.appName}>C.R.A.S.H.</Text>
             <Text style={styles.appSub}>CRITICAL RESPONSE ALERT SYSTEM</Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.duration(500).delay(100).springify().damping(22)} style={styles.card}>
+          <Animated.View entering={FadeInDown.duration(500).delay(100).springify().damping(26).stiffness(200)} style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.badge}>{t('login.badge')}</Text>
               <Text style={styles.cardTitle}>{t('login.title')}</Text>
@@ -62,7 +62,7 @@ export default function LoginScreen() {
               </Animated.View>
             ) : null}
 
-            <Animated.View entering={FadeInDown.duration(400).delay(150).springify()} style={styles.inputGroup}>
+            <Animated.View entering={FadeInDown.duration(400).delay(150).springify().damping(26).stiffness(200)} style={styles.inputGroup}>
               <Text style={styles.label}>{t('login.email')}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={16} color={COLORS.textSec} />
@@ -80,7 +80,7 @@ export default function LoginScreen() {
               </View>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.duration(400).delay(220).springify()} style={styles.inputGroup}>
+            <Animated.View entering={FadeInDown.duration(400).delay(220).springify().damping(26).stiffness(200)} style={styles.inputGroup}>
               <Text style={styles.label}>{t('login.password')}</Text>
               <View style={styles.inputContainer}>
                 <Ionicons name="lock-closed-outline" size={16} color={COLORS.textSec} />
@@ -99,7 +99,7 @@ export default function LoginScreen() {
               </View>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.duration(400).delay(290).springify()}>
+            <Animated.View entering={FadeInDown.duration(400).delay(290).springify().damping(26).stiffness(200)}>
               <TouchableOpacity
                 testID="login-submit-btn"
                 style={[styles.button, loading && styles.buttonDisabled]}
@@ -118,7 +118,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.duration(400).delay(360).springify()}>
+            <Animated.View entering={FadeInDown.duration(400).delay(360).springify().damping(26).stiffness(200)}>
               <TouchableOpacity testID="go-to-register-btn" style={styles.linkBtn} onPress={() => router.push('/register')}>
                 <Text style={styles.linkText}>
                   {t('login.register')} <Text style={styles.linkAccent}>→</Text>

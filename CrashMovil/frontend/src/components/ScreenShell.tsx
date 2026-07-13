@@ -19,7 +19,7 @@ export default function ScreenShell({
 }: ScreenShellProps) {
   const content = (
     <Animated.View
-      entering={FadeIn.duration(600).springify().damping(24)}
+      entering={FadeIn.duration(600).springify().damping(26).stiffness(200)}
       style={[styles.content, !safeTop && { paddingTop: 0 }, style]}
     >
       <View style={styles.inner}>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     left: -100,
     right: -100,
     height: 400,
-    backgroundColor: 'rgba(255,215,0,0.015)',
+    backgroundColor: 'rgba(200,162,60,0.015)',
     borderBottomLeftRadius: 200,
     borderBottomRightRadius: 200,
   },
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(200,162,60,0.03)',
   },
   scrollContent: {
     flexGrow: 1,

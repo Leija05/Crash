@@ -38,10 +38,10 @@ export function BrandMark({ size = 52, color = GOLD }: { size?: number; color?: 
     <View
       style={[
         styles.brandBadge,
-        { width: size, height: size, borderRadius: size * 0.3, borderColor: 'rgba(255,215,0,0.4)' },
+        { width: size, height: size, borderRadius: size * 0.3, borderColor: 'rgba(200,162,60,0.4)' },
       ]}
     >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,215,0,0.14)' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(200,162,60,0.14)' }]} />
       <Ionicons name="shield-checkmark" size={size * 0.5} color={color} />
     </View>
   );

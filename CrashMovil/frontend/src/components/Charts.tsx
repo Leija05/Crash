@@ -1,10 +1,14 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, Text, Dimensions } from 'react-native';
-import Svg, { Path, Line, Rect, Circle, G, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Line, Rect, Circle, G, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import Animated, { useSharedValue, useDerivedValue, useAnimatedProps, withTiming, Easing, FadeIn } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, severityColor, SHADOWS, ANIMATION } from '../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface DataPoint {
   x: number;
@@ -110,18 +114,17 @@ export function LineChart({
     return path;
   }, [data, xScale, yScale, yMin, chartHeight, padding.left, padding.top]);
 
-  const animatedPath = useDerivedValue(() => {
-    if (!animate) return pathData;
-    const len = pathData.length;
-    const dashArray = len;
-    const dashOffset = len * (1 - progress.value);
-    return { path: pathData, dashArray, dashOffset };
-  }, [pathData, animate]);
+  const animatedPathProps = useAnimatedProps(() => ({
+    d: pathData,
+    strokeDasharray: animate ? pathData.length : 0,
+    strokeDashoffset: animate ? pathData.length * (1 - progress.value) : 0,
+    opacity: animate ? progress.value : 1,
+  }), [pathData, animate]);
 
-  const animatedAreaPath = useDerivedValue(() => {
-    if (!animate) return areaPathData;
-    return areaPathData;
-  }, [areaPathData, animate]);
+  const animatedAreaProps = useAnimatedProps(() => ({
+    d: areaPathData,
+    opacity: animate ? progress.value : 1,
+  }), [areaPathData, animate]);
 
   React.useEffect(() => {
     if (animate) {
@@ -174,35 +177,30 @@ export function LineChart({
         ))}
 
         {showArea && gradientColors && (
-          <Animated.Path
-            d={animatedAreaPath}
+          <AnimatedPath
+            animatedProps={animatedAreaProps}
             fill="url(#chartGradient)"
-            opacity={animate ? progress.value : 1}
           />
         )}
 
         {showArea && !gradientColors && (
-          <Animated.Path
-            d={animatedAreaPath}
+          <AnimatedPath
+            animatedProps={animatedAreaProps}
             fill={color + '15'}
-            opacity={animate ? progress.value : 1}
           />
         )}
 
-        <Animated.Path
-          d={animate ? animatedPath.path : pathData}
+        <AnimatedPath
+          animatedProps={animatedPathProps}
           stroke={color}
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeDasharray={animate ? animatedPath.dashArray : 0}
-          strokeDashoffset={animate ? animatedPath.dashOffset : 0}
-          opacity={animate ? progress.value : 1}
         />
 
         {showPoints && data.map((d, i) => (
-          <Animated.Circle
+          <AnimatedCircle
             key={`point-${i}`}
             cx={padding.left + i * xScale}
             cy={padding.top + chartHeight - (d.y - yMin) * yScale}
@@ -245,13 +243,13 @@ export function LineChart({
 
       {gradientColors && (
         <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
-          <defs>
-            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <Defs>
+            <LinearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               {gradientColors.map((c, i) => (
-                <stop key={i} offset={`${(i / (gradientColors.length - 1)) * 100}%`} stopColor={c} stopOpacity={i === 0 ? 0.25 : 0.02} />
+                <Stop key={i} offset={`${(i / (gradientColors.length - 1)) * 100}%`} stopColor={c} stopOpacity={i === 0 ? 0.25 : 0.02} />
               ))}
-            </linearGradient>
-          </defs>
+            </LinearGradient>
+          </Defs>
         </Svg>
       )}
     </View>
@@ -317,72 +315,25 @@ export function MultiLineChart({
           />
         ))}
 
-        {datasets.map((dataset, di) => {
-          const data = dataset.data;
-          const path = useMemo(() => {
-            if (data.length < 2) return '';
-            const points = data.map((d, i) => ({
-              x: padding.left + i * xScale,
-              y: padding.top + chartHeight - (d.y - yMin) * yScale,
-            }));
-            let p = `M${points[0].x},${points[0].y}`;
-            for (let i = 1; i < points.length; i++) {
-              const cp1x = points[i - 1].x + xScale * 0.5;
-              const cp1y = points[i - 1].y;
-              const cp2x = points[i].x - xScale * 0.5;
-              const cp2y = points[i].y;
-              p += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${points[i].x},${points[i].y}`;
-            }
-            return p;
-          }, [data, xScale, yScale, yMin, chartHeight, padding.left, padding.top]);
-
-          const areaPath = useMemo(() => {
-            if (data.length < 2) return '';
-            const points = data.map((d, i) => ({
-              x: padding.left + i * xScale,
-              y: padding.top + chartHeight - (d.y - yMin) * yScale,
-            }));
-            let p = `M${points[0].x},${padding.top + chartHeight}`;
-            p += ` L${points[0].x},${points[0].y}`;
-            for (let i = 1; i < points.length; i++) {
-              const cp1x = points[i - 1].x + xScale * 0.5;
-              const cp1y = points[i - 1].y;
-              const cp2x = points[i].x - xScale * 0.5;
-              const cp2y = points[i].y;
-              p += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${points[i].x},${points[i].y}`;
-            }
-            p += ` L${points[points.length - 1].x},${padding.top + chartHeight}`;
-            p += ` L${points[0].x},${padding.top + chartHeight} Z`;
-            return p;
-          }, [data, xScale, yScale, yMin, chartHeight, padding.left, padding.top]);
-
-          return (
-            <G key={di}>
-              {showArea && (
-                <Animated.Path
-                  d={areaPath}
-                  fill={dataset.color + '10'}
-                  opacity={progress.value}
-                />
-              )}
-              <Animated.Path
-                d={path}
-                stroke={dataset.color}
-                strokeWidth={strokeWidth}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray={path.length}
-                strokeDashoffset={path.length * (1 - progress.value)}
-                opacity={progress.value}
-              />
-            </G>
-          );
-        })}
+        {datasets.map((dataset, di) => (
+          <MultiLineDataset
+            key={di}
+            dataset={dataset}
+            xScale={xScale}
+            yScale={yScale}
+            yMin={yMin}
+            chartHeight={chartHeight}
+            paddingLeft={padding.left}
+            paddingTop={padding.top}
+            showArea={showArea}
+            strokeWidth={strokeWidth}
+            progress={progress}
+          />
+        ))}
       </Svg>
 
       {showLegend && (
-        <View style={styles.legend} style={{ marginTop: 8 }}>
+        <View style={[styles.legend, { marginTop: 8 }]}>
           {datasets.map((d, i) => (
             <View key={i} style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: d.color }]} />
@@ -392,6 +343,93 @@ export function MultiLineChart({
         </View>
       )}
     </View>
+  );
+}
+
+interface MultiLineDatasetProps {
+  dataset: { data: DataPoint[]; color: string; name: string };
+  xScale: number;
+  yScale: number;
+  yMin: number;
+  chartHeight: number;
+  paddingLeft: number;
+  paddingTop: number;
+  showArea: boolean;
+  strokeWidth: number;
+  progress: SharedValue<number>;
+}
+
+function MultiLineDataset({
+  dataset,
+  xScale,
+  yScale,
+  yMin,
+  chartHeight,
+  paddingLeft,
+  paddingTop,
+  showArea,
+  strokeWidth,
+  progress,
+}: MultiLineDatasetProps) {
+  const data = dataset.data;
+  const path = useMemo(() => {
+    if (data.length < 2) return '';
+    const points = data.map((d, i) => ({
+      x: paddingLeft + i * xScale,
+      y: paddingTop + chartHeight - (d.y - yMin) * yScale,
+    }));
+    let p = `M${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const cp1x = points[i - 1].x + xScale * 0.5;
+      const cp1y = points[i - 1].y;
+      const cp2x = points[i].x - xScale * 0.5;
+      const cp2y = points[i].y;
+      p += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${points[i].x},${points[i].y}`;
+    }
+    return p;
+  }, [data, xScale, yScale, yMin, chartHeight, paddingLeft, paddingTop]);
+
+  const areaPath = useMemo(() => {
+    if (data.length < 2) return '';
+    const points = data.map((d, i) => ({
+      x: paddingLeft + i * xScale,
+      y: paddingTop + chartHeight - (d.y - yMin) * yScale,
+    }));
+    let p = `M${points[0].x},${paddingTop + chartHeight}`;
+    p += ` L${points[0].x},${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      const cp1x = points[i - 1].x + xScale * 0.5;
+      const cp1y = points[i - 1].y;
+      const cp2x = points[i].x - xScale * 0.5;
+      const cp2y = points[i].y;
+      p += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${points[i].x},${points[i].y}`;
+    }
+    p += ` L${points[points.length - 1].x},${paddingTop + chartHeight}`;
+    p += ` L${points[0].x},${paddingTop + chartHeight} Z`;
+    return p;
+  }, [data, xScale, yScale, yMin, chartHeight, paddingLeft, paddingTop]);
+
+  return (
+    <G>
+      {showArea && (
+        <AnimatedPath
+          d={areaPath}
+          fill={dataset.color + '10'}
+          opacity={progress.value}
+        />
+      )}
+      <AnimatedPath
+        d={path}
+        stroke={dataset.color}
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={path.length}
+        strokeDashoffset={path.length * (1 - progress.value)}
+        opacity={progress.value}
+      />
+    </G>
   );
 }
 
@@ -457,13 +495,13 @@ export function Sparkline({ data, width = 120, height = 40, color = COLORS.prima
   return (
     <Svg width={width} height={height}>
       {showArea && (
-        <Animated.Path
+        <AnimatedPath
           d={areaPath}
           fill={color + '15'}
           opacity={progress.value}
         />
       )}
-      <Animated.Path
+      <AnimatedPath
         d={path}
         stroke={color}
         strokeWidth={1.5}

@@ -85,12 +85,12 @@ export default function ProfileScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={GOLD} />}
           keyboardShouldPersistTaps="handled"
         >
-          <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.header}>
+          <Animated.View entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)} style={styles.header}>
             <Text style={styles.title}>{t('profile.profileTitle')}</Text>
             <Text style={styles.subtitle}>{t('profile.subtitle')}</Text>
           </Animated.View>
 
-          <Animated.View entering={FadeInUp.duration(500).delay(100).springify()} style={styles.userCard}>
+          <Animated.View entering={FadeInUp.duration(500).delay(100).springify().damping(26).stiffness(200)} style={styles.userCard}>
             <View style={styles.userAvatar}>
               <Ionicons name="person" size={26} color={GOLD} />
             </View>
@@ -100,7 +100,7 @@ export default function ProfileScreen() {
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInUp.duration(500).delay(200).springify()} style={styles.section}>
+          <Animated.View entering={FadeInUp.duration(500).delay(200).springify().damping(26).stiffness(200)} style={styles.section}>
             <Text style={styles.sectionTitle}>{t('profile.personalData')}</Text>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.fullName')}</Text>
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
             </View>
           </Animated.View>
 
-          <Animated.View entering={FadeInUp.duration(500).delay(300).springify()} style={styles.section}>
+          <Animated.View entering={FadeInUp.duration(500).delay(300).springify().damping(26).stiffness(200)} style={styles.section}>
             <Text style={styles.sectionTitle}>{t('profile.medicalInfo')}</Text>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.allergies')}</Text>

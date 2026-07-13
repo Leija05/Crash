@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
-import Svg, { Path, Line, Rect, Circle, G, Defs, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Line, Rect, Circle, G, Defs, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import Animated, { 
   useSharedValue, 
   useDerivedValue, 
@@ -10,6 +10,9 @@ import Animated, {
   FadeIn 
 } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, GOLD, SHADOWS } from '../theme';
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface RoutePoint {
   latitude: number;
@@ -21,8 +24,8 @@ interface RoutePoint {
 
 interface GPSMapProps {
   route: RoutePoint[];
-  impactPoint?: RoutePoint;
-  currentLocation?: RoutePoint;
+  impactPoint?: { latitude: number; longitude: number } | null;
+  currentLocation?: { latitude: number; longitude: number } | null;
   width?: number;
   height?: number;
   style?: ViewStyle;
@@ -90,15 +93,12 @@ export function GPSMap({
     return path;
   }, [projectedRoute]);
 
-  const animatedPath = useDerivedValue(() => {
-    if (!animateRoute) return { path: routePath, dashArray: 0, dashOffset: 0 };
-    const len = routePath.length;
-    return { 
-      path: routePath, 
-      dashArray: len, 
-      dashOffset: len * (1 - routeProgress.value) 
-    };
-  }, [routePath, animateRoute]);
+  const routeAnimatedProps = useAnimatedProps(() => ({
+    d: routePath,
+    strokeDasharray: animateRoute ? routePath.length : 0,
+    strokeDashoffset: animateRoute ? routePath.length * (1 - routeProgress.value) : 0,
+    opacity: animateRoute ? routeProgress.value : 1,
+  }), [routePath, animateRoute]);
 
   useEffect(() => {
     if (animateRoute) {
@@ -134,11 +134,11 @@ export function GPSMap({
     return (
       <View style={[styles.emptyContainer, { width, height }, style]}>
         <Svg width={width} height={height}>
-          <Rect width={width} height={height} rx={RADIUS.lg} fill={COLORS.surface} stroke={COLORS.border} strokeWidth={1} />
-          <Text style={styles.emptyText} x={width / 2} y={height / 2} textAnchor="middle" fill={COLORS.textDim} fontSize={FONT_SIZE.sm} fontFamily={FONT.body}>
-            Sin datos de ruta
-          </Text>
-        </Svg>
+           <Rect width={width} height={height} rx={RADIUS.lg} fill={COLORS.surface} stroke={COLORS.border} strokeWidth={1} />
+           <SvgText x={width / 2} y={height / 2} textAnchor="middle" fill={COLORS.textDim} fontSize={FONT_SIZE.sm} fontFamily={FONT.body}>
+             Sin datos de ruta
+           </SvgText>
+         </Svg>
       </View>
     );
   }
@@ -175,19 +175,16 @@ export function GPSMap({
           ))}
         </G>
 
-        <Animated.Path
-          d={animateRoute ? animatedPath.path : routePath}
+        <AnimatedPath
+          animatedProps={routeAnimatedProps}
           stroke="url(#routeGlow)"
           strokeWidth={6}
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeDasharray={animateRoute ? animatedPath.dashArray : 0}
-          strokeDashoffset={animateRoute ? animatedPath.dashOffset : 0}
-          opacity={animateRoute ? routeProgress.value : 1}
         />
 
-        <Animated.Path
+        <AnimatedPath
           d={routePath}
           stroke={GOLD}
           strokeWidth={2.5}
@@ -215,7 +212,7 @@ export function GPSMap({
 
         {showImpactMarker && projectedImpact && (
           <G>
-            <Animated.Circle
+            <AnimatedCircle
               cx={projectedImpact.x}
               cy={projectedImpact.y}
               r={20}
@@ -229,10 +226,10 @@ export function GPSMap({
               stroke={COLORS.bg}
               strokeWidth={3}
             />
-            <Animated.Circle
+            <AnimatedCircle
               cx={projectedImpact.x}
               cy={projectedImpact.y}
-              style={impactPulseStyle}
+              animatedProps={impactPulseStyle}
               stroke={COLORS.danger}
               strokeWidth={2}
               fill="none"
@@ -242,7 +239,7 @@ export function GPSMap({
 
         {showCurrentLocation && projectedCurrent && (
           <G>
-            <Animated.Circle
+            <AnimatedCircle
               cx={projectedCurrent.x}
               cy={projectedCurrent.y}
               r={16}
@@ -256,10 +253,10 @@ export function GPSMap({
               stroke={COLORS.bg}
               strokeWidth={3}
             />
-            <Animated.Circle
+            <AnimatedCircle
               cx={projectedCurrent.x}
               cy={projectedCurrent.y}
-              style={currentPulseStyle}
+              animatedProps={currentPulseStyle}
               stroke={COLORS.success}
               strokeWidth={2}
               fill="none"
@@ -307,6 +304,8 @@ export function GPSMap({
   );
 }
 
+export default GPSMap;
+
 const styles = StyleSheet.create({
   container: {
     borderRadius: RADIUS.lg,
@@ -335,14 +334,10 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  legendText: {
+   legendText: {
     color: COLORS.textSec,
     fontSize: FONT_SIZE.xs,
     fontWeight: '600',
     fontFamily: FONT.body,
-  },
-  emptyText: {
-    fontSize: FONT_SIZE.sm,
-    fill: COLORS.textDim,
   },
 });

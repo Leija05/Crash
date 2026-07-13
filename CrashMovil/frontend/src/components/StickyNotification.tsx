@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
-import { View, StyleSheet, Text, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION } from '../theme';
-import { useSharedValue, withTiming, withDelay, withSequence, useAnimatedStyle, interpolateColor } from 'react-native-reanimated';
+import Animated, { useSharedValue, withTiming, withDelay, withSequence, useAnimatedStyle, interpolateColor } from 'react-native-reanimated';
 
 export interface StickyNotificationProps {
   message: string;
@@ -35,9 +35,9 @@ export function StickyNotification({
   const progress = useSharedValue(1);
 
   const positionStyles = {
-    'top-right': { right: SPACING.md, left: 'auto', alignItems: 'flex-end' as const },
+    'top-right': { right: SPACING.md, alignItems: 'flex-end' as const },
     'top-center': { left: SPACING.md, right: SPACING.md, alignItems: 'center' as const },
-    'top-left': { left: SPACING.md, right: 'auto', alignItems: 'flex-start' as const },
+    'top-left': { left: SPACING.md, alignItems: 'flex-start' as const },
   };
 
   const typeColors = {
@@ -76,7 +76,7 @@ export function StickyNotification({
     translateX.value = withDelay(100, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }));
     translateY.value = withDelay(100, withTiming(0, { duration: 400, easing: Easing.out(Easing.cubic) }));
     opacity.value = withDelay(100, withTiming(1, { duration: 400 }));
-    scale.value = withDelay(100, withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) }));
+    scale.value = withDelay(100, withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.2)) }));
 
     if (autoDismiss > 0) {
       progress.value = withTiming(0, { duration: autoDismiss, easing: Easing.linear });
@@ -95,7 +95,7 @@ export function StickyNotification({
       ]}
     >
       <View style={styles.content}>
-        <Ionicons name={displayIcon} size={18} color={colors.icon} style={styles.icon} />
+        <Ionicons name={displayIcon as React.ComponentProps<typeof Ionicons>['name']} size={18} color={colors.icon} style={styles.icon} />
         <Text style={[styles.message, { color: colors.text }]} numberOfLines={2}>
           {message}
         </Text>
@@ -105,9 +105,13 @@ export function StickyNotification({
           <Animated.View style={[styles.progressFill, progressStyle]} />
         </Animated.View>
       )}
-      <Animated.View style={[styles.closeBtn, { borderColor: colors.border }]} onPress={dismiss}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={dismiss}
+        style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginLeft: SPACING.xs, borderColor: colors.border }}
+      >
         <Ionicons name="close" size={14} color={colors.text} />
-      </Animated.View>
+      </TouchableOpacity>
     </Animated.View>
   );
 }
@@ -115,6 +119,8 @@ export function StickyNotification({
 export function StickyNotificationStack() {
   return null;
 }
+
+export default StickyNotification;
 
 const styles = StyleSheet.create({
   container: {

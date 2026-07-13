@@ -71,7 +71,7 @@ export default function ContactsScreen() {
   );
 
   const renderContact = ({ item }: { item: any }) => (
-    <Animated.View entering={FadeInUp.duration(300).springify().damping(24)} style={styles.card}>
+    <Animated.View entering={FadeInUp.duration(300).springify().damping(26).stiffness(200)} style={styles.card}>
       <View style={styles.cardRow}>
         <View style={[styles.avatar, { backgroundColor: item.verified ? 'rgba(255,215,0,0.12)' : 'rgba(255,255,255,0.03)' }]}>
           <Ionicons name="person" size={18} color={item.verified ? GOLD : COLORS.textDim} />
@@ -103,7 +103,7 @@ export default function ContactsScreen() {
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
       
-      <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.headerSection}>
+      <Animated.View entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)} style={styles.headerSection}>
         <View>
           <Text style={styles.title}>{t('contacts.title')}</Text>
           <Text style={styles.subtitle}>{filteredContacts.length} {t('contacts.count')}</Text>
@@ -114,7 +114,7 @@ export default function ContactsScreen() {
       </Animated.View>
 
       <Animated.View
-        entering={FadeInUp.duration(500).delay(100).springify()}
+        entering={FadeInUp.duration(500).delay(100).springify().damping(26).stiffness(200)}
         style={styles.searchCard}
       >
         <View style={styles.searchInput}>
@@ -141,7 +141,7 @@ export default function ContactsScreen() {
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchContacts(); }} tintColor={GOLD} />}
           ListEmptyComponent={
-            <Animated.View entering={FadeInUp.duration(500).delay(200).springify()} style={styles.empty}>
+            <Animated.View entering={FadeInUp.duration(500).delay(200).springify().damping(26).stiffness(200)} style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name="people-outline" size={32} color={COLORS.textDim} /></View>
               <Text style={styles.emptyText}>{t('contacts.empty')}</Text>
               <Text style={styles.emptySubtext}>{t('contacts.emptyDesc')}</Text>
@@ -153,7 +153,7 @@ export default function ContactsScreen() {
       <Modal visible={showAdd} animationType="slide" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <Animated.View
-            entering={SlideInRight.duration(300).springify().damping(20)}
+            entering={SlideInRight.duration(300).springify().damping(26).stiffness(200)}
             style={styles.modalContent}
           >
             <View style={styles.modalHeader}>
@@ -183,7 +183,7 @@ export default function ContactsScreen() {
 
       <Animated.View
         style={styles.fab}
-        entering={FadeIn.duration(500).delay(300).springify().damping(15)}
+        entering={FadeIn.duration(500).delay(300).springify().damping(26).stiffness(200)}
       >
         <TouchableOpacity
           style={styles.fabBtn}

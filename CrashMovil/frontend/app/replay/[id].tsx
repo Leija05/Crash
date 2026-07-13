@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView,
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +29,9 @@ export default function ReplayScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
   const router = useRouter();
+
+  const { width: SCREEN_W } = useWindowDimensions();
+  const CHART_INNER = SCREEN_W - SPACING.md * 4;
 
   const [loading, setLoading] = useState(true);
   const [trackWidth, setTrackWidth] = useState(0);
@@ -162,10 +165,11 @@ export default function ReplayScreen() {
     longitude: p.longitude,
     timestamp: p.ts,
   }));
-  const impactPoint = impactIndex >= 0 ? {
-    latitude: points[impactIndex].latitude,
-    longitude: points[impactIndex].longitude,
-  } : undefined;
+  const impactPoint = impact?.location?.latitude
+    ? { latitude: impact.location.latitude, longitude: impact.location.longitude }
+    : (gpsRoute.length > 0
+        ? { latitude: gpsRoute[gpsRoute.length - 1].latitude, longitude: gpsRoute[gpsRoute.length - 1].longitude }
+        : undefined);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -271,7 +275,7 @@ export default function ReplayScreen() {
           <Text style={styles.chartTitle}>Fuerza G durante el evento</Text>
           <LineChart
             data={chartData}
-            width={340}
+            width={CHART_INNER}
             height={140}
             color={GOLD}
             gradientColors={[GOLD, GOLD + '00']}
@@ -284,7 +288,7 @@ export default function ReplayScreen() {
           <Text style={styles.chartTitle}>Velocidad estimada</Text>
           <LineChart
             data={speedData}
-            width={340}
+            width={CHART_INNER}
             height={140}
             color={COLORS.info}
             gradientColors={[COLORS.info, COLORS.info + '00']}
@@ -343,7 +347,7 @@ export default function ReplayScreen() {
               latitude: points[0].latitude,
               longitude: points[0].longitude,
             } : undefined}
-            width={340}
+            width={CHART_INNER}
             height={220}
             showImpactMarker={true}
             showCurrentLocation={true}

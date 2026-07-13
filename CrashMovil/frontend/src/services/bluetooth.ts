@@ -31,6 +31,8 @@ export interface ScanDevice {
   isCompatible: boolean;
   moduleType: string;
   connected: boolean;
+  rssi?: number;
+  isCrashDevice?: boolean;
 }
 
 // UUIDs estándar para módulos BLE tipo HM-10 / MLT-BT05 / CRASH

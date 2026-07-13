@@ -1,34 +1,51 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, FadeInUp, SlideInUp } from 'react-native-reanimated';
-import { CrashLogoSVG, CrashLogoIcon } from '../src/components/CrashLogo';
+import { CrashLogoIcon } from '../src/components/CrashLogo';
 import { COLORS, GOLD, FONT, FONT_SIZE, SPACING, SHADOWS } from '../src/theme';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function SplashScreen() {
+  const router = useRouter();
+  const { loading, token } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (token) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [loading, token, router]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
       <View style={styles.topGoldLine} pointerEvents="none" />
 
-      <Animated.View entering={FadeInDown.duration(800).springify().damping(20)} style={styles.logoWrapper}>
+      <Animated.View entering={FadeInDown.duration(800).springify().damping(26).stiffness(200)} style={styles.logoWrapper}>
         <Animated.View
-          entering={FadeIn.duration(1000).delay(200).springify().damping(18)}
+          entering={FadeIn.duration(1000).delay(200).springify().damping(26).stiffness(200)}
           style={styles.logoContainer}
         >
           <CrashLogoIcon size={96} color={GOLD} />
         </Animated.View>
       </Animated.View>
 
-      <Animated.View entering={FadeInUp.duration(600).delay(400).springify()} style={styles.titleGroup}>
+      <Animated.View entering={FadeInUp.duration(600).delay(400).springify().damping(26).stiffness(200)} style={styles.titleGroup}>
         <Text style={styles.title}>C.R.A.S.H.</Text>
         <Text style={styles.subtitle}>CRITICAL RESPONSE ALERT SYSTEM FOR HELMETS</Text>
       </Animated.View>
 
-      <Animated.View entering={SlideInUp.duration(600).delay(600).springify()} style={styles.loaderWrap}>
+      <Animated.View entering={SlideInUp.duration(600).delay(600).springify().damping(26).stiffness(200)} style={styles.loaderWrap}>
         <ActivityIndicator size="small" color={GOLD} />
-        <Text style={styles.loadingText}>Inicializando telemetría...</Text>
+        <Text style={styles.loadingText}>
+          {loading ? 'Inicializando telemetría...' : (token ? 'Iniciando sesión...' : 'Redirigiendo...')}
+        </Text>
       </Animated.View>
 
       <Text style={styles.version}>v3.0 · Gold Edition</Text>

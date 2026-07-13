@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
   Easing,
   FadeIn,
   useDerivedValue,
@@ -13,6 +13,8 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, GOLD } from '../theme';
+
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 interface MediaControlsProps {
   playing: boolean;
@@ -46,7 +48,7 @@ export function MediaControls({
   const thumbX = useSharedValue(0);
   const trackWidth = useSharedValue(0);
   const speedIndex = useSharedValue(1);
-  const speedExpanded = useSharedValue(false);
+  const speedExpanded = useSharedValue(0);
   const isSeeking = useSharedValue(false);
 
   const formatTime = (seconds: number) => {
@@ -114,6 +116,12 @@ export function MediaControls({
   const playIcon = playing ? 'pause' : 'play';
   const speed = speeds[speedIndex.value];
 
+  useEffect(() => {
+    const p = duration > 0 ? currentTime / duration : 0;
+    progress.value = withTiming(p, { duration: 200 });
+    thumbX.value = withTiming(p * trackWidth.value, { duration: 200 });
+  }, [currentTime, duration]);
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.progressContainer}>
@@ -136,13 +144,13 @@ export function MediaControls({
           <Ionicons name="play-skip-back" size={28} color={GOLD} />
         </TouchableOpacity>
 
-        <Animated.TouchableOpacity
+        <AnimatedTouchableOpacity
           style={[styles.playBtn, animatedPlayStyle]}
           onPress={handlePlayPress}
           activeOpacity={0.85}
         >
           <Ionicons name={playIcon} size={32} color={playing ? GOLD : '#0A0A0A'} />
-        </Animated.TouchableOpacity>
+        </AnimatedTouchableOpacity>
 
         <TouchableOpacity onPress={onNext} activeOpacity={0.7} style={styles.controlBtn}>
           <Ionicons name="play-skip-forward" size={28} color={GOLD} />
@@ -203,7 +211,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     backgroundColor: 'rgba(10,10,10,0.9)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,215,0,0.1)',
+    borderTopColor: 'rgba(200,162,60,0.1)',
     ...SHADOWS.lg,
   },
   progressContainer: {
@@ -282,7 +290,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.1)',
+    borderColor: 'rgba(200,162,60,0.1)',
   },
   playBtn: {
     width: 56,
@@ -304,7 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,10,10,0.85)',
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.1)',
+    borderColor: 'rgba(200,162,60,0.1)',
   },
   speedText: {
     color: COLORS.text,
@@ -320,7 +328,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.1)',
+    borderColor: 'rgba(200,162,60,0.1)',
     padding: SPACING.xs,
     gap: 2,
     ...SHADOWS.lg,
@@ -331,7 +339,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
   },
   speedOptionActive: {
-    backgroundColor: 'rgba(255,215,0,0.15)',
+    backgroundColor: 'rgba(200,162,60,0.15)',
   },
   speedOptionText: {
     color: COLORS.textSec,

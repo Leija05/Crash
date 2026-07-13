@@ -30,7 +30,7 @@ export default function MetricTile({
 
   return (
     <Animated.View
-      entering={FadeIn.duration(400).delay(delay).springify().damping(24)}
+      entering={FadeIn.duration(400).delay(delay).springify().damping(26).stiffness(200)}
       style={[styles.card, { minHeight: dims }, style]}
     >
       {icon && (
@@ -42,7 +42,7 @@ export default function MetricTile({
         />
       )}
       <Animated.Text
-        entering={SlideInUp.duration(300).delay(delay + 80).springify()}
+        entering={SlideInUp.duration(300).delay(delay + 80).springify().damping(26).stiffness(200)}
         style={[styles.value, { color, fontSize }]}
         numberOfLines={1}
       >
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,10,10,0.85)',
     borderRadius: RADIUS.sm,
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.10)',
+    borderColor: 'rgba(200,162,60,0.10)',
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',

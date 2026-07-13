@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, Animated as RNAnimated,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, useWindowDimensions, Animated as RNAnimated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ import { useI18n } from '../../src/i18n';
 import { contactsAPI, impactsAPI, settingsAPI, telemetryAPI } from '../../src/services/api';
 import { foregroundService } from '../../src/services/foregroundService';
 import GForceRing from '../../src/components/GForceRing';
-import { LineChart, Sparkline } from '../../src/components/Charts';
+import { LineChart, MultiLineChart, Sparkline } from '../../src/components/Charts';
 import GPSMap from '../../src/components/GPSMap';
 import { DarkSwitch, Slider } from '../../src/components/DarkSwitch';
 import StickyNotification from '../../src/components/StickyNotification';
@@ -53,7 +53,7 @@ Notifications.setNotificationHandler({
 function Stagger({ children, index = 0 }: { children: React.ReactNode; index?: number }) {
   return (
     <Animated.View
-      entering={FadeInDown.duration(400).delay(index * STAGGER).springify().damping(22)}
+      entering={FadeInDown.duration(450).delay(index * STAGGER).springify().damping(26).stiffness(200)}
     >
       {children}
     </Animated.View>
@@ -105,6 +105,13 @@ export default function DashboardScreen() {
   const gpsHistory = useRef<{ latitude: number; longitude: number; t: number }[]>([]);
 
   const greetingName = user?.name?.split(' ')[0] || 'Rider';
+
+  const { width: SCREEN_W } = useWindowDimensions();
+  const CONTENT_W = SCREEN_W - SPACING.md * 2;
+  const CHART_INNER = CONTENT_W - SPACING.md * 2;
+  const BENTO_INNER = CONTENT_W - 14 * 2;
+  const RING_SIZE = Math.min(280, CONTENT_W - 48);
+  const SPARK_W = (BENTO_INNER - 16) / 3;
 
   useEffect(() => {
     if (!telemetry) return;
@@ -513,14 +520,14 @@ export default function DashboardScreen() {
             {highImpact && (
               <RNAnimated.View pointerEvents="none" style={[styles.criticalPulse, { opacity: pulseAnim }]} />
             )}
-            <GForceRing
-              gForce={gForce}
-              liveData={liveData}
-              severity={sevLabel}
-              t={t}
-              peakG={peakG}
-              size={280}
-            />
+              <GForceRing
+                gForce={gForce}
+                liveData={liveData}
+                severity={sevLabel}
+                t={t}
+                peakG={peakG}
+                size={RING_SIZE}
+              />
           </View>
         </Stagger>
 
@@ -570,16 +577,16 @@ export default function DashboardScreen() {
         </Stagger>
 
         <Stagger index={4}>
-          <View style={styles.bentoRow}>
-            <View style={[styles.bentoCard, styles.bentoHalf]}>
+          <View style={styles.bentoCol}>
+            <View style={styles.bentoCard}>
               <Text style={styles.bentoTitle}>{t('dashboard.gyroscope')}</Text>
               <View style={styles.sparklineGrid}>
-                <Sparkline data={gyroXData.map(d => d.y)} width={140} height={50} color={COLORS.warning} showArea />
-                <Sparkline data={gyroYData.map(d => d.y)} width={140} height={50} color={COLORS.warning} showArea />
-                <Sparkline data={gyroZData.map(d => d.y)} width={140} height={50} color="#FB923C" showArea />
+                <Sparkline data={gyroXData.map(d => d.y)} width={SPARK_W} height={50} color={COLORS.warning} showArea />
+                <Sparkline data={gyroYData.map(d => d.y)} width={SPARK_W} height={50} color={COLORS.warning} showArea />
+                <Sparkline data={gyroZData.map(d => d.y)} width={SPARK_W} height={50} color="#FB923C" showArea />
               </View>
             </View>
-            <View style={[styles.bentoCard, styles.bentoHalf]}>
+            <View style={styles.bentoCard}>
               <Text style={styles.bentoTitle}>{t('dashboard.gps')}</Text>
               <GPSMap
                 route={gpsRoute}
@@ -588,7 +595,7 @@ export default function DashboardScreen() {
                   longitude: impactTelemetryRef.current.longitude,
                 } : undefined}
                 currentLocation={currentLocation}
-                width={340}
+                width={BENTO_INNER}
                 height={160}
                 animateRoute={true}
               />
@@ -609,13 +616,13 @@ export default function DashboardScreen() {
         <Stagger index={6}>
           <View style={styles.chartCard}>
             <Text style={styles.chartTitle}>{t('dashboard.accelChart')}</Text>
-            <LineChart
+            <MultiLineChart
               datasets={[
                 { data: accelChartData, color: COLORS.info, name: 'Accel X' },
                 { data: accelYData, color: COLORS.warning, name: 'Accel Y' },
                 { data: accelZData, color: COLORS.danger, name: 'Accel Z' },
               ]}
-              width={340}
+              width={CHART_INNER}
               height={140}
               showArea
               showLegend
@@ -628,7 +635,7 @@ export default function DashboardScreen() {
             <Text style={styles.chartTitle}>{t('dashboard.gForceChart')}</Text>
             <LineChart
               data={gForceChartData}
-              width={340}
+              width={CHART_INNER}
               height={140}
               color={GOLD}
               gradientColors={[GOLD, GOLD + '00']}
@@ -759,7 +766,7 @@ export default function DashboardScreen() {
 function CoordItem({ label, value, live, delay = 0 }: { label: string; value?: number; live: boolean; delay?: number }) {
   return (
     <Animated.View
-      entering={FadeIn.duration(300).delay(delay * 80).springify()}
+      entering={FadeIn.duration(320).delay(delay * 80).springify().damping(25).stiffness(200)}
       style={styles.coordCell}
     >
       <Text style={styles.coordLabel}>{label}</Text>
@@ -773,13 +780,13 @@ function MetricCard({ label, value, unit, color, live, delay = 0 }: {
 }) {
   return (
     <Animated.View
-      entering={FadeIn.duration(300).delay(delay * 80).springify()}
+      entering={FadeIn.duration(320).delay(delay * 80).springify().damping(25).stiffness(200)}
       style={styles.metric}
       testID={`metric-${label.toLowerCase().replace(/[\s-]+/g, '-')}`}
     >
       <Text style={styles.metricLabel}>{label}</Text>
       <Animated.Text
-        entering={SlideInUp.duration(200).delay(delay * 80 + 50).springify()}
+        entering={SlideInUp.duration(260).delay(delay * 80 + 50).springify().damping(25).stiffness(200)}
         style={[styles.metricValue, { color: live ? color : COLORS.textDim }]}
       >
         {live && value !== undefined ? value.toFixed(3) : '—.——'}
@@ -855,6 +862,7 @@ const styles = StyleSheet.create({
   },
 
   bentoRow: { flexDirection: 'row', gap: 10, marginBottom: SPACING.md },
+  bentoCol: { gap: SPACING.md, marginBottom: SPACING.md },
   bentoCard: {
     borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border,
     backgroundColor: COLORS.surface, padding: 14,

@@ -1,6 +1,6 @@
-import { StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_SOFT } from '../theme';
+import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_SOFT, GOLD_HAIRLINE } from '../theme';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -29,7 +29,7 @@ export default function GlassCard({
     },
     accent: {
       backgroundColor: GOLD_SOFT,
-      borderColor: 'rgba(255,215,0,0.2)',
+      borderColor: GOLD_HAIRLINE,
       ...SHADOWS.glow(GOLD),
     },
     danger: {
@@ -39,9 +39,11 @@ export default function GlassCard({
     },
   };
 
+  const hasHighlight = variant === 'accent' || variant === 'elevated' || variant === 'default';
+
   return (
     <Animated.View
-      entering={FadeIn.duration(500).delay(delay).springify().damping(20)}
+      entering={FadeIn.duration(500).delay(delay).springify().damping(26).stiffness(200)}
       style={[
         styles.base,
         variantStyles[variant],
@@ -49,6 +51,7 @@ export default function GlassCard({
         style,
       ]}
     >
+      {hasHighlight && <View style={styles.topHighlight} pointerEvents="none" />}
       {children}
     </Animated.View>
   );
@@ -59,5 +62,14 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     overflow: 'hidden',
+  },
+  topHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: GOLD_HAIRLINE,
+    opacity: 0.7,
   },
 });

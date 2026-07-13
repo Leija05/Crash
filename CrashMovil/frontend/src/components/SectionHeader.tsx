@@ -17,7 +17,7 @@ export default function SectionHeader({ title, icon, accent = false, action, sub
       <View style={styles.left}>
         {icon && (
           <View style={[styles.iconBox, accent && styles.iconBoxAccent]}>
-            <Ionicons name={icon} size={16} color={accent ? GOLD : COLORS.textSec} />
+            <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={16} color={accent ? GOLD : COLORS.textSec} />
           </View>
         )}
         <View>
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconBoxAccent: {
-    backgroundColor: 'rgba(255,215,0,0.12)',
-    borderColor: 'rgba(255,215,0,0.2)',
+    backgroundColor: 'rgba(200,162,60,0.12)',
+    borderColor: 'rgba(200,162,60,0.2)',
   },
   title: {
     fontSize: FONT_SIZE.xs,

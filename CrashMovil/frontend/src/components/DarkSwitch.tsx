@@ -95,7 +95,7 @@ export function DarkSwitch({
     <View style={styles.container}>
       {label && (
         <View style={styles.labelRow}>
-          {icon && <Ionicons name={icon} size={20} color={COLORS.textSec} style={styles.icon} />}
+          {icon && <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={20} color={COLORS.textSec} style={styles.icon} />}
           <View style={styles.labelContent}>
             <Animated.Text style={[styles.label, animatedLabelStyle]}>{label}</Animated.Text>
             {description && <Text style={styles.description}>{description}</Text>}
@@ -218,7 +218,7 @@ export function Slider({
     <View style={styles.sliderContainer}>
       {label && (
         <View style={styles.sliderHeader}>
-          {icon && <Ionicons name={icon} size={20} color={COLORS.textSec} style={styles.sliderIcon} />}
+          {icon && <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={20} color={COLORS.textSec} style={styles.sliderIcon} />}
           <Text style={styles.sliderLabel}>{label}</Text>
           {showValue && (
             <Animated.Text style={[styles.sliderValue, { color: trackColor }]}>
@@ -249,7 +249,7 @@ export function Slider({
         </View>
         <Animated.View
           style={[
-            styles.thumb,
+            styles.sliderThumb,
             animatedThumbStyle,
             { backgroundColor: trackColor },
           ]}
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   tickEnd: { height: '60%', top: '20%' },
-  thumb: {
+  sliderThumb: {
     position: 'absolute',
     top: 2,
     width: 24,

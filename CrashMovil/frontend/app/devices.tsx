@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import Animated, { FadeIn, FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withTiming, withSequence, Easing, interpolateColor, withDelay } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withTiming, withSequence, Easing, interpolate, Extrapolate, withDelay } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, SHADOWS, FONT, FONT_SIZE, GOLD, ANIMATION } from '../src/theme';
 import { useBluetooth } from '../src/context/BluetoothContext';
 import { useI18n } from '../src/i18n';
@@ -67,7 +67,7 @@ export default function DevicesScreen() {
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: pulseAnim.value,
-    transform: [{ scale: interpolateColor(pulseAnim.value, [0, 1], [0.8, 1.3]) }],
+    transform: [{ scale: interpolate(pulseAnim.value, [0, 1], [0.8, 1.3], Extrapolate.CLAMP) }],
   }));
 
   const scanIconStyle = useAnimatedStyle(() => ({
@@ -80,7 +80,7 @@ export default function DevicesScreen() {
       <View style={styles.goldGlow} pointerEvents="none" />
 
       <Animated.View
-        entering={FadeInDown.duration(500).springify()}
+        entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)}
         style={styles.header}
       >
         <Text style={styles.title}>{t('devices.title')}</Text>
@@ -96,7 +96,7 @@ export default function DevicesScreen() {
       </Animated.View>
 
       <Animated.View
-        entering={FadeInUp.duration(500).delay(100).springify()}
+        entering={FadeInUp.duration(500).delay(100).springify().damping(26).stiffness(200)}
         style={styles.nameCard}
       >
         <Text style={styles.nameLabel}>{t('devices.customName')}</Text>
@@ -110,7 +110,7 @@ export default function DevicesScreen() {
       </Animated.View>
 
       <Animated.View
-        entering={FadeInUp.duration(500).delay(200).springify()}
+        entering={FadeInUp.duration(500).delay(200).springify().damping(26).stiffness(200)}
         style={styles.scannerCard}
       >
         <View style={styles.scannerCenter}>
@@ -130,7 +130,7 @@ export default function DevicesScreen() {
       </Animated.View>
 
       <Animated.View
-        entering={FadeInUp.duration(500).delay(300).springify()}
+        entering={FadeInUp.duration(500).delay(300).springify().damping(26).stiffness(200)}
         style={styles.sectionHeader}
       >
         <Text style={styles.sectionTitle}>{t('devices.foundDevices')}</Text>
@@ -142,7 +142,7 @@ export default function DevicesScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
           <Animated.View
-            entering={FadeInUp.duration(300).delay(index * 50).springify().damping(24)}
+            entering={FadeInUp.duration(300).delay(index * 50).springify().damping(26).stiffness(200)}
             style={styles.listItem}
           >
             <TouchableOpacity
@@ -151,7 +151,7 @@ export default function DevicesScreen() {
               onPress={() => handleConnect(item.id)}
               activeOpacity={0.7}
             >
-              <View style={styles.bluetoothIcon}>
+              <View style={styles.deviceIcon}>
                 <Ionicons name="bluetooth" size={20} color={GOLD} />
               </View>
               <View style={{ flex: 1 }}>
@@ -174,7 +174,7 @@ export default function DevicesScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <Animated.View
-            entering={FadeInUp.duration(500).delay(400).springify()}
+            entering={FadeInUp.duration(500).delay(400).springify().damping(26).stiffness(200)}
             style={styles.empty}
           >
             <View style={styles.emptyIcon}>
@@ -187,7 +187,7 @@ export default function DevicesScreen() {
       />
 
       <Animated.View
-        entering={FadeInUp.duration(500).delay(500).springify()}
+        entering={FadeInUp.duration(500).delay(500).springify().damping(26).stiffness(200)}
         style={styles.footer}
       >
         <Text style={styles.footerText}>
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.glassBorder,
   },
-  bluetoothIcon: {
+  deviceIcon: {
     width: 42,
     height: 42,
     borderRadius: RADIUS.sm,

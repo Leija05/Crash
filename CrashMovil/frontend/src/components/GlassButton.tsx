@@ -1,5 +1,6 @@
 import {
   Text,
+  View,
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
@@ -8,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, GOLD } from '../theme';
+import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_LIGHT, GOLD_DARK } from '../theme';
 
 interface GlassButtonProps {
   title: string;
@@ -43,12 +44,14 @@ export default function GlassButton({
   const variantStyles: Record<string, ViewStyle> = {
     primary: {
       backgroundColor: GOLD,
-      borderColor: 'transparent',
+      borderColor: GOLD_LIGHT,
+      borderWidth: 0.5,
       ...SHADOWS.glow(GOLD),
     },
     accent: {
       backgroundColor: GOLD,
-      borderColor: 'transparent',
+      borderColor: GOLD_LIGHT,
+      borderWidth: 0.5,
       ...SHADOWS.glow(GOLD),
     },
     ghost: {
@@ -57,7 +60,7 @@ export default function GlassButton({
     },
     danger: {
       backgroundColor: COLORS.primarySoft,
-      borderColor: 'rgba(255,215,0,0.3)',
+      borderColor: 'rgba(200,162,60,0.3)',
     },
   };
 
@@ -82,7 +85,7 @@ export default function GlassButton({
 
   return (
     <Animated.View
-      entering={FadeIn.duration(400).springify()}
+      entering={FadeIn.duration(400).springify().damping(26).stiffness(200)}
       style={animatedStyle}
     >
       <AnimatedTouchable
@@ -103,6 +106,9 @@ export default function GlassButton({
           style,
         ]}
       >
+        {(variant === 'primary' || variant === 'accent') && (
+          <View style={styles.sheen} pointerEvents="none" />
+        )}
         {loading ? (
           <ActivityIndicator
             size="small"
@@ -142,6 +148,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  sheen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '52%',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderTopLeftRadius: RADIUS.pill,
+    borderTopRightRadius: RADIUS.pill,
   },
   fullWidth: {
     width: '100%',

@@ -23,17 +23,17 @@ export default function RootLayout() {
               <AlertProvider>
                 <StatusBar style="light" translucent />
                 <Animated.View
-                  entering={FadeIn.duration(800).springify().damping(20)}
+                  entering={FadeIn.duration(800).springify().damping(26).stiffness(200)}
                   style={styles.topGoldLine}
                   pointerEvents="none"
                 />
                 <Animated.View
-                  entering={FadeIn.duration(1000).delay(200).springify().damping(24)}
+                  entering={FadeIn.duration(1000).delay(200).springify().damping(26).stiffness(200)}
                   style={styles.ambientGlow}
                   pointerEvents="none"
                 />
                 <Animated.View
-                  entering={FadeIn.duration(1200).delay(400).springify()}
+                  entering={FadeIn.duration(1200).delay(400).springify().damping(26).stiffness(200)}
                   style={styles.goldGlow}
                   pointerEvents="none"
                 />
@@ -45,7 +45,7 @@ export default function RootLayout() {
                   }}
                 />
                 <Animated.View
-                  entering={SlideInDown.duration(500).delay(400).springify()}
+                  entering={SlideInDown.duration(500).delay(400).springify().damping(26).stiffness(200)}
                 >
                   <UpdateGate />
                 </Animated.View>
