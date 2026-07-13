@@ -151,8 +151,12 @@ async def _download_and_store_apk(artifact_url: str, version: str) -> str:
     filepath = os.path.join(settings.UPLOAD_DIR, filename)
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
     downloaded = 0
+    # EAS entrega el APK sin compresión si lo pedimos explícitamente; de lo contrario
+    # llega con Content-Encoding: gzip y se guardaría como .gz (ilegible para Android).
     async with httpx.AsyncClient(timeout=300, follow_redirects=True) as client:
-        async with client.stream("GET", artifact_url) as resp:
+        async with client.stream(
+            "GET", artifact_url, headers={"Accept-Encoding": "identity"}
+        ) as resp:
             resp.raise_for_status()
             with open(filepath, "wb") as f:
                 async for chunk in resp.aiter_bytes(chunk_size=1024 * 256):
@@ -162,7 +166,14 @@ async def _download_and_store_apk(artifact_url: str, version: str) -> str:
                         os.remove(filepath)
                         raise HTTPException(400, "El APK excede el tamaño máximo permitido")
                     f.write(chunk)
-    logger.info("APK de EAS descargado: %s (%s MB, v%s)", filename, round(downloaded / (1024 * 1024), 2), version)
+    # Validación básica: un APK válido empieza por "PK" (zip).
+    with open(filepath, "rb") as f:
+        magic = f.read(2)
+    if magic != b"PK":
+        os.remove(filepath)
+        raise HTTPException(400, "El archivo recibido no es un APK válido")
+    size_mb = round(downloaded / (1024 * 1024), 2)
+    logger.info("APK de EAS descargado: %s (%s MB, v%s)", filename, size_mb, version)
     return f"/uploads/versions/{filename}"
 
 

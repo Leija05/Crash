@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Linking } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import PremiumModal from './PremiumModal';
-import GlassButton from './GlassButton';
-import { API_BASE, versionsAPI } from '../services/api';
+import UpdateDownloader, { UpdateInfo } from './UpdateDownloader';
+import { versionsAPI } from '../services/api';
 import { useI18n } from '../i18n';
-import { COLORS, GOLD } from '../theme';
+import { COLORS } from '../theme';
 
 const DISMISS_KEY = 'crash.update.dismissed.v2';
 
@@ -66,66 +65,21 @@ export default function UpdateGate() {
     };
   }, [localVersion]);
 
-  const handleUpdate = () => {
-    if (info?.download_url) {
-      const url = info.download_url.startsWith('/') ? `${API_BASE}${info.download_url}` : info.download_url;
-      Linking.openURL(url).catch(() => {});
-    }
-  };
-
-  const handleLater = async () => {
+  const handleDismiss = async () => {
     if (info?.version) await AsyncStorage.setItem(DISMISS_KEY, info.version);
     setVisible(false);
   };
 
   if (!info) return null;
 
-  const mandatory = !!info.mandatory;
-
   return (
-    <PremiumModal
+    <UpdateDownloader
       visible={visible}
-      onClose={mandatory ? undefined : handleLater}
-      accent={GOLD}
-      eyebrow={t('update.eyebrow', 'Nueva versión')}
-      title={t('update.title', 'Actualización disponible')}
-      closeOnBackdrop={false}
-      footer={
-        <>
-          {!mandatory && (
-            <GlassButton
-              title={t('update.later', 'Más tarde')}
-              onPress={handleLater}
-              variant="ghost"
-              size="md"
-              style={{ flex: 1 }}
-            />
-          )}
-          <GlassButton
-            title={t('update.download', 'Actualizar')}
-            onPress={handleUpdate}
-            variant="accent"
-            icon="download-outline"
-            size="md"
-            style={{ flex: mandatory ? 1 : 1.4 }}
-          />
-        </>
-      }
-    >
-      <View style={styles.body}>
-        <View style={styles.versionRow}>
-          <Text style={styles.versionOld}>v{localVersion}</Text>
-          <Text style={styles.arrow}>→</Text>
-          <Text style={styles.versionNew}>v{info.version}</Text>
-        </View>
-        <Text style={styles.desc}>
-          {mandatory
-            ? t('update.mandatoryDesc', 'Esta actualización es obligatoria para seguir usando C.R.A.S.H.')
-            : t('update.optionalDesc', 'Hay una nueva versión de C.R.A.S.H. disponible para descargar.')}
-        </Text>
-        {info.notes ? <Text style={styles.notes}>{info.notes}</Text> : null}
-      </View>
-    </PremiumModal>
+      info={info as UpdateInfo}
+      localVersion={localVersion}
+      onClose={() => setVisible(false)}
+      onDismiss={handleDismiss}
+    />
   );
 }
 
