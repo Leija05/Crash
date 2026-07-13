@@ -33,7 +33,7 @@ class ApkInstallerModule(private val reactContext: ReactApplicationContext) :
             }
             val uri = FileProvider.getUriForFile(
                 reactContext,
-                "$PKG_NAME.fileprovider",
+                "${PKG_NAME}.fileprovider",
                 file
             )
             val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
@@ -56,8 +56,9 @@ import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
+import ${PKG_NAME}.apkinstaller.ApkInstallerModule
 
-class ApkInstallerPackage : ReactPackage() {
+class ApkInstallerPackage : ReactPackage {
     override fun createNativeModules(
         reactContext: ReactApplicationContext
     ): List<NativeModule> = listOf(ApkInstallerModule(reactContext))
