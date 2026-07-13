@@ -146,34 +146,51 @@ async def get_latest_version(platform: str = "android") -> dict:
 
 
 async def _download_and_store_apk(artifact_url: str, version: str) -> str:
+    import gzip
+    import io
+    import tarfile
+
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     filename = f"{uuid.uuid4().hex}.apk"
     filepath = os.path.join(settings.UPLOAD_DIR, filename)
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-    downloaded = 0
-    # EAS entrega el APK sin compresión si lo pedimos explícitamente; de lo contrario
-    # llega con Content-Encoding: gzip y se guardaría como .gz (ilegible para Android).
+
+    # EAS entrega el APK dentro de un tar.gz (o a veces comprimido). Descargamos
+    # el cuerpo completo y luego lo normalizamos a un .apk válido.
     async with httpx.AsyncClient(timeout=300, follow_redirects=True) as client:
-        async with client.stream(
-            "GET", artifact_url, headers={"Accept-Encoding": "identity"}
-        ) as resp:
-            resp.raise_for_status()
-            with open(filepath, "wb") as f:
-                async for chunk in resp.aiter_bytes(chunk_size=1024 * 256):
-                    downloaded += len(chunk)
-                    if downloaded > max_bytes:
-                        f.close()
-                        os.remove(filepath)
-                        raise HTTPException(400, "El APK excede el tamaño máximo permitido")
-                    f.write(chunk)
-    # Validación básica: un APK válido empieza por "PK" (zip).
-    with open(filepath, "rb") as f:
-        magic = f.read(2)
-    if magic != b"PK":
-        os.remove(filepath)
+        resp = await client.get(artifact_url, headers={"Accept-Encoding": "identity"})
+        resp.raise_for_status()
+        raw = resp.content
+
+    if len(raw) > max_bytes:
+        raise HTTPException(400, "El APK excede el tamaño máximo permitido")
+
+    # Si viene comprimido (gzip), descomprimimos primero.
+    if raw[:2] == b"\x1f\x8b":
+        raw = gzip.decompress(raw)
+
+    apk_bytes: bytes | None = None
+
+    # Si es un tar (EAS empaqueta el .apk dentro de un tar), extraemos el .apk.
+    if raw[:5] in (b"ustar", b"\x75\x73\x74\x61\x72") or tarfile.is_tarfile(io.BytesIO(raw)):
+        with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
+            for member in tar.getmembers():
+                if member.name.lower().endswith(".apk") and member.isfile():
+                    apk_bytes = tar.extractfile(member).read()
+                    break
+        if apk_bytes is None:
+            raise HTTPException(400, "No se encontró un APK dentro del archivo de EAS")
+    else:
+        apk_bytes = raw
+
+    if apk_bytes[:2] != b"PK":
         raise HTTPException(400, "El archivo recibido no es un APK válido")
-    size_mb = round(downloaded / (1024 * 1024), 2)
-    logger.info("APK de EAS descargado: %s (%s MB, v%s)", filename, size_mb, version)
+
+    with open(filepath, "wb") as f:
+        f.write(apk_bytes)
+
+    size_mb = round(len(apk_bytes) / (1024 * 1024), 2)
+    logger.info("APK de EAS registrado: %s (%s MB, v%s)", filename, size_mb, version)
     return f"/uploads/versions/{filename}"
 
 
