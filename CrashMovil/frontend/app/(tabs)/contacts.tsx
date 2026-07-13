@@ -14,6 +14,7 @@ import { contactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import GlassCard from '../../src/components/GlassCard';
 import { FloatingActionButton } from '../../src/components/FloatingActionButton';
+import { haptics } from '../../src/utils/haptics';
 
 export default function ContactsScreen() {
   const { t } = useI18n();
@@ -45,22 +46,27 @@ export default function ContactsScreen() {
   const addContact = async () => {
     if (!token || !name.trim() || !phone.trim()) return;
     setSubmitting(true);
+    haptics.medium();
     try {
       const created = await contactsAPI.add(token, { name: name.trim(), phone: phone.trim(), relationship: relationship.trim() });
       setContacts((prev) => [created, ...prev]);
       setName(''); setPhone(''); setRelationship('');
       setShowAdd(false);
+      haptics.success();
     } catch (e: any) {
+      haptics.error();
       alert({ title: t('common.error'), message: e.message || t('contacts.addError') });
     } finally { setSubmitting(false); }
   };
 
   const deleteContact = async (contactId: string) => {
     if (!token) return;
+    haptics.warning();
     try {
       await contactsAPI.delete(token, contactId);
       setContacts((prev) => prev.filter((c) => c.id !== contactId));
     } catch (e: any) {
+      haptics.error();
       alert({ title: t('common.error'), message: e.message || t('contacts.deleteError') });
     }
   };
@@ -108,7 +114,7 @@ export default function ContactsScreen() {
           <Text style={styles.title}>{t('contacts.title')}</Text>
           <Text style={styles.subtitle}>{filteredContacts.length} {t('contacts.count')}</Text>
         </View>
-        <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => { setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}>
+        <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => { haptics.light(); setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}>
           <Ionicons name="add" size={24} color="#000" />
         </TouchableOpacity>
       </Animated.View>
@@ -158,7 +164,7 @@ export default function ContactsScreen() {
           >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('contacts.addContact')}</Text>
-              <TouchableOpacity onPress={() => setShowAdd(false)} testID="close-add-modal-btn" style={styles.modalClose}>
+              <TouchableOpacity onPress={() => { haptics.light(); setShowAdd(false); }} testID="close-add-modal-btn" style={styles.modalClose}>
                 <Ionicons name="close" size={20} color={COLORS.textSec} />
               </TouchableOpacity>
             </View>
@@ -187,7 +193,7 @@ export default function ContactsScreen() {
       >
         <TouchableOpacity
           style={styles.fabBtn}
-          onPress={() => { setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}
+          onPress={() => { haptics.light(); setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}
           activeOpacity={0.85}
         >
           <Ionicons name="person-add" size={28} color="#000" />

@@ -24,6 +24,7 @@ import { LineChart, MultiLineChart, Sparkline } from '../../src/components/Chart
 import GPSMap from '../../src/components/GPSMap';
 import { DarkSwitch, Slider } from '../../src/components/DarkSwitch';
 import StickyNotification from '../../src/components/StickyNotification';
+import { haptics } from '../../src/utils/haptics';
 
 const STAGGER = 60;
 
@@ -201,6 +202,7 @@ export default function DashboardScreen() {
   }, [connected, deviceName, batteryLevel]);
 
   const onRefresh = useCallback(() => {
+    haptics.light();
     setRefreshing(true);
     setPeakG(0);
     accelHistory.current = [];
@@ -282,6 +284,7 @@ export default function DashboardScreen() {
     if (highImpact && countdown === null && !sending && !impactTriggeredRef.current) {
       impactTriggeredRef.current = true;
       impactTelemetryRef.current = telemetry ?? telemetryRef.current;
+      haptics.error();
       setCountdown(countdownSeconds);
     }
   }, [highImpact, countdown, sending, countdownSeconds, telemetry]);
@@ -339,6 +342,7 @@ export default function DashboardScreen() {
       if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error && currentTelemetry.g_force >= alertThreshold) {
         alert({ title: t('dashboard.noContactsAlert'), message: t('dashboard.notSentMessage') });
       }
+      if (impact?.alerts_sent) haptics.success(); else haptics.warning();
       setAlertResult(impact);
     } catch (e: any) {
       alert({ title: t('common.error'), message: e.message || t('errors.generic') });
@@ -355,6 +359,7 @@ export default function DashboardScreen() {
       triggerEmergencyFlow();
       return;
     }
+    haptics.warning();
     const inner = setTimeout(() => setCountdown((v) => (v === null ? null : v - 1)), 1000);
     return () => clearTimeout(inner);
   }, [countdown, triggerEmergencyFlow]);
@@ -496,7 +501,7 @@ export default function DashboardScreen() {
         <Stagger index={1}>
           <TouchableOpacity
             style={[styles.statusBar, liveData && styles.statusBarConnected]}
-            onPress={() => router.push('/devices')}
+            onPress={() => { haptics.selection(); router.push('/devices'); }}
             activeOpacity={0.7}
             testID="dashboard-status-bar"
           >
@@ -659,7 +664,7 @@ export default function DashboardScreen() {
           {connected ? (
             <TouchableOpacity
               style={[styles.primaryBtn, styles.primaryBtnDanger]}
-              onPress={disconnect}
+              onPress={() => { haptics.medium(); disconnect(); }}
               activeOpacity={0.8}
               testID="disconnect-btn"
             >
@@ -669,7 +674,7 @@ export default function DashboardScreen() {
           ) : (
             <TouchableOpacity
               style={styles.primaryBtn}
-              onPress={() => router.push('/devices')}
+              onPress={() => { haptics.medium(); router.push('/devices'); }}
               activeOpacity={0.8}
               testID="connect-btn"
             >
@@ -720,13 +725,13 @@ export default function DashboardScreen() {
         <Text style={styles.countdownLabel}>{t('dashboard.remainingTime')}</Text>
         <Text style={styles.countdownValue}>{countdown}s</Text>
         <View style={styles.dialogActions}>
-          <TouchableOpacity style={styles.cancelBtnSoft} onPress={() => setCountdown(null)}>
+          <TouchableOpacity style={styles.cancelBtnSoft} onPress={() => { haptics.light(); setCountdown(null); }}>
             <Text style={styles.cancelSoftText}>{t('dashboard.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.cancelBtn, sending && { opacity: 0.6 }]}
             disabled={sending}
-            onPress={() => { setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
+            onPress={() => { haptics.heavy(); setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
           >
             {sending ? (
               <ActivityIndicator color="#000" />
@@ -754,7 +759,7 @@ export default function DashboardScreen() {
           <Text key={c.id} style={styles.contactSent}>{`• ${c.name} (${c.phone})`}</Text>
         ))}
         <View style={styles.dialogActions}>
-          <TouchableOpacity style={styles.okBtnWide} onPress={() => setAlertResult(null)}>
+          <TouchableOpacity style={styles.okBtnWide} onPress={() => { haptics.light(); setAlertResult(null); }}>
             <Text style={styles.okBtnText}>{t('common.accept')}</Text>
           </TouchableOpacity>
         </View>

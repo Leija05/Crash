@@ -11,6 +11,7 @@ import { useI18n } from '../src/i18n';
 import { CrashLogoMark } from '../src/components/CrashLogo';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING, SHADOWS, FONT, GOLD } from '../src/theme';
+import { haptics } from '../src/utils/haptics';
 
 export default function LoginScreen() {
   const { t } = useI18n();
@@ -23,13 +24,16 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = useCallback(async () => {
-    if (!email.trim() || !password.trim()) { setError(t('login.errorEmpty')); return; }
+    if (!email.trim() || !password.trim()) { haptics.error(); setError(t('login.errorEmpty')); return; }
     setError('');
     setLoading(true);
+    haptics.medium();
     try {
       await login(email.trim(), password);
+      haptics.success();
       router.replace('/(tabs)');
     } catch (e: any) {
+      haptics.error();
       setError(e.message || t('login.errorGeneric'));
     } finally { setLoading(false); }
   }, [email, password, login, router]);
@@ -93,7 +97,7 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!showPass}
                 />
-                <TouchableOpacity onPress={() => setShowPass(!showPass)} testID="toggle-password-btn">
+                <TouchableOpacity onPress={() => { haptics.selection(); setShowPass(!showPass); }} testID="toggle-password-btn">
                   <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color={COLORS.textSec} />
                 </TouchableOpacity>
               </View>
@@ -119,7 +123,7 @@ export default function LoginScreen() {
             </Animated.View>
 
             <Animated.View entering={FadeInDown.duration(400).delay(360).springify().damping(26).stiffness(200)}>
-              <TouchableOpacity testID="go-to-register-btn" style={styles.linkBtn} onPress={() => router.push('/register')}>
+              <TouchableOpacity testID="go-to-register-btn" style={styles.linkBtn} onPress={() => { haptics.light(); router.push('/register'); }}>
                 <Text style={styles.linkText}>
                   {t('login.register')} <Text style={styles.linkAccent}>→</Text>
                 </Text>

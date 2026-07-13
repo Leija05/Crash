@@ -10,6 +10,7 @@ import { useI18n } from '../src/i18n';
 import { CrashLogoMark } from '../src/components/CrashLogo';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../src/theme';
+import { haptics } from '../src/utils/haptics';
 
 export default function RegisterScreen() {
   const { t } = useI18n();
@@ -31,17 +32,21 @@ export default function RegisterScreen() {
   const failedRules = passwordRules.filter((r) => !r.test(password));
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) { setError(t('register.errorEmpty')); return; }
+    if (!name.trim() || !email.trim() || !password.trim()) { haptics.error(); setError(t('register.errorEmpty')); return; }
     if (failedRules.length > 0) {
+      haptics.error();
       setError(t('register.errorPassword'));
       return;
     }
     setError('');
     setLoading(true);
+    haptics.medium();
     try {
       await register(name.trim(), email.trim(), password);
+      haptics.success();
       router.replace('/(tabs)');
     } catch (e: any) {
+      haptics.error();
       setError(e.message || t('register.errorGeneric'));
     } finally { setLoading(false); }
   };
@@ -89,7 +94,7 @@ export default function RegisterScreen() {
               <View style={styles.inputRow}>
                 <Ionicons name="lock-closed-outline" size={16} color={COLORS.textSec} />
                 <TextInput testID="register-password-input" style={styles.input} placeholder={t('register.passwordPlaceholder')} placeholderTextColor={COLORS.textDim} value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
-                <TouchableOpacity onPress={() => setShowPass(!showPass)}>
+                <TouchableOpacity onPress={() => { haptics.selection(); setShowPass(!showPass); }}>
                   <Ionicons name={showPass ? 'eye-off' : 'eye'} size={18} color={COLORS.textSec} />
                 </TouchableOpacity>
               </View>
@@ -115,7 +120,7 @@ export default function RegisterScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity testID="go-to-login-btn" style={styles.linkBtn} onPress={() => router.back()}>
+            <TouchableOpacity testID="go-to-login-btn" style={styles.linkBtn} onPress={() => { haptics.light(); router.back(); }}>
               <Text style={styles.linkText}>{t('register.loginLink')} <Text style={styles.linkAccent}>{t('register.loginLinkAccent')} →</Text></Text>
             </TouchableOpacity>
           </View>

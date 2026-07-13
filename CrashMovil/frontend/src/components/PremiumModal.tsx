@@ -1,6 +1,8 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, GOLD_HAIRLINE } from '../theme';
 
 export function BrandLogo({ size = 46, color = GOLD }: { size?: number; color?: string }) {
@@ -39,14 +41,23 @@ export default function PremiumModal({
   closeOnBackdrop = false,
 }: Props) {
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.overlay}>
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 28 : 18}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
           onPress={closeOnBackdrop ? onClose : undefined}
         />
-        <View style={styles.dialog} onStartShouldSetResponder={() => true}>
+        <Animated.View
+          entering={ZoomIn.springify().damping(18).stiffness(220).mass(0.7)}
+          style={styles.dialog}
+          onStartShouldSetResponder={() => true}
+        >
           <View style={[styles.glow, { backgroundColor: accent }]} pointerEvents="none" />
           <View style={styles.topHighlight} pointerEvents="none" />
           <View style={styles.header}>
@@ -63,7 +74,7 @@ export default function PremiumModal({
           </View>
           {children ? <View style={styles.body}>{children}</View> : null}
           {footer ? <View style={styles.footer}>{footer}</View> : null}
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
@@ -72,7 +83,7 @@ export default function PremiumModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,

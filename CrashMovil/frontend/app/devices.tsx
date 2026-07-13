@@ -9,6 +9,7 @@ import { useBluetooth } from '../src/context/BluetoothContext';
 import { useI18n } from '../src/i18n';
 import GlassCard from '../src/components/GlassCard';
 import type { ScanDevice } from '../src/services/bluetooth';
+import { haptics } from '../src/utils/haptics';
 
 const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
 
@@ -61,8 +62,10 @@ export default function DevicesScreen() {
   }, [scanning]);
 
   const handleConnect = async (id: string) => {
+    haptics.medium();
     const ok = await connect(id, customName);
-    if (ok) router.replace('/(tabs)');
+    if (ok) { haptics.success(); router.replace('/(tabs)'); }
+    else haptics.error();
   };
 
   const pulseStyle = useAnimatedStyle(() => ({
@@ -84,7 +87,7 @@ export default function DevicesScreen() {
         style={styles.header}
       >
         <Text style={styles.title}>{t('devices.title')}</Text>
-        <TouchableOpacity onPress={scan} disabled={scanning} style={styles.refreshBtn} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => { haptics.light(); scan(); }} disabled={scanning} style={styles.refreshBtn} activeOpacity={0.7}>
           <AnimatedIonicons
             name={scanning ? 'refresh' : 'refresh'}
             size={20}

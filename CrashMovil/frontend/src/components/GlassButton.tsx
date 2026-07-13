@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_LIGHT, GOLD_DARK } from '../theme';
+import { haptics } from '../utils/haptics';
 
 interface GlassButtonProps {
   title: string;
@@ -22,6 +23,7 @@ interface GlassButtonProps {
   textStyle?: TextStyle;
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
+  haptic?: 'light' | 'medium' | 'heavy' | 'selection' | 'none';
 }
 
 const AnimatedIonicon = Animated.createAnimatedComponent(Ionicons);
@@ -38,8 +40,14 @@ export default function GlassButton({
   textStyle,
   size = 'md',
   fullWidth = true,
+  haptic = 'light',
 }: GlassButtonProps) {
   const scale = useSharedValue(1);
+
+  const handlePress = () => {
+    if (haptic !== 'none') haptics[haptic]();
+    onPress();
+  };
 
   const variantStyles: Record<string, ViewStyle> = {
     primary: {
@@ -89,7 +97,7 @@ export default function GlassButton({
       style={animatedStyle}
     >
       <AnimatedTouchable
-        onPress={onPress}
+        onPress={handlePress}
         disabled={disabled || loading}
         activeOpacity={0.85}
         onPressIn={() => { scale.value = withSpring(0.96, { stiffness: 300, damping: 15 }); }}

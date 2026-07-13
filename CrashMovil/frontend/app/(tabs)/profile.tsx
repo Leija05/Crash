@@ -13,6 +13,7 @@ import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
 import { profileAPI } from '../../src/services/api';
 import { FloatingActionButton } from '../../src/components/FloatingActionButton';
+import { haptics } from '../../src/utils/haptics';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -52,6 +53,7 @@ export default function ProfileScreen() {
   const saveProfile = async () => {
     if (!token) return;
     setSaving(true);
+    haptics.medium();
     try {
       await profileAPI.update(token, {
         full_name: fullName.trim(),
@@ -61,8 +63,10 @@ export default function ProfileScreen() {
         disabilities: disabilitiesText.split(',').map(s => s.trim()).filter(Boolean),
         emergency_notes: notes.trim(),
       });
+      haptics.success();
       alert({ title: t('common.save'), message: t('profile.saveSuccess') });
     } catch (e: any) {
+      haptics.error();
       alert({ title: t('common.error'), message: e.message || t('profile.saveError') });
     } finally { setSaving(false); }
   };
@@ -110,7 +114,7 @@ export default function ProfileScreen() {
               <Text style={styles.label}>{t('profile.bloodType')}</Text>
               <View style={styles.bloodGrid}>
                 {BLOOD_TYPES.map(bt => (
-                  <TouchableOpacity key={bt} testID={`blood-type-${bt}`} style={[styles.bloodBtn, bloodType === bt && styles.bloodBtnActive]} onPress={() => { setBloodType(bt); bloodTypeAnim.value = withSequence(withSpring(1.2, ANIMATION.spring), withSpring(1, ANIMATION.springBouncy)); }}>
+                  <TouchableOpacity key={bt} testID={`blood-type-${bt}`} style={[styles.bloodBtn, bloodType === bt && styles.bloodBtnActive]} onPress={() => { haptics.selection(); setBloodType(bt); bloodTypeAnim.value = withSequence(withSpring(1.2, ANIMATION.spring), withSpring(1, ANIMATION.springBouncy)); }}>
                     <Animated.Text style={[styles.bloodText, bloodType === bt && styles.bloodTextActive]}>{bt}</Animated.Text>
                   </TouchableOpacity>
                 ))}

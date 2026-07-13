@@ -12,6 +12,7 @@ import Animated, {
   useDerivedValue,
 } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, GOLD } from '../theme';
+import { haptics } from '../utils/haptics';
 
 interface DarkSwitchProps {
   value: boolean;
@@ -78,6 +79,7 @@ export function DarkSwitch({
   const handlePress = () => {
     if (disabled) return;
     const newValue = !value;
+    haptics.light();
     onValueChange(newValue);
     
     thumbX.value = withSpring(newValue ? 1 : 0, ANIMATION.springBouncy);
@@ -169,12 +171,15 @@ export function Slider({
     progress.value = (value - min) / (max - min);
   }, [value, min, max]);
 
+  const lastStepRef = useRef(value);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => !disabled,
       onMoveShouldSetPanResponder: () => !disabled,
       onPanResponderGrant: () => {
         isDragging.value = true;
+        haptics.light();
         thumbScale.value = withSpring(1.3, ANIMATION.spring);
       },
       onPanResponderMove: (e: any, gestureState: PanResponderGestureState) => {
@@ -184,6 +189,10 @@ export function Slider({
         const newProgress = trackWidth.value > 0 ? newX / trackWidth.value : 0;
         const newValue = min + newProgress * (max - min);
         const steppedNewValue = Math.round(newValue / step) * step;
+        if (steppedNewValue !== lastStepRef.current) {
+          lastStepRef.current = steppedNewValue;
+          haptics.selection();
+        }
         onValueChange(steppedNewValue);
         progress.value = (steppedNewValue - min) / (max - min);
         activeTrackWidth.value = withTiming((steppedNewValue - min) / (max - min) * trackWidth.value, { duration: 50 });
