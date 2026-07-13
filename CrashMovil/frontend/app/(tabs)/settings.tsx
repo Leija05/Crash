@@ -6,7 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, GOLD_SOFT } from '../../src/theme';
+import Animated, { FadeInDown, FadeInUp, withSpring, withTiming, Easing, useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
@@ -16,6 +17,7 @@ import { settingsAPI, authAPI } from '../../src/services/api';
 import SectionHeader from '../../src/components/SectionHeader';
 import GlassCard from '../../src/components/GlassCard';
 import PremiumModal from '../../src/components/PremiumModal';
+import { DarkSwitch, Slider } from '../../src/components/DarkSwitch';
 
 export default function SettingsScreen() {
   const { t, locale, setLocale } = useI18n();
@@ -37,6 +39,8 @@ export default function SettingsScreen() {
   const [company, setCompany] = useState<{ company_id: string | null; company_name: string | null }>({ company_id: null, company_name: null });
   const [companyTokenInput, setCompanyTokenInput] = useState('');
   const [linking, setLinking] = useState(false);
+
+  const cardAnims = useSharedValue(0);
 
   useEffect(() => { setDeviceInput(deviceName); }, [deviceName]);
 
@@ -144,174 +148,201 @@ export default function SettingsScreen() {
       <View style={styles.goldGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.header}>
+          <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.header}>
             <Text style={styles.title}>{t('settings.title').toUpperCase()}</Text>
             <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
-          </View>
+          </Animated.View>
 
-          <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title={t('settings.bluetoothDevice')} icon="bluetooth" />
-            <View style={styles.deviceStatus}>
-              <View style={[styles.statusDot, { backgroundColor: connected ? COLORS.success : COLORS.textDim }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.statusLabel}>{connected ? t('settings.connected') : t('settings.noConnection')}</Text>
-                <Text style={styles.statusDevice}>{connected ? liveDevice : t('settings.noDevice')}</Text>
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(100).springify().damping(22)}
+            style={{ marginBottom: SPACING.md }}
+          >
+            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+              <SectionHeader title={t('settings.bluetoothDevice')} icon="bluetooth" />
+              <View style={styles.deviceStatus}>
+                <View style={[styles.statusDot, { backgroundColor: connected ? COLORS.success : COLORS.textDim }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.statusLabel}>{connected ? t('settings.connected') : t('settings.noConnection')}</Text>
+                  <Text style={styles.statusDevice}>{connected ? liveDevice : t('settings.noDevice')}</Text>
+                </View>
+                {connected ? (
+                  <TouchableOpacity onPress={disconnect} style={styles.inlineBtn} testID="settings-disconnect-btn">
+                    <Text style={styles.inlineBtnText}>{t('settings.disconnect')}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => router.push('/devices')} style={[styles.inlineBtn, styles.inlineBtnAccent]} testID="settings-scan-btn">
+                    <Text style={[styles.inlineBtnText, { color: '#000' }]}>{t('settings.scan')}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              {connected ? (
-                <TouchableOpacity onPress={disconnect} style={styles.inlineBtn} testID="settings-disconnect-btn">
-                  <Text style={styles.inlineBtnText}>{t('settings.disconnect')}</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity onPress={() => router.push('/devices')} style={[styles.inlineBtn, styles.inlineBtnAccent]} testID="settings-scan-btn">
-                  <Text style={[styles.inlineBtnText, { color: '#000' }]}>{t('settings.scan')}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('settings.deviceNameLabel')}</Text>
-              <Text style={styles.helper}>{t('settings.deviceNameHelper')}</Text>
-              <View style={styles.inputRow}>
-                <TextInput testID="device-name-input" style={[styles.input, { flex: 1 }]} value={deviceInput} onChangeText={setDeviceInput} placeholder="HC-05 CRASH" placeholderTextColor={COLORS.textDim} autoCapitalize="characters" />
-                <TouchableOpacity onPress={saveDeviceName} style={styles.saveInlineBtn} testID="save-device-name-btn">
-                  <Text style={styles.saveInlineBtnText}>{t('settings.save')}</Text>
-                </TouchableOpacity>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t('settings.deviceNameLabel')}</Text>
+                <Text style={styles.helper}>{t('settings.deviceNameHelper')}</Text>
+                <View style={styles.inputRow}>
+                  <TextInput testID="device-name-input" style={[styles.input, { flex: 1 }]} value={deviceInput} onChangeText={setDeviceInput} placeholder="HC-05 CRASH" placeholderTextColor={COLORS.textDim} autoCapitalize="characters" />
+                  <TouchableOpacity onPress={saveDeviceName} style={styles.saveInlineBtn} testID="save-device-name-btn">
+                    <Text style={styles.saveInlineBtnText}>{t('settings.save')}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </GlassCard>
+            </GlassCard>
+          </Animated.View>
 
-          <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title={t('settings.company')} icon="business" accent />
-            {(() => {
-              const isGeneral = company?.company_id === "general";
-              const linked = !!company?.company_id && !isGeneral;
-              if (linked) {
-                return (
-                  <View style={styles.deviceStatus}>
-                    <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.statusLabel}>{t('settings.linked')}</Text>
-                      <Text style={styles.statusDevice}>{company.company_name}</Text>
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(200).springify().damping(22)}
+            style={{ marginBottom: SPACING.md }}
+          >
+            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+              <SectionHeader title={t('settings.company')} icon="business" accent />
+              {(() => {
+                const isGeneral = company?.company_id === "general";
+                const linked = !!company?.company_id && !isGeneral;
+                if (linked) {
+                  return (
+                    <View style={styles.deviceStatus}>
+                      <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.statusLabel}>{t('settings.linked')}</Text>
+                        <Text style={styles.statusDevice}>{company.company_name}</Text>
+                      </View>
+                      <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
+                        <Text style={styles.inlineBtnText}>{t('settings.unlink')}</Text>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity onPress={unlinkCompany} style={styles.inlineBtn} testID="company-unlink-btn">
-                      <Text style={styles.inlineBtnText}>{t('settings.unlink')}</Text>
-                    </TouchableOpacity>
+                  );
+                }
+                return (
+                  <View style={styles.inputGroup}>
+                    {isGeneral ? (
+                      <Text style={[styles.helper, { color: COLORS.success, marginBottom: 8 }]}>
+                        {t('settings.generalMonitoring')}
+                      </Text>
+                    ) : (
+                      <Text style={styles.label}>{t('settings.companyToken')}</Text>
+                    )}
+                    <Text style={styles.helper}>{t('settings.companyTokenHelper')}</Text>
+                    <View style={styles.inputRow}>
+                      <TextInput
+                        testID="company-token-input"
+                        style={[styles.input, { flex: 1, letterSpacing: 2 }]}
+                        value={companyTokenInput}
+                        onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
+                        placeholder={t('settings.companyTokenPlaceholder')}
+                        placeholderTextColor={COLORS.textDim}
+                        autoCapitalize="characters"
+                      />
+                      <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
+                        {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>{t('settings.link')}</Text>}
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
-              }
-              return (
-                <View style={styles.inputGroup}>
-                  {isGeneral ? (
-                    <Text style={[styles.helper, { color: COLORS.success, marginBottom: 8 }]}>
-                      {t('settings.generalMonitoring')}
-                    </Text>
-                  ) : (
-                    <Text style={styles.label}>{t('settings.companyToken')}</Text>
-                  )}
-                  <Text style={styles.helper}>{t('settings.companyTokenHelper')}</Text>
-                  <View style={styles.inputRow}>
-                    <TextInput
-                      testID="company-token-input"
-                      style={[styles.input, { flex: 1, letterSpacing: 2 }]}
-                      value={companyTokenInput}
-                      onChangeText={(v) => setCompanyTokenInput(v.toUpperCase())}
-                      placeholder={t('settings.companyTokenPlaceholder')}
-                      placeholderTextColor={COLORS.textDim}
-                      autoCapitalize="characters"
-                    />
-                    <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
-                      {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>{t('settings.link')}</Text>}
-                    </TouchableOpacity>
-                  </View>
+              })()}
+            </GlassCard>
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(300).springify().damping(22)}
+            style={{ marginBottom: SPACING.md }}
+          >
+            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+              <SectionHeader title={t('settings.languageSection')} icon="globe" accent />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity style={[styles.langBtn, locale === 'es' && styles.langBtnActive]} onPress={() => setLocale('es')}>
+                  <Text style={[styles.langBtnText, locale === 'es' && styles.langBtnTextActive]}>Español</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.langBtn, locale === 'en' && styles.langBtnActive]} onPress={() => setLocale('en')}>
+                  <Text style={[styles.langBtnText, locale === 'en' && styles.langBtnTextActive]}>English</Text>
+                </TouchableOpacity>
+              </View>
+            </GlassCard>
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(400).springify().damping(22)}
+            style={{ marginBottom: SPACING.md }}
+          >
+            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+              <SectionHeader title={t('settings.confirmTime')} icon="timer" />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t('settings.countdownLabel')}</Text>
+                <Text style={styles.helper}>{t('settings.countdownHelper')}</Text>
+                <View style={styles.thresholdRow}>
+                  <TextInput style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={countdownSeconds} onChangeText={setCountdownSeconds} keyboardType="numeric" />
+                  <Text style={styles.gSymbol}>s</Text>
                 </View>
-              );
-            })()}
-          </GlassCard>
-
-          <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title={t('settings.languageSection')} icon="globe" accent />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity style={[styles.langBtn, locale === 'es' && styles.langBtnActive]} onPress={() => setLocale('es')}>
-                <Text style={[styles.langBtnText, locale === 'es' && styles.langBtnTextActive]}>Español</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.langBtn, locale === 'en' && styles.langBtnActive]} onPress={() => setLocale('en')}>
-                <Text style={[styles.langBtnText, locale === 'en' && styles.langBtnTextActive]}>English</Text>
-              </TouchableOpacity>
-            </View>
-          </GlassCard>
-
-          <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title={t('settings.confirmTime')} icon="timer" />
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('settings.countdownLabel')}</Text>
-              <Text style={styles.helper}>{t('settings.countdownHelper')}</Text>
-              <View style={styles.thresholdRow}>
-                <TextInput style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={countdownSeconds} onChangeText={setCountdownSeconds} keyboardType="numeric" />
-                <Text style={styles.gSymbol}>s</Text>
               </View>
-            </View>
-            {!nativeAvailable && (
-              <View style={styles.warnBox}>
-                <Ionicons name="information-circle" size={14} color={COLORS.info} />
-                <Text style={styles.warnBoxText}>{t('settings.nativeBluetoothWarning')}</Text>
-              </View>
-            )}
-          </GlassCard>
-
-          <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-            <SectionHeader title={t('settings.alertsImpact')} icon="warning" accent />
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('settings.alertThresholdLabel')}</Text>
-              <Text style={styles.helper}>{t('settings.alertThresholdHelper')}</Text>
-              <View style={styles.thresholdRow}>
-                <TextInput testID="threshold-input" style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={threshold} onChangeText={setThreshold} keyboardType="numeric" />
-                <Text style={styles.gSymbol}>G</Text>
-              </View>
-              <View style={styles.thresholdScale}>
-                {[
-                  { l: t('settings.thresholdLow'), v: '5' },
-                  { l: t('settings.thresholdMedium'), v: '10' },
-                  { l: t('settings.thresholdHigh'), v: '15' },
-                  { l: t('settings.thresholdCritical'), v: '20' },
-                ].map((item) => (
-                  <TouchableOpacity key={item.v} style={[styles.threshBtn, { borderColor: severityColor(parseFloat(item.v)) }]} onPress={() => setThreshold(item.v)}>
-                    <Text style={[styles.threshText, { color: severityColor(parseFloat(item.v)) }]}>{item.l}</Text>
-                    <Text style={[styles.threshVal, { color: severityColor(parseFloat(item.v)) }]}>{item.v}G</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleLabelRow}>
-                <Ionicons name="location-outline" size={18} color={COLORS.info} />
-                <Text style={styles.toggleLabel}>{t('settings.trackingLabel')}</Text>
-              </View>
-              <Switch value={locationTrackingEnabled} onValueChange={setLocationTrackingEnabled} trackColor={{ false: '#2A2A34', true: 'rgba(96,165,250,0.4)' }} thumbColor={locationTrackingEnabled ? COLORS.info : '#9A9AA8'} />
-            </View>
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleLabelRow}>
-                <Ionicons name="call-outline" size={18} color={COLORS.text} />
-                <Text style={styles.toggleLabel}>{t('settings.autoCalls')}</Text>
-              </View>
-              <Switch value={autoCall} onValueChange={setAutoCall} trackColor={{ false: '#2A2A34', true: 'rgba(255,215,0,0.4)' }} thumbColor={autoCall ? GOLD : '#9A9AA8'} />
-            </View>
-            <View style={styles.toggleRow}>
-              <View style={styles.toggleLabelRow}>
-                <Ionicons name="logo-whatsapp" size={18} color={COLORS.success} />
-                <Text style={styles.toggleLabel}>{t('settings.autoWhatsapp')}</Text>
-              </View>
-              <Switch value={autoWhatsapp} onValueChange={setAutoWhatsapp} trackColor={{ false: '#2A2A34', true: 'rgba(52,211,153,0.4)' }} thumbColor={autoWhatsapp ? COLORS.success : '#9A9AA8'} />
-            </View>
-
-            <TouchableOpacity testID="save-settings-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveServer} disabled={saving}>
-              {saving ? <ActivityIndicator color="#000" /> : (
-                <>
-                  <Ionicons name="save" size={16} color="#000" />
-                  <Text style={styles.saveBtnText}>{t('settings.saveAlerts')}</Text>
-                </>
+              {!nativeAvailable && (
+                <View style={styles.warnBox}>
+                  <Ionicons name="information-circle" size={14} color={COLORS.info} />
+                  <Text style={styles.warnBoxText}>{t('settings.nativeBluetoothWarning')}</Text>
+                </View>
               )}
-            </TouchableOpacity>
-          </GlassCard>
+            </GlassCard>
+          </Animated.View>
+
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(500).springify().damping(22)}
+            style={{ marginBottom: SPACING.md }}
+          >
+            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+              <SectionHeader title={t('settings.alertsImpact')} icon="warning" accent />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t('settings.alertThresholdLabel')}</Text>
+                <Text style={styles.helper}>{t('settings.alertThresholdHelper')}</Text>
+                <View style={styles.thresholdRow}>
+                  <TextInput testID="threshold-input" style={[styles.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={threshold} onChangeText={setThreshold} keyboardType="numeric" />
+                  <Text style={styles.gSymbol}>G</Text>
+                </View>
+                <View style={styles.thresholdScale}>
+                  {[
+                    { l: t('settings.thresholdLow'), v: '5' },
+                    { l: t('settings.thresholdMedium'), v: '10' },
+                    { l: t('settings.thresholdHigh'), v: '15' },
+                    { l: t('settings.thresholdCritical'), v: '20' },
+                  ].map((item) => (
+                    <TouchableOpacity key={item.v} style={[styles.threshBtn, { borderColor: severityColor(parseFloat(item.v)) }]} onPress={() => setThreshold(item.v)}>
+                      <Text style={[styles.threshText, { color: severityColor(parseFloat(item.v)) }]}>{item.l}</Text>
+                      <Text style={[styles.threshVal, { color: severityColor(parseFloat(item.v)) }]}>{item.v}G</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <DarkSwitch
+                value={locationTrackingEnabled}
+                onValueChange={setLocationTrackingEnabled}
+                label={t('settings.trackingLabel')}
+                icon="location-outline"
+                trackColor={COLORS.info}
+              />
+
+              <DarkSwitch
+                value={autoCall}
+                onValueChange={setAutoCall}
+                label={t('settings.autoCalls')}
+                icon="call-outline"
+                trackColor={GOLD}
+              />
+
+              <DarkSwitch
+                value={autoWhatsapp}
+                onValueChange={setAutoWhatsapp}
+                label={t('settings.autoWhatsapp')}
+                icon="logo-whatsapp"
+                trackColor={COLORS.success}
+              />
+
+              <TouchableOpacity testID="save-settings-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveServer} disabled={saving}>
+                {saving ? <ActivityIndicator color="#000" /> : (
+                  <>
+                    <Ionicons name="save" size={16} color="#000" />
+                    <Text style={styles.saveBtnText}>{t('settings.saveAlerts')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </GlassCard>
+          </Animated.View>
 
           <TouchableOpacity testID="logout-btn" style={styles.logoutBtn} onPress={() => setLogoutOpen(true)}>
             <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
@@ -370,40 +401,40 @@ const styles = StyleSheet.create({
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: SPACING.md },
-  title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
-  subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 4 },
+  title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
+  subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 4 },
   deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)', marginBottom: SPACING.md },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  statusLabel: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
-  statusDevice: { fontSize: 13, color: COLORS.textSec, marginTop: 2 },
-  inlineBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.md, backgroundColor: 'rgba(10,10,10,0.85)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  statusLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
+  statusDevice: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },
+  inlineBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, borderWidth: 1, borderColor: COLORS.glassBorder },
   inlineBtnAccent: { backgroundColor: GOLD, borderColor: GOLD },
-  inlineBtnText: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1 },
+  inlineBtnText: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 1 },
   inputGroup: { marginBottom: SPACING.md },
-  label: { fontSize: 10, fontWeight: '800', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
-  helper: { fontSize: 11, color: COLORS.textDim, marginBottom: 8, lineHeight: 16 },
-  input: { backgroundColor: COLORS.bg, borderRadius: RADIUS.md, paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: 15, borderWidth: 1, borderColor: COLORS.border },
+  label: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
+  helper: { fontSize: FONT_SIZE.sm, color: COLORS.textDim, marginBottom: 8, lineHeight: 16 },
+  input: { backgroundColor: COLORS.bg, borderRadius: RADIUS.md, paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: FONT_SIZE.md, borderWidth: 1, borderColor: COLORS.border },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   saveInlineBtn: { backgroundColor: GOLD, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 12 },
-  saveInlineBtnText: { fontSize: 11, fontWeight: '900', color: '#000', letterSpacing: 1 },
+  saveInlineBtnText: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: '#000', letterSpacing: 1 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)' },
   toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  toggleLabel: { fontSize: 14, color: COLORS.text },
+  toggleLabel: { fontSize: FONT_SIZE.sm, color: COLORS.text },
   warnBox: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', backgroundColor: 'rgba(96,165,250,0.06)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.15)', padding: 10, borderRadius: RADIUS.md, marginTop: 4 },
-  warnBoxText: { fontSize: 11, color: COLORS.textSec, flex: 1, lineHeight: 16 },
+  warnBoxText: { fontSize: FONT_SIZE.xs, color: COLORS.textSec, flex: 1, lineHeight: 16 },
   thresholdRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   gSymbol: { fontSize: 22, fontWeight: '900', color: COLORS.textSec },
   thresholdScale: { flexDirection: 'row', gap: 8 },
-  threshBtn: { flex: 1, paddingVertical: 8, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center', backgroundColor: 'rgba(10,10,10,0.85)' },
-  threshText: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
-  threshVal: { fontSize: 14, fontWeight: '900', marginTop: 2 },
+  threshBtn: { flex: 1, paddingVertical: 8, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center', backgroundColor: COLORS.glassBg },
+  threshText: { fontSize: FONT_SIZE.xs, fontWeight: '800', letterSpacing: 1 },
+  threshVal: { fontSize: FONT_SIZE.md, fontWeight: '900', marginTop: 2 },
   saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 8, ...SHADOWS.glow(GOLD) },
-  saveBtnText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
-  langBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)', alignItems: 'center', backgroundColor: 'rgba(10,10,10,0.85)' },
+  saveBtnText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
+  langBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center', backgroundColor: COLORS.glassBg },
   langBtnActive: { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.10)' },
-  langBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.textSec },
+  langBtnText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textSec },
   langBtnTextActive: { color: GOLD },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: 'rgba(255,59,48,0.10)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)', marginTop: 8 },
-  logoutText: { fontSize: 14, color: COLORS.danger, fontWeight: '700' },
-  version: { textAlign: 'center', color: COLORS.textDim, fontSize: 11, marginTop: 12 },
+  logoutText: { fontSize: FONT_SIZE.md, color: COLORS.danger, fontWeight: '700' },
+  version: { textAlign: 'center', color: COLORS.textDim, fontSize: FONT_SIZE.xs, marginTop: 12 },
 });

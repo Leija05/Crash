@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   RefreshControl, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -6,11 +6,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../../src/theme';
+import Animated, { FadeInUp, FadeInDown, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, Easing, FadeIn } from 'react-native-reanimated';
+import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
 import { profileAPI } from '../../src/services/api';
+import { FloatingActionButton } from '../../src/components/FloatingActionButton';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -28,6 +30,8 @@ export default function ProfileScreen() {
   const [conditionsText, setConditionsText] = useState('');
   const [disabilitiesText, setDisabilitiesText] = useState('');
   const [notes, setNotes] = useState('');
+
+  const bloodTypeAnim = useSharedValue(1);
 
   const fetchData = useCallback(async () => {
     if (!token) return;
@@ -81,12 +85,12 @@ export default function ProfileScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={GOLD} />}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
+          <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.header}>
             <Text style={styles.title}>{t('profile.profileTitle')}</Text>
             <Text style={styles.subtitle}>{t('profile.subtitle')}</Text>
-          </View>
+          </Animated.View>
 
-          <View style={styles.userCard}>
+          <Animated.View entering={FadeInUp.duration(500).delay(100).springify()} style={styles.userCard}>
             <View style={styles.userAvatar}>
               <Ionicons name="person" size={26} color={GOLD} />
             </View>
@@ -94,9 +98,9 @@ export default function ProfileScreen() {
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userEmail}>{user?.email}</Text>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.section}>
+          <Animated.View entering={FadeInUp.duration(500).delay(200).springify()} style={styles.section}>
             <Text style={styles.sectionTitle}>{t('profile.personalData')}</Text>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.fullName')}</Text>
@@ -106,15 +110,15 @@ export default function ProfileScreen() {
               <Text style={styles.label}>{t('profile.bloodType')}</Text>
               <View style={styles.bloodGrid}>
                 {BLOOD_TYPES.map(bt => (
-                  <TouchableOpacity key={bt} testID={`blood-type-${bt}`} style={[styles.bloodBtn, bloodType === bt && styles.bloodBtnActive]} onPress={() => setBloodType(bt)}>
-                    <Text style={[styles.bloodText, bloodType === bt && styles.bloodTextActive]}>{bt}</Text>
+                  <TouchableOpacity key={bt} testID={`blood-type-${bt}`} style={[styles.bloodBtn, bloodType === bt && styles.bloodBtnActive]} onPress={() => { setBloodType(bt); bloodTypeAnim.value = withSequence(withSpring(1.2, ANIMATION.spring), withSpring(1, ANIMATION.springBouncy)); }}>
+                    <Animated.Text style={[styles.bloodText, bloodType === bt && styles.bloodTextActive]}>{bt}</Animated.Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.section}>
+          <Animated.View entering={FadeInUp.duration(500).delay(300).springify()} style={styles.section}>
             <Text style={styles.sectionTitle}>{t('profile.medicalInfo')}</Text>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.allergies')}</Text>
@@ -132,7 +136,7 @@ export default function ProfileScreen() {
               <Text style={styles.label}>{t('profile.emergencyNotes')}</Text>
               <TextInput testID="profile-notes-input" style={[styles.input, styles.textArea]} value={notes} onChangeText={setNotes} placeholder={t('profile.notesPlaceholder')} placeholderTextColor={COLORS.textDim} multiline numberOfLines={3} textAlignVertical="top" />
             </View>
-          </View>
+          </Animated.View>
 
           <TouchableOpacity testID="save-profile-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveProfile} disabled={saving}>
             {saving ? <ActivityIndicator color="#000" /> : (
@@ -144,6 +148,14 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+      
+      <FloatingActionButton
+        icon="medkit"
+        label={t('profile.emergencyAction')}
+        onPress={() => {}}
+        variant="danger"
+        position="bottom-center"
+      />
     </SafeAreaView>
   );
 }
@@ -164,42 +176,42 @@ const styles = StyleSheet.create({
     borderRadius: 80,
     backgroundColor: 'rgba(255,215,0,0.03)',
   },
-  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
+  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 100 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: SPACING.md },
-  title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
-  subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 4 },
+  title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
+  subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 4 },
   userCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md,
-    padding: SPACING.md, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
+    padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
     marginBottom: SPACING.md,
   },
   userAvatar: { width: 48, height: 48, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,215,0,0.10)', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
   userInfo: { flex: 1 },
-  userName: { fontSize: 17, fontWeight: '700', color: COLORS.text },
-  userEmail: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
+  userName: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.text },
+  userEmail: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },
   section: {
-    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md,
-    padding: SPACING.md, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
+    padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
     marginBottom: SPACING.md,
   },
-  sectionTitle: { fontSize: 10, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.md },
+  sectionTitle: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.md },
   inputGroup: { marginBottom: SPACING.md },
-  label: { fontSize: 10, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
+  label: { fontSize: FONT_SIZE.xs, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
   input: {
     backgroundColor: COLORS.bg, borderRadius: RADIUS.md,
-    paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: 15,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: FONT_SIZE.md,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
   },
   textArea: { height: 90, paddingTop: 12 },
   bloodGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   bloodBtn: {
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.md,
-    backgroundColor: COLORS.bg, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.glassBorder,
   },
   bloodBtnActive: { backgroundColor: 'rgba(255,215,0,0.10)', borderColor: GOLD },
-  bloodText: { fontSize: 14, fontWeight: '700', color: COLORS.textSec },
+  bloodText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textSec },
   bloodTextActive: { color: GOLD },
   saveBtn: {
     flexDirection: 'row', gap: 8, backgroundColor: GOLD,
@@ -207,5 +219,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
     ...SHADOWS.glow(GOLD),
   },
-  saveBtnText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  saveBtnText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
 });

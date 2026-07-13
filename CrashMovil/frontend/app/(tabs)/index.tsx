@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import Animated, { FadeIn, FadeInDown, SlideInUp, SlideInRight } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel, GOLD } from '../../src/theme';
+import Animated, { FadeIn, FadeInDown, SlideInUp, SlideInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, interpolate, Easing } from 'react-native-reanimated';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import PremiumModal from '../../src/components/PremiumModal';
 import { CrashLogoMark } from '../../src/components/CrashLogo';
 import { useAuth } from '../../src/context/AuthContext';
@@ -19,6 +19,11 @@ import { useLocation } from '../../src/context/LocationContext';
 import { useI18n } from '../../src/i18n';
 import { contactsAPI, impactsAPI, settingsAPI, telemetryAPI } from '../../src/services/api';
 import { foregroundService } from '../../src/services/foregroundService';
+import GForceRing from '../../src/components/GForceRing';
+import { LineChart, Sparkline } from '../../src/components/Charts';
+import GPSMap from '../../src/components/GPSMap';
+import { DarkSwitch, Slider } from '../../src/components/DarkSwitch';
+import StickyNotification from '../../src/components/StickyNotification';
 
 const STAGGER = 60;
 
@@ -94,6 +99,12 @@ export default function DashboardScreen() {
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pulseAnim = useRef(new RNAnimated.Value(0)).current;
+  const accelHistory = useRef<{ x: number; y: number; z: number; t: number }[]>([]);
+  const gyroHistory = useRef<{ x: number; y: number; z: number; t: number }[]>([]);
+  const gForceHistory = useRef<{ value: number; t: number }[]>([]);
+  const gpsHistory = useRef<{ latitude: number; longitude: number; t: number }[]>([]);
+
+  const greetingName = user?.name?.split(' ')[0] || 'Rider';
 
   useEffect(() => {
     if (!telemetry) return;
@@ -102,6 +113,15 @@ export default function DashboardScreen() {
     lastDataRef.current = Date.now();
     setStaleData(false);
     setPeakG(prev => (telemetry.g_force > prev ? telemetry.g_force : prev));
+
+    const now = Date.now();
+    accelHistory.current.push({ x: telemetry.acceleration_x, y: telemetry.acceleration_y, z: telemetry.acceleration_z, t: now });
+    gyroHistory.current.push({ x: telemetry.gyroscope_x, y: telemetry.gyroscope_y, z: telemetry.gyroscope_z, t: now });
+    gForceHistory.current.push({ value: telemetry.g_force, t: now });
+
+    if (accelHistory.current.length > 60) accelHistory.current.shift();
+    if (gyroHistory.current.length > 60) gyroHistory.current.shift();
+    if (gForceHistory.current.length > 60) gForceHistory.current.shift();
   }, [telemetry, countdown]);
 
   useEffect(() => {
@@ -176,6 +196,10 @@ export default function DashboardScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setPeakG(0);
+    accelHistory.current = [];
+    gyroHistory.current = [];
+    gForceHistory.current = [];
+    gpsHistory.current = [];
     setTimeout(() => setRefreshing(false), 400);
   }, []);
 
@@ -218,6 +242,8 @@ export default function DashboardScreen() {
             latitude = pos.coords.latitude;
             longitude = pos.coords.longitude;
             gpsAccuracyM = pos.coords.accuracy ?? undefined;
+            gpsHistory.current.push({ latitude, longitude, t: now });
+            if (gpsHistory.current.length > 60) gpsHistory.current.shift();
           }
         } catch (e) {
           console.warn('No se pudo capturar ubicación en telemetría', e);
@@ -409,12 +435,37 @@ export default function DashboardScreen() {
     };
   }, [countdown, gForce, t]);
 
-  const greetingName = user?.name?.split(' ')[0] || 'Rider';
+  const accelChartData = useRef(
+    accelHistory.current.map((d, i) => ({
+      x: i,
+      y: d.x,
+      label: `${i}s`,
+    }))
+  ).current;
+
+  const accelYData = accelHistory.current.map(d => ({ x: 0, y: d.y }));
+  const accelZData = accelHistory.current.map(d => ({ x: 0, y: d.z }));
+  const gyroXData = gyroHistory.current.map((d, i) => ({ x: i, y: d.x }));
+  const gyroYData = gyroHistory.current.map((d, i) => ({ x: i, y: d.y }));
+  const gyroZData = gyroHistory.current.map((d, i) => ({ x: i, y: d.z }));
+  const gForceChartData = gForceHistory.current.map((d, i) => ({ x: i, y: d.value }));
+  const gpsRoute = gpsHistory.current.map(p => ({ latitude: p.latitude, longitude: p.longitude, t: p.t }));
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
+
+      {highImpact && liveData && (
+        <StickyNotification
+          message={t('dashboard.impactDetected')}
+          type="danger"
+          icon="alert-circle"
+          position="top-right"
+          autoDismiss={0}
+        />
+      )}
+
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />}
         contentContainerStyle={styles.scroll}
@@ -462,11 +513,14 @@ export default function DashboardScreen() {
             {highImpact && (
               <RNAnimated.View pointerEvents="none" style={[styles.criticalPulse, { opacity: pulseAnim }]} />
             )}
-            <ForceRing gForce={gForce} liveData={liveData} color={sevColor} severity={sevLabel} t={t} />
-            <Animated.View entering={SlideInUp.duration(300).delay(200).springify()} style={styles.peakRow}>
-              <Text style={styles.peakLabel}>{t('dashboard.peak')}</Text>
-              <Text style={styles.peakValue}>{peakG.toFixed(2)} G</Text>
-            </Animated.View>
+            <GForceRing
+              gForce={gForce}
+              liveData={liveData}
+              severity={sevLabel}
+              t={t}
+              peakG={peakG}
+              size={280}
+            />
           </View>
         </Stagger>
 
@@ -516,15 +570,29 @@ export default function DashboardScreen() {
         </Stagger>
 
         <Stagger index={4}>
-          <View style={styles.trackingCard}>
-            <Ionicons name={isTracking ? "radio" : "radio-outline"} size={18} color={isTracking ? COLORS.success : COLORS.textDim} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.trackingTitle}>{t('dashboard.liveTracking')}</Text>
-              <Text style={styles.trackingDesc}>
-                {isTracking ? t('dashboard.trackingActive') : t('dashboard.trackingInactive')}
-              </Text>
+          <View style={styles.bentoRow}>
+            <View style={[styles.bentoCard, styles.bentoHalf]}>
+              <Text style={styles.bentoTitle}>{t('dashboard.gyroscope')}</Text>
+              <View style={styles.sparklineGrid}>
+                <Sparkline data={gyroXData.map(d => d.y)} width={140} height={50} color={COLORS.warning} showArea />
+                <Sparkline data={gyroYData.map(d => d.y)} width={140} height={50} color={COLORS.warning} showArea />
+                <Sparkline data={gyroZData.map(d => d.y)} width={140} height={50} color="#FB923C" showArea />
+              </View>
             </View>
-            <View style={[styles.trackingDot, { backgroundColor: isTracking ? COLORS.success : COLORS.textDim }]} />
+            <View style={[styles.bentoCard, styles.bentoHalf]}>
+              <Text style={styles.bentoTitle}>{t('dashboard.gps')}</Text>
+              <GPSMap
+                route={gpsRoute}
+                impactPoint={impactTelemetryRef.current?.latitude && impactTelemetryRef.current?.longitude ? {
+                  latitude: impactTelemetryRef.current.latitude,
+                  longitude: impactTelemetryRef.current.longitude,
+                } : undefined}
+                currentLocation={currentLocation}
+                width={340}
+                height={160}
+                animateRoute={true}
+              />
+            </View>
           </View>
         </Stagger>
 
@@ -539,6 +607,39 @@ export default function DashboardScreen() {
         </Stagger>
 
         <Stagger index={6}>
+          <View style={styles.chartCard}>
+            <Text style={styles.chartTitle}>{t('dashboard.accelChart')}</Text>
+            <LineChart
+              datasets={[
+                { data: accelChartData, color: COLORS.info, name: 'Accel X' },
+                { data: accelYData, color: COLORS.warning, name: 'Accel Y' },
+                { data: accelZData, color: COLORS.danger, name: 'Accel Z' },
+              ]}
+              width={340}
+              height={140}
+              showArea
+              showLegend
+            />
+          </View>
+        </Stagger>
+
+        <Stagger index={7}>
+          <View style={styles.chartCard}>
+            <Text style={styles.chartTitle}>{t('dashboard.gForceChart')}</Text>
+            <LineChart
+              data={gForceChartData}
+              width={340}
+              height={140}
+              color={GOLD}
+              gradientColors={[GOLD, GOLD + '00']}
+              showArea
+              showPoints={false}
+              strokeWidth={2}
+            />
+          </View>
+        </Stagger>
+
+        <Stagger index={8}>
           <View style={styles.grid}>
             <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="rad/s" color={COLORS.warning} live={liveData} delay={0} />
             <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="rad/s" color={COLORS.warning} live={liveData} delay={1} />
@@ -547,7 +648,7 @@ export default function DashboardScreen() {
           </View>
         </Stagger>
 
-        <Stagger index={7}>
+        <Stagger index={9}>
           {connected ? (
             <TouchableOpacity
               style={[styles.primaryBtn, styles.primaryBtnDanger]}
@@ -566,12 +667,12 @@ export default function DashboardScreen() {
               testID="connect-btn"
             >
               <Ionicons name="bluetooth" size={18} color="#000" />
-              <Text style={[styles.primaryBtnText]}>{t('dashboard.connectHelmet')}</Text>
+              <Text style={styles.primaryBtnText}>{t('dashboard.connectHelmet')}</Text>
             </TouchableOpacity>
           )}
         </Stagger>
 
-        <Stagger index={8}>
+        <Stagger index={10}>
           {!nativeAvailable && (
             <View style={styles.infoBox}>
               <Ionicons name="information-circle" size={14} color={COLORS.info} />
@@ -586,7 +687,7 @@ export default function DashboardScreen() {
           )}
         </Stagger>
 
-        <Stagger index={9}>
+        <Stagger index={11}>
           {!hasEmergencyContacts && (
             <TouchableOpacity style={styles.warningCard} onPress={() => router.push('/contacts')} activeOpacity={0.85}>
               <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
@@ -655,50 +756,6 @@ export default function DashboardScreen() {
   );
 }
 
-function ForceRing({ gForce, liveData, color, severity, t }: { gForce: number; liveData: boolean; color: string; severity: string; t: (key: string) => string }) {
-  const progress = Math.max(0, Math.min(gForce / MAX_G_RING, 1));
-  const filled = Math.round(progress * SEGMENTS);
-
-  return (
-    <View style={styles.ringWrap}>
-      <View style={styles.ringTrack}>
-        {Array.from({ length: SEGMENTS }).map((_, i) => {
-          const active = liveData && i < filled;
-          return (
-            <Animated.View
-              key={`seg-${i}`}
-              entering={FadeIn.duration(200).delay(i * 5).springify()}
-              style={[
-                styles.segment,
-                {
-                  transform: [{ rotate: `${(360 / SEGMENTS) * i}deg` }, { translateY: -118 }],
-                  backgroundColor: active ? color : 'rgba(148,163,184,0.10)',
-                  opacity: active ? 1 : 0.5,
-                },
-              ]}
-            />
-          );
-        })}
-        <View style={styles.ringInner}>
-          <Animated.Text
-            entering={SlideInUp.duration(300).springify()}
-            style={[styles.gValue, { color: liveData ? COLORS.text : COLORS.textDim }]}
-          >
-            {liveData ? gForce.toFixed(2) : '0.00'}
-          </Animated.Text>
-          <Text style={styles.gTitle}>{t('dashboard.gForceValue')}</Text>
-          <View style={styles.gSubRow}>
-            <View style={[styles.gBullet, { backgroundColor: liveData ? color : COLORS.textDim }]} />
-            <Text style={styles.gSubText}>{liveData ? `${gForce.toFixed(2)}G` : '--'}</Text>
-          </View>
-          <Text style={styles.severityText}>{liveData ? severity : t('common.noData')}</Text>
-        </View>
-      </View>
-      <Text style={styles.ms2}>{t('dashboard.mPerSecond')}</Text>
-    </View>
-  );
-}
-
 function CoordItem({ label, value, live, delay = 0 }: { label: string; value?: number; live: boolean; delay?: number }) {
   return (
     <Animated.View
@@ -755,8 +812,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md, paddingTop: SPACING.sm,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  greeting: { fontSize: 12, color: COLORS.textSec },
-  appName: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 4, marginTop: 1 },
+  greeting: { fontSize: FONT_SIZE.sm, color: COLORS.textSec },
+  appName: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 4, marginTop: 1 },
   modePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.pill,
@@ -764,7 +821,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(52,211,153,0.10)',
   },
   modeDot: { width: 6, height: 6, borderRadius: 3 },
-  modeText: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  modeText: { fontSize: FONT_SIZE.xs, fontWeight: '900', letterSpacing: 1 },
 
   statusBar: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -774,8 +831,8 @@ const styles = StyleSheet.create({
   },
   statusBarConnected: { borderColor: 'rgba(255,215,0,0.25)' },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusLabel: { fontSize: 10, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
-  statusDetail: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
+  statusLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
+  statusDetail: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },
 
   ringCard: {
     borderRadius: RADIUS.lg,
@@ -796,36 +853,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.20)',
     borderRadius: 999,
   },
-  ringWrap: { alignItems: 'center' },
-  ringTrack: {
-    width: 260, height: 260, borderRadius: 130,
-    alignItems: 'center', justifyContent: 'center',
-    position: 'relative',
-  },
-  segment: {
-    width: 3, height: 16, borderRadius: 999, position: 'absolute',
-  },
-  ringInner: {
-    width: 170, height: 170, borderRadius: 85,
-    borderWidth: 1, borderColor: COLORS.border,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.bg,
-  },
-  gValue: { fontSize: 56, fontWeight: '900', color: COLORS.text, lineHeight: 64 },
-  gTitle: { color: COLORS.textSec, letterSpacing: 4, fontSize: 10, fontWeight: '700' },
-  gSubRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 4 },
-  gBullet: { width: 6, height: 6, borderRadius: 3 },
-  gSubText: { color: COLORS.text, fontWeight: '600', fontSize: 13 },
-  severityText: { marginTop: 4, fontSize: 9, letterSpacing: 1.5, color: COLORS.textSec, fontWeight: '700' },
-  ms2: { color: COLORS.textDim, marginTop: 8, fontSize: 11, letterSpacing: 3 },
-  peakRow: {
-    marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: RADIUS.pill, backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)',
-  },
-  peakLabel: { color: COLORS.textDim, fontSize: 9, fontWeight: '700', letterSpacing: 2 },
-  peakValue: { color: COLORS.text, fontSize: 12, fontWeight: '900' },
 
   bentoRow: { flexDirection: 'row', gap: 10, marginBottom: SPACING.md },
   bentoCard: {
@@ -833,28 +860,28 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface, padding: 14,
   },
   bentoHalf: { flex: 1 },
-  bentoTitle: { color: COLORS.textSec, fontSize: 8, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
+  bentoTitle: { color: COLORS.textSec, fontSize: FONT_SIZE.xs, fontWeight: '900', letterSpacing: 1.8, marginBottom: 10 },
   coordsGrid: { flexDirection: 'row', gap: 8 },
   coordCell: {
     flex: 1, borderRadius: RADIUS.sm,
     backgroundColor: COLORS.bgElevated, borderWidth: 1, borderColor: COLORS.border,
     paddingVertical: 10, alignItems: 'center',
   },
-  coordLabel: { color: COLORS.textDim, fontSize: 10, fontWeight: '900', marginBottom: 4 },
-  coordValue: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
+  coordLabel: { color: COLORS.textDim, fontSize: FONT_SIZE.xs, fontWeight: '900', marginBottom: 4 },
+  coordValue: { color: COLORS.text, fontSize: FONT_SIZE.lg, fontWeight: '800' },
   locationBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     marginTop: 10, paddingVertical: 10, borderRadius: RADIUS.sm,
     backgroundColor: 'rgba(255,215,0,0.10)', borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
   },
-  locationBtnText: { color: GOLD, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 },
+  locationBtnText: { color: GOLD, fontWeight: '800', fontSize: FONT_SIZE.sm, letterSpacing: 0.5 },
   locationPermBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     marginTop: 4, marginBottom: 6,
   },
-  locationPermText: { color: GOLD, fontSize: 8, fontWeight: '800', letterSpacing: 1 },
-  coordsGeo: { color: COLORS.textDim, fontSize: 12, letterSpacing: 0.5, lineHeight: 18 },
-  coordsGeoDim: { color: COLORS.textDim, fontSize: 12 },
+  locationPermText: { color: GOLD, fontSize: FONT_SIZE.xs, fontWeight: '800', letterSpacing: 1 },
+  coordsGeo: { color: COLORS.textDim, fontSize: FONT_SIZE.sm, letterSpacing: 0.5, lineHeight: 18 },
+  coordsGeoDim: { color: COLORS.textDim, fontSize: FONT_SIZE.sm },
   liveTrackingBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     marginTop: 8, paddingHorizontal: 8, paddingVertical: 3,
@@ -862,25 +889,34 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(52,211,153,0.12)',
   },
   liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: COLORS.success },
-  liveTrackingText: { color: COLORS.success, fontSize: 8, fontWeight: '700', letterSpacing: 0.5 },
-  trackingStatus: { color: COLORS.textDim, fontSize: 10, marginTop: 6 },
+  liveTrackingText: { color: COLORS.success, fontSize: FONT_SIZE.xs, fontWeight: '700', letterSpacing: 0.5 },
+  trackingStatus: { color: COLORS.textDim, fontSize: FONT_SIZE.xs, marginTop: 6 },
 
-  trackingCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
-    padding: 14, borderWidth: 1, borderColor: COLORS.border,
-    marginBottom: SPACING.md,
-  },
-  trackingTitle: { color: COLORS.text, fontSize: 12, fontWeight: '700' },
-  trackingDesc: { color: COLORS.textSec, fontSize: 11, marginTop: 2 },
-  trackingDot: { width: 8, height: 8, borderRadius: 4 },
+  sparklineGrid: { flexDirection: 'row', gap: 8 },
 
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  sectionTitle: { fontSize: 8, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2 },
+  sectionTitle: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2 },
   liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: COLORS.bgElevated, borderWidth: 1, borderColor: COLORS.border },
   liveBadgeOn: { backgroundColor: 'rgba(52,211,153,0.04)', borderColor: 'rgba(52,211,153,0.10)' },
   liveDotSm: { width: 5, height: 5, borderRadius: 3 },
-  liveText: { fontSize: 8, fontWeight: '900', letterSpacing: 1 },
+  liveText: { fontSize: FONT_SIZE.xs, fontWeight: '900', letterSpacing: 1 },
+
+  chartCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    ...SHADOWS.sm,
+  },
+  chartTitle: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '900',
+    color: COLORS.textSec,
+    letterSpacing: 2,
+    marginBottom: SPACING.sm,
+  },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: SPACING.md },
   metric: {
@@ -888,9 +924,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 14,
     borderWidth: 1, borderColor: COLORS.border,
   },
-  metricLabel: { fontSize: 8, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6 },
-  metricValue: { fontSize: 20, fontWeight: '900', color: COLORS.textDim },
-  metricUnit: { fontSize: 10, color: COLORS.textDim, marginTop: 2 },
+  metricLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6 },
+  metricValue: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.textDim },
+  metricUnit: { fontSize: FONT_SIZE.xs, color: COLORS.textDim, marginTop: 2 },
 
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -901,31 +937,31 @@ const styles = StyleSheet.create({
   primaryBtnDanger: {
     backgroundColor: COLORS.danger,
   },
-  primaryBtnText: { color: '#000', fontSize: 12, fontWeight: '900', letterSpacing: 2 },
+  primaryBtnText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
 
   infoBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: COLORS.surface, padding: 12, borderRadius: RADIUS.md,
     borderWidth: 1, borderColor: COLORS.border, marginTop: 4,
   },
-  infoText: { fontSize: 11, color: COLORS.textSec, flex: 1 },
+  infoText: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, flex: 1 },
   warningCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: 'rgba(251,191,36,0.04)', borderColor: 'rgba(251,191,36,0.15)',
     borderWidth: 1, borderRadius: RADIUS.md, padding: 14, marginTop: 4,
   },
-  warningTitle: { color: COLORS.warning, fontWeight: '800', fontSize: 13, marginBottom: 2 },
-  warningText: { color: COLORS.textSec, fontSize: 11 },
+  warningTitle: { color: COLORS.warning, fontWeight: '800', fontSize: FONT_SIZE.md, marginBottom: 2 },
+  warningText: { color: COLORS.textSec, fontSize: FONT_SIZE.sm },
 
-  dialogText: { color: COLORS.textSec, fontSize: 14, marginBottom: 8, lineHeight: 20, textAlign: 'center' },
-  countdownLabel: { color: COLORS.textDim, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 8 },
-  countdownValue: { color: GOLD, fontSize: 64, fontWeight: '900', marginTop: 4, marginBottom: 20 },
+  dialogText: { color: COLORS.textSec, fontSize: FONT_SIZE.md, marginBottom: 8, lineHeight: 20, textAlign: 'center' },
+  countdownLabel: { color: COLORS.textDim, fontSize: FONT_SIZE.xs, letterSpacing: 2, textTransform: 'uppercase', marginTop: 8 },
+  countdownValue: { color: GOLD, fontSize: FONT_SIZE.hero, fontWeight: '900', marginTop: 4, marginBottom: 20 },
   dialogActions: { flexDirection: 'row', gap: 10, width: '100%' },
   cancelBtnSoft: { flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 14, alignItems: 'center' },
   cancelSoftText: { color: COLORS.text, fontWeight: '800', letterSpacing: 0.7 },
   cancelBtn: { flex: 1, backgroundColor: GOLD, borderRadius: RADIUS.pill, paddingVertical: 14, alignItems: 'center' },
   cancelText: { color: '#000', fontWeight: '900', letterSpacing: 1 },
   okBtnWide: { backgroundColor: GOLD, borderRadius: RADIUS.pill, paddingVertical: 14, marginTop: 14, width: '100%', alignItems: 'center' },
-  okBtnText: { color: '#000', fontWeight: '900', letterSpacing: 1, fontSize: 14 },
-  contactSent: { color: COLORS.textSec, fontSize: 13, marginBottom: 4, textAlign: 'center' },
+  okBtnText: { color: '#000', fontWeight: '900', letterSpacing: 1, fontSize: FONT_SIZE.md },
+  contactSent: { color: COLORS.textSec, fontSize: FONT_SIZE.md, marginBottom: 4, textAlign: 'center' },
 });

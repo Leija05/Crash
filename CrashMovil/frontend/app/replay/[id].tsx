@@ -7,7 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { impactsAPI, telemetryAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, FONT, FONT_SIZE } from '../../src/theme';
+import { MediaControls } from '../../src/components/MediaControls';
+import { LineChart } from '../../src/components/Charts';
+import GPSMap from '../../src/components/GPSMap';
 
 const PLAYBACK_INTERVAL_MS = 500;
 
@@ -34,6 +37,7 @@ export default function ReplayScreen() {
   const [impact, setImpact] = useState<any>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -80,6 +84,7 @@ export default function ReplayScreen() {
 
   useEffect(() => {
     if (!playing || points.length <= 1) return;
+    const intervalMs = PLAYBACK_INTERVAL_MS / speed;
     timerRef.current = setInterval(() => {
       setCurrentIndex((prev) => {
         if (prev >= points.length - 1) {
@@ -88,11 +93,11 @@ export default function ReplayScreen() {
         }
         return prev + 1;
       });
-    }, PLAYBACK_INTERVAL_MS);
+    }, intervalMs);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [playing, points.length]);
+  }, [playing, points.length, speed]);
 
   const current = points[currentIndex] || null;
   const impactIndex = points.findIndex((p) => p.__impact);
@@ -150,6 +155,18 @@ export default function ReplayScreen() {
     );
   }
 
+  const chartData = points.filter(p => !p.__impact).map((p, i) => ({ x: i, y: p.g_force || 0 }));
+  const speedData = points.filter(p => !p.__impact).map((p, i) => ({ x: i, y: p.speed || 0 }));
+  const gpsRoute = points.filter(p => p.latitude && p.longitude).map(p => ({
+    latitude: p.latitude,
+    longitude: p.longitude,
+    timestamp: p.ts,
+  }));
+  const impactPoint = impactIndex >= 0 ? {
+    latitude: points[impactIndex].latitude,
+    longitude: points[impactIndex].longitude,
+  } : undefined;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
@@ -203,7 +220,7 @@ export default function ReplayScreen() {
             <View style={styles.metaItem}>
               <Text style={styles.metaLabel}>VELOCIDAD</Text>
               <Text style={styles.metaValue}>
-                {current ? `${Math.round(current.speed || current.speed || 0)}` : '0'}
+                {current ? `${Math.round(current.speed || 0)}` : '0'}
                 <Text style={styles.metaUnit}> km/h</Text>
               </Text>
             </View>
@@ -228,35 +245,52 @@ export default function ReplayScreen() {
             </View>
           )}
 
-          <View style={styles.controls}>
-            <TouchableOpacity
-              style={styles.controlBtn}
-              onPress={() => { setCurrentIndex(0); setPlaying(false); }}
-            >
-              <Ionicons name="play-skip-back" size={20} color={GOLD} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.playBtn, playing && styles.playBtnActive]}
-              onPress={() => {
-                if (currentIndex >= points.length - 1) {
-                  setCurrentIndex(0);
-                }
-                setPlaying((v) => !v);
-              }}
-            >
-              <Ionicons
-                name={playing ? 'pause' : 'play'}
-                size={24}
-                color={playing ? GOLD : '#0A0A0A'}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.controlBtn}
-              onPress={() => { setCurrentIndex(maxIndex); setPlaying(false); }}
-            >
-              <Ionicons name="play-skip-forward" size={20} color={GOLD} />
-            </TouchableOpacity>
-          </View>
+          <MediaControls
+            playing={playing}
+            currentTime={currentIndex / points.length * 100}
+            duration={100}
+            onPlayPause={() => {
+              if (currentIndex >= points.length - 1) {
+                setCurrentIndex(0);
+              }
+              setPlaying((v) => !v);
+            }}
+            onSeek={(time) => {
+              const newIndex = Math.round((time / 100) * maxIndex);
+              setCurrentIndex(Math.max(0, Math.min(newIndex, maxIndex)));
+            }}
+            onPrevious={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
+            onNext={() => setCurrentIndex(Math.min(maxIndex, currentIndex + 1))}
+            onSpeedChange={setSpeed}
+            speeds={[0.5, 1, 1.5, 2]}
+            showSpeed={true}
+          />
+        </View>
+
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Fuerza G durante el evento</Text>
+          <LineChart
+            data={chartData}
+            width={340}
+            height={140}
+            color={GOLD}
+            gradientColors={[GOLD, GOLD + '00']}
+            showArea
+            strokeWidth={2}
+          />
+        </View>
+
+        <View style={styles.chartCard}>
+          <Text style={styles.chartTitle}>Velocidad estimada</Text>
+          <LineChart
+            data={speedData}
+            width={340}
+            height={140}
+            color={COLORS.info}
+            gradientColors={[COLORS.info, COLORS.info + '00']}
+            showArea
+            strokeWidth={2}
+          />
         </View>
 
         <View style={styles.impactInfoCard}>
@@ -299,6 +333,23 @@ export default function ReplayScreen() {
             </View>
           )}
         </View>
+
+        <View style={styles.mapCard}>
+          <Text style={styles.mapTitle}>Ruta y punto de impacto</Text>
+          <GPSMap
+            route={gpsRoute}
+            impactPoint={impactPoint}
+            currentLocation={points.length > 0 && points[0].latitude ? {
+              latitude: points[0].latitude,
+              longitude: points[0].longitude,
+            } : undefined}
+            width={340}
+            height={220}
+            showImpactMarker={true}
+            showCurrentLocation={true}
+            animateRoute={true}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -308,27 +359,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12 },
-  loadingText: { color: COLORS.textSec, fontSize: 14, marginTop: 8 },
-  errorText: { color: COLORS.textSec, fontSize: 15, textAlign: 'center' },
-  noDataText: { color: COLORS.textSec, fontSize: 15, lineHeight: 22, textAlign: 'center' },
-  backBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  loadingText: { color: COLORS.textSec, fontSize: FONT_SIZE.md, marginTop: 8 },
+  errorText: { color: COLORS.textSec, fontSize: FONT_SIZE.lg, textAlign: 'center' },
+  noDataText: { color: COLORS.textSec, fontSize: FONT_SIZE.md, lineHeight: 22, textAlign: 'center' },
+  backBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder },
   backBtnText: { color: GOLD, fontWeight: '700' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm,
   },
-  backBtnSmall: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
-  headerTitle: { fontSize: 14, fontWeight: '800', color: GOLD, letterSpacing: 2 },
+  backBtnSmall: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
+  headerTitle: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD, letterSpacing: 2 },
 
   replayCard: {
-    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
     padding: SPACING.md, marginBottom: SPACING.md,
     ...SHADOWS.md,
   },
   replayHeader: { marginBottom: SPACING.md },
-  replayTitle: { fontSize: 11, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
-  replayPoints: { fontSize: 10, color: COLORS.textDim, marginTop: 4 },
+  replayTitle: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
+  replayPoints: { fontSize: FONT_SIZE.xs, color: COLORS.textDim, marginTop: 4 },
 
   sliderContainer: { marginBottom: SPACING.md },
   trackOuter: { height: 40, justifyContent: 'center', position: 'relative' },
@@ -356,11 +407,11 @@ const styles = StyleSheet.create({
   },
   metaItem: {
     flex: 1, backgroundColor: COLORS.bg, borderRadius: RADIUS.sm,
-    padding: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    padding: 12, borderWidth: 1, borderColor: COLORS.glassBorder,
   },
-  metaLabel: { fontSize: 8, fontWeight: '900', color: COLORS.textDim, letterSpacing: 1.5, marginBottom: 4 },
-  metaValue: { fontSize: 18, fontWeight: '900', color: COLORS.text },
-  metaUnit: { fontSize: 11, fontWeight: '600', color: COLORS.textSec },
+  metaLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.textDim, letterSpacing: 1.5, marginBottom: 4 },
+  metaValue: { fontSize: FONT_SIZE.lg, fontWeight: '900', color: COLORS.text },
+  metaUnit: { fontSize: FONT_SIZE.sm, fontWeight: '600', color: COLORS.textSec },
 
   impactSection: { height: 24, position: 'relative', marginBottom: SPACING.sm },
   impactDot: {
@@ -374,40 +425,52 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,215,0,0.2)',
     paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
   },
-  impactBadgeText: { fontSize: 10, color: GOLD, fontWeight: '700' },
+  impactBadgeText: { fontSize: FONT_SIZE.xs, color: GOLD, fontWeight: '700' },
 
-  controls: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 20, paddingTop: SPACING.sm, borderTopWidth: 1, borderTopColor: 'rgba(255,215,0,0.10)',
-  },
-  controlBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
-  },
-  playBtn: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: GOLD, alignItems: 'center', justifyContent: 'center',
+  chartCard: {
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+    padding: SPACING.md, marginBottom: SPACING.md,
     ...SHADOWS.md,
   },
-  playBtnActive: { backgroundColor: 'rgba(10,10,10,0.85)', borderWidth: 1, borderColor: GOLD, ...SHADOWS.glow(GOLD) },
+  chartTitle: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '900',
+    color: COLORS.textSec,
+    letterSpacing: 2,
+    marginBottom: SPACING.sm,
+  },
 
   impactInfoCard: {
-    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
-    padding: SPACING.md,
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+    padding: SPACING.md, marginBottom: SPACING.md,
     ...SHADOWS.sm,
   },
-  infoTitle: { fontSize: 9, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.sm },
+  infoTitle: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.sm },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)' },
-  infoLabel: { fontSize: 12, color: COLORS.textSec },
-  infoValue: { fontSize: 13, fontWeight: '700', color: COLORS.text },
-  infoValueMono: { fontSize: 12, color: COLORS.text, fontFamily: 'monospace' as any },
+  infoLabel: { fontSize: FONT_SIZE.md, color: COLORS.textSec },
+  infoValue: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.text },
+  infoValueMono: { fontSize: FONT_SIZE.sm, color: COLORS.text, fontFamily: FONT.mono },
   alertsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginTop: 10, backgroundColor: 'rgba(255,215,0,0.10)',
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.sm,
     borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
   },
-  alertsBadgeText: { fontSize: 11, color: GOLD, fontWeight: '700' },
+  alertsBadgeText: { fontSize: FONT_SIZE.xs, color: GOLD, fontWeight: '700' },
+
+  mapCard: {
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
+    borderWidth: 1, borderColor: COLORS.glassBorder,
+    padding: SPACING.md, marginBottom: SPACING.md,
+    ...SHADOWS.md,
+  },
+  mapTitle: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '900',
+    color: COLORS.textSec,
+    letterSpacing: 2,
+    marginBottom: SPACING.sm,
+  },
 });

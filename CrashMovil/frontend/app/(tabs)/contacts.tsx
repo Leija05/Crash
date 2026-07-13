@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
   RefreshControl, ActivityIndicator, Modal, KeyboardAvoidingView, Platform,
@@ -6,11 +6,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
+import Animated, { FadeInUp, FadeInDown, FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, Easing } from 'react-native-reanimated';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
 import { contactsAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
+import GlassCard from '../../src/components/GlassCard';
+import { FloatingActionButton } from '../../src/components/FloatingActionButton';
 
 export default function ContactsScreen() {
   const { t } = useI18n();
@@ -24,6 +27,9 @@ export default function ContactsScreen() {
   const [phone, setPhone] = useState('');
   const [relationship, setRelationship] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fabAnim = useSharedValue(0);
 
   const fetchContacts = useCallback(async () => {
     if (!token) return;
@@ -59,10 +65,15 @@ export default function ContactsScreen() {
     }
   };
 
+  const filteredContacts = contacts.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.phone.includes(searchQuery)
+  );
+
   const renderContact = ({ item }: { item: any }) => (
-    <View style={styles.card} testID={`contact-${item.id}`}>
+    <Animated.View entering={FadeInUp.duration(300).springify().damping(24)} style={styles.card}>
       <View style={styles.cardRow}>
-        <View style={[styles.avatar, { backgroundColor: item.verified ? GOLD_SOFT : 'rgba(255,255,255,0.03)' }]}>
+        <View style={[styles.avatar, { backgroundColor: item.verified ? 'rgba(255,215,0,0.12)' : 'rgba(255,255,255,0.03)' }]}>
           <Ionicons name="person" size={18} color={item.verified ? GOLD : COLORS.textDim} />
         </View>
         <View style={styles.cardInfo}>
@@ -84,47 +95,67 @@ export default function ContactsScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
-
-  const GOLD_SOFT = 'rgba(255,215,0,0.10)';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
-      <View style={styles.headerSection}>
+      
+      <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.headerSection}>
         <View>
           <Text style={styles.title}>{t('contacts.title')}</Text>
-          <Text style={styles.subtitle}>{contacts.length} {t('contacts.count')}</Text>
+          <Text style={styles.subtitle}>{filteredContacts.length} {t('contacts.count')}</Text>
         </View>
-        <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => setShowAdd(true)}>
-          <Ionicons name="add" size={22} color="#000" />
+        <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => { setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}>
+          <Ionicons name="add" size={24} color="#000" />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
+
+      <Animated.View
+        entering={FadeInUp.duration(500).delay(100).springify()}
+        style={styles.searchCard}
+      >
+        <View style={styles.searchInput}>
+          <Ionicons name="search" size={20} color={COLORS.textDim} style={styles.searchIcon} />
+          <TextInput
+            testID="contacts-search-input"
+            style={styles.searchField}
+            placeholder={t('contacts.searchPlaceholder')}
+            placeholderTextColor={COLORS.textDim}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
+        </View>
+      </Animated.View>
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
       ) : (
         <FlatList
-          data={contacts}
+          data={filteredContacts}
           keyExtractor={(item) => item.id}
           renderItem={renderContact}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchContacts(); }} tintColor={GOLD} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
+            <Animated.View entering={FadeInUp.duration(500).delay(200).springify()} style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name="people-outline" size={32} color={COLORS.textDim} /></View>
               <Text style={styles.emptyText}>{t('contacts.empty')}</Text>
               <Text style={styles.emptySubtext}>{t('contacts.emptyDesc')}</Text>
-            </View>
+            </Animated.View>
           }
         />
       )}
 
       <Modal visible={showAdd} animationType="slide" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <Animated.View
+            entering={SlideInRight.duration(300).springify().damping(20)}
+            style={styles.modalContent}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{t('contacts.addContact')}</Text>
               <TouchableOpacity onPress={() => setShowAdd(false)} testID="close-add-modal-btn" style={styles.modalClose}>
@@ -146,9 +177,22 @@ export default function ContactsScreen() {
             <TouchableOpacity testID="submit-contact-btn" style={[styles.submitBtn, submitting && { opacity: 0.6 }]} onPress={addContact} disabled={submitting}>
               {submitting ? <ActivityIndicator color="#000" /> : <Text style={styles.submitText}>{t('contacts.submit')}</Text>}
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Animated.View
+        style={styles.fab}
+        entering={FadeIn.duration(500).delay(300).springify().damping(15)}
+      >
+        <TouchableOpacity
+          style={styles.fabBtn}
+          onPress={() => { setShowAdd(true); fabAnim.value = withSpring(1, ANIMATION.springBouncy); }}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="person-add" size={28} color="#000" />
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -170,35 +214,47 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,215,0,0.03)',
   },
   headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: 12 },
-  title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
-  subtitle: { fontSize: 12, color: COLORS.textSec, marginTop: 2 },
-  addBtn: { backgroundColor: GOLD, width: 38, height: 38, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
-  list: { paddingHorizontal: SPACING.md, paddingBottom: 80 },
+  title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
+  subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },
+  addBtn: { backgroundColor: GOLD, width: 44, height: 44, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', ...SHADOWS.glow(GOLD) },
+  searchCard: {
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  searchInput: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
+    paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.glassBorder,
+    height: 48,
+  },
+  searchIcon: { marginRight: 10 },
+  searchField: { flex: 1, color: COLORS.text, fontSize: FONT_SIZE.md },
+  list: { paddingHorizontal: SPACING.md, paddingBottom: 100 },
   card: {
-    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md,
+    backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md,
     padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    borderWidth: 1, borderColor: COLORS.glassBorder,
   },
   cardRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 38, height: 38, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)' },
+  avatar: { width: 44, height: 44, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: COLORS.glassBorder },
   cardInfo: { flex: 1 },
-  cardName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  cardPhone: { fontSize: 12, color: COLORS.textSec, marginTop: 2, fontFamily: 'monospace' as any },
-  cardRel: { fontSize: 11, color: COLORS.textDim, marginTop: 1 },
+  cardName: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.text },
+  cardPhone: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2, fontFamily: FONT.mono },
+  cardRel: { fontSize: FONT_SIZE.xs, color: COLORS.textDim, marginTop: 1 },
   cardActions: { alignItems: 'flex-end', gap: 6 },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.pill, backgroundColor: 'rgba(52,211,153,0.08)' },
-  verifiedText: { fontSize: 9, fontWeight: '800', color: COLORS.success, letterSpacing: 1 },
+  verifiedText: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: COLORS.success, letterSpacing: 1 },
   deleteBtn: { padding: 6 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingTop: 60 },
   emptyIcon: {
     width: 64, height: 64, borderRadius: 32,
     backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    borderWidth: 1, borderColor: COLORS.glassBorder,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  emptyText: { fontSize: 16, color: COLORS.text, fontWeight: '700' },
-  emptySubtext: { fontSize: 12, color: COLORS.textDim, marginTop: 4, textAlign: 'center', paddingHorizontal: 40 },
+  emptyText: { fontSize: FONT_SIZE.lg, color: COLORS.text, fontWeight: '700' },
+  emptySubtext: { fontSize: FONT_SIZE.sm, color: COLORS.textDim, marginTop: 4, textAlign: 'center', paddingHorizontal: 40 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.85)' },
   modalContent: {
     backgroundColor: 'rgba(20,20,28,0.96)',
@@ -207,18 +263,29 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  modalClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(10,10,10,0.85)', alignItems: 'center', justifyContent: 'center' },
+  modalTitle: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.text },
+  modalClose: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center' },
   inputGroup: { marginBottom: 14 },
-  label: { fontSize: 10, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
+  label: { fontSize: FONT_SIZE.xs, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
   input: {
     backgroundColor: COLORS.bg, borderRadius: RADIUS.md,
-    paddingHorizontal: 14, height: 48, color: COLORS.text, fontSize: 15,
+    paddingHorizontal: 14, height: 48, color: COLORS.text, fontSize: FONT_SIZE.md,
     borderWidth: 1, borderColor: COLORS.border,
   },
   submitBtn: {
     backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 50,
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
+    ...SHADOWS.glow(GOLD),
   },
-  submitText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  submitText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
+  fab: {
+    position: 'absolute',
+    bottom: SPACING.xl + 20,
+    right: SPACING.lg,
+  },
+  fabBtn: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: GOLD, alignItems: 'center', justifyContent: 'center',
+    ...SHADOWS.glow(GOLD),
+  },
 });

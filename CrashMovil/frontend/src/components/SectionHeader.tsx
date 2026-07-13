@@ -1,76 +1,73 @@
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT, GOLD, GOLD_SOFT } from '../theme';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, GOLD, SHADOWS } from '../theme';
 
 interface SectionHeaderProps {
   title: string;
-  subtitle?: string;
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: string;
   accent?: boolean;
+  action?: React.ReactNode;
+  subtitle?: string;
 }
 
-export default function SectionHeader({
-  title,
-  subtitle,
-  icon,
-  accent,
-}: SectionHeaderProps) {
+export default function SectionHeader({ title, icon, accent = false, action, subtitle }: SectionHeaderProps) {
   return (
-    <View style={styles.wrap}>
-      {icon && (
-        <View style={[styles.iconBox, accent && styles.iconBoxAccent]}>
-          <Ionicons
-            name={icon}
-            size={14}
-            color={accent ? GOLD : COLORS.textDim}
-          />
+    <View style={styles.container}>
+      <View style={styles.left}>
+        {icon && (
+          <View style={[styles.iconBox, accent && styles.iconBoxAccent]}>
+            <Ionicons name={icon} size={16} color={accent ? GOLD : COLORS.textSec} />
+          </View>
+        )}
+        <View>
+          <Text style={[styles.title, accent && styles.titleAccent]}>{title}</Text>
+          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
         </View>
-      )}
-      <View style={styles.textWrap}>
-        <Text style={[styles.title, accent && styles.titleAccent]}>
-          {title}
-        </Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
+      {action}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+  },
+  left: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   iconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(10,10,10,0.85)',
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.glassBg,
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.10)',
+    borderColor: COLORS.glassBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconBoxAccent: {
-    backgroundColor: GOLD_SOFT,
+    backgroundColor: 'rgba(255,215,0,0.12)',
     borderColor: 'rgba(255,215,0,0.2)',
   },
-  textWrap: {
-    flex: 1,
-  },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-    letterSpacing: -0.3,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '900',
+    color: COLORS.textSec,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   titleAccent: {
     color: GOLD,
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: FONT_SIZE.xs,
     color: COLORS.textDim,
     marginTop: 1,
   },
