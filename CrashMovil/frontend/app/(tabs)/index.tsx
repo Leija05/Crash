@@ -22,7 +22,7 @@ import { foregroundService } from '../../src/services/foregroundService';
 import GForceRing from '../../src/components/GForceRing';
 import { LineChart, MultiLineChart, Sparkline } from '../../src/components/Charts';
 import GPSMap from '../../src/components/GPSMap';
-import { DarkSwitch, Slider } from '../../src/components/DarkSwitch';
+import { DarkSwitch } from '../../src/components/DarkSwitch';
 import StickyNotification from '../../src/components/StickyNotification';
 import { haptics } from '../../src/utils/haptics';
 
@@ -63,7 +63,7 @@ function Stagger({ children, index = 0 }: { children: React.ReactNode; index?: n
 
 export default function DashboardScreen() {
   const { t } = useI18n();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const { token } = useAuth();
   const router = useRouter();
   const { alert, confirm } = useAlert();
@@ -352,6 +352,72 @@ export default function DashboardScreen() {
     }
   }, [token, sending, hasEmergencyContacts, router, alertThreshold, confirm, alert, t]);
 
+  const simulateImpact = useCallback(async () => {
+    if (!token || sending || emergencyInFlightRef.current) return;
+
+    const confirmed = await confirm({
+      eyebrow: t('dashboard.alertEyebrow'),
+      title: t('dashboard.simulateTitle'),
+      message: t('dashboard.simulateMessage'),
+      confirmText: t('dashboard.simulateSend'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    if (!hasEmergencyContacts) {
+      const goToContacts = await confirm({
+        title: t('dashboard.noContactsAlert'),
+        message: t('dashboard.noContactsAlertMessage'),
+        confirmText: t('dashboard.goToContacts'),
+        cancelText: t('common.cancel'),
+      });
+      if (goToContacts) router.push('/contacts');
+      return;
+    }
+
+    emergencyInFlightRef.current = true;
+    setSending(true);
+    try {
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await Location.getCurrentPositionAsync({});
+          latitude = pos.coords.latitude;
+          longitude = pos.coords.longitude;
+        }
+      } catch (locErr) {
+        console.warn('No se pudo obtener ubicación actual', locErr);
+      }
+
+      const impact = await impactsAPI.create(token, {
+        acceleration_x: 0,
+        acceleration_y: 0,
+        acceleration_z: 18.5,
+        gyroscope_x: 0,
+        gyroscope_y: 0,
+        gyroscope_z: 0,
+        g_force: 18.5,
+        latitude,
+        longitude,
+        simulated: true,
+      });
+
+      if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error) {
+        alert({ title: t('dashboard.noContactsAlert'), message: t('dashboard.notSentMessage') });
+      }
+      if (impact?.alerts_sent) haptics.success(); else haptics.warning();
+      setAlertResult(impact);
+    } catch (e: any) {
+      alert({ title: t('common.error'), message: e.message || t('errors.generic') });
+    } finally {
+      setSending(false);
+      emergencyInFlightRef.current = false;
+    }
+  }, [token, sending, hasEmergencyContacts, router, confirm, alert, t]);
+
   useEffect(() => {
     if (countdown === null) return;
     if (countdown <= 0) {
@@ -495,6 +561,18 @@ export default function DashboardScreen() {
               <View style={[styles.modeDot, { backgroundColor: liveData ? COLORS.success : COLORS.textDim }]} />
               <Text style={[styles.modeText, { color: liveData ? COLORS.success : COLORS.textDim }]}>{t('dashboard.modeReal')}</Text>
             </View>
+            {isSuperAdmin && (
+              <TouchableOpacity
+                style={[styles.simBadge, sending && { opacity: 0.6 }]}
+                onPress={() => { haptics.medium(); simulateImpact(); }}
+                disabled={sending}
+                activeOpacity={0.7}
+                testID="simulate-impact-btn"
+              >
+                <Ionicons name="flask" size={13} color={GOLD} />
+                <Text style={styles.simText}>{sending ? t('common.sending') : t('dashboard.simulate')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Stagger>
 
@@ -824,6 +902,14 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md, paddingTop: SPACING.sm,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  simBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(217,180,91,0.10)',
+    borderWidth: 1, borderColor: 'rgba(240,216,154,0.35)',
+    ...SHADOWS.glow(GOLD, 0.25, 12),
+  },
+  simText: { fontSize: FONT_SIZE.xs, fontWeight: '900', letterSpacing: 1, color: GOLD },
   greeting: { fontSize: FONT_SIZE.sm, color: COLORS.textSec },
   appName: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 4, marginTop: 1 },
   modePill: {

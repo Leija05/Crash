@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   headerSection: { paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: 6 },
   title: { fontSize: 20, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
   countText: { fontSize: 12, color: COLORS.textSec, marginTop: 4 },
-  list: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: 80 },
+  list: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, paddingBottom: 110 },
   card: {
     flexDirection: 'row', alignItems: 'stretch',
     backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: RADIUS.md,

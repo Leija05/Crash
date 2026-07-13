@@ -16,6 +16,7 @@ type AuthState = {
   token: string | null;
   refreshToken: string | null;
   loading: boolean;
+  isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthState>({
   token: null,
   refreshToken: null,
   loading: true,
+  isSuperAdmin: false,
   login: async () => {},
   register: async () => {},
   logout: async () => {},
@@ -53,10 +55,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     return () => { mountedRef.current = false; };
+  }, []);
+
+  const refreshCheckSuperAdmin = useCallback(async (tok: string | null) => {
+    if (!tok) { setIsSuperAdmin(false); return; }
+    try {
+      const ok = await authAPI.checkSuperAdmin(tok);
+      if (mountedRef.current) setIsSuperAdmin(ok);
+    } catch {
+      if (mountedRef.current) setIsSuperAdmin(false);
+    }
   }, []);
 
   const loadStoredAuth = useCallback(async () => {
@@ -71,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
           setToken(storedToken);
           setRefreshToken(storedRefresh);
+          await refreshCheckSuperAdmin(storedToken);
         }
       }
     } catch {
@@ -80,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [refreshCheckSuperAdmin]);
 
   useEffect(() => { loadStoredAuth(); }, [loadStoredAuth]);
 
@@ -93,9 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);
+    await refreshCheckSuperAdmin(data.access_token);
     // Vincular ubicación actual con la cuenta
     linkPermissionLocationOnLogin(data.access_token);
-  }, []);
+  }, [refreshCheckSuperAdmin]);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const data = await authAPI.register(name, email, password);
@@ -106,19 +121,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);
+    await refreshCheckSuperAdmin(data.access_token);
     // Vincular ubicación actual con la cuenta
     linkPermissionLocationOnLogin(data.access_token);
-  }, []);
+  }, [refreshCheckSuperAdmin]);
 
   const logout = useCallback(async () => {
     await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
     setToken(null);
     setRefreshToken(null);
     setUser(null);
+    setIsSuperAdmin(false);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, refreshToken, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, refreshToken, loading, isSuperAdmin, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,8 +11,9 @@ import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } fr
 import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
-import { profileAPI } from '../../src/services/api';
+import { profileAPI, contactsAPI } from '../../src/services/api';
 import { FloatingActionButton } from '../../src/components/FloatingActionButton';
+import { useEmergencyAlert } from '../../src/hooks/useEmergencyAlert';
 import { haptics } from '../../src/utils/haptics';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -24,6 +25,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasEmergencyContacts, setHasEmergencyContacts] = useState(true);
 
   const [fullName, setFullName] = useState('');
   const [bloodType, setBloodType] = useState('');
@@ -33,6 +35,22 @@ export default function ProfileScreen() {
   const [notes, setNotes] = useState('');
 
   const bloodTypeAnim = useSharedValue(1);
+
+  const { trigger: triggerEmergency, sending: sendingEmergency } = useEmergencyAlert({
+    token,
+    hasEmergencyContacts,
+    alertThreshold: 5,
+    onResult: (impact) => {
+      if (impact?.alerts_sent) {
+        alert({ title: t('dashboard.sentTitle'), message: t('dashboard.sentMessage') });
+      }
+    },
+  });
+
+  const handleEmergency = () => {
+    haptics.heavy();
+    triggerEmergency();
+  };
 
   const fetchData = useCallback(async () => {
     if (!token) return;
@@ -44,6 +62,10 @@ export default function ProfileScreen() {
       setConditionsText((p.medical_conditions || []).join(', '));
       setDisabilitiesText((p.disabilities || []).join(', '));
       setNotes(p.emergency_notes || '');
+      try {
+        const contacts = await contactsAPI.list(token);
+        setHasEmergencyContacts(Array.isArray(contacts) && contacts.length > 0);
+      } catch { /* no bloquea la carga del perfil */ }
     } catch (e) { console.error(e); }
     finally { setLoading(false); setRefreshing(false); }
   }, [token]);
@@ -155,10 +177,12 @@ export default function ProfileScreen() {
       
       <FloatingActionButton
         icon="medkit"
-        label={t('profile.emergencyAction')}
-        onPress={() => {}}
+        label={sendingEmergency ? t('common.sending') : t('profile.emergencyAction')}
+        onPress={handleEmergency}
         variant="danger"
         position="bottom-center"
+        disabled={sendingEmergency}
+        style={styles.fabProfile}
       />
     </SafeAreaView>
   );
@@ -181,6 +205,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,215,0,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 100 },
+  fabProfile: {
+    position: 'absolute',
+    bottom: 102,
+    alignSelf: 'center',
+    zIndex: 50,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: { marginBottom: SPACING.md },
   title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },

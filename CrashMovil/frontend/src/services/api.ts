@@ -73,6 +73,10 @@ export const authAPI = {
     apiRequest('/auth/link-company', { method: 'POST', body: { token: companyToken }, token }),
   driverCompany: (token: string) =>
     apiRequest('/auth/driver-company', { token }),
+  checkSuperAdmin: (token: string) =>
+    apiRequest('/auth/superadmin/check', { token })
+      .then(() => true)
+      .catch(() => false),
 };
 
 export const profileAPI = {

@@ -106,6 +106,7 @@ async def create_impact(user: dict, body) -> dict:
         "location": {"latitude": body.latitude, "longitude": body.longitude} if body.latitude else None,
         "ai_diagnosis": None,
         "alerts_sent": False,
+        "simulated": bool(getattr(body, "simulated", False) or False),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.impact_events.insert_one(impact_doc)

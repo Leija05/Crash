@@ -19,7 +19,7 @@ import SectionHeader from '../../src/components/SectionHeader';
 import GlassCard from '../../src/components/GlassCard';
 import GlassButton from '../../src/components/GlassButton';
 import PremiumModal from '../../src/components/PremiumModal';
-import { DarkSwitch, Slider } from '../../src/components/DarkSwitch';
+import { DarkSwitch } from '../../src/components/DarkSwitch';
 
 export default function SettingsScreen() {
   const { t, locale, setLocale } = useI18n();

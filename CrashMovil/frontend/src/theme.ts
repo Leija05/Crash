@@ -8,7 +8,7 @@ export const GOLD_SOFT = 'rgba(217,180,91,0.10)';
 export const GOLD_STRONG = 'rgba(217,180,91,0.20)';
 export const GOLD_GLASS = 'rgba(217,180,91,0.06)';
 export const GOLD_HAIRLINE = 'rgba(240,216,154,0.20)';
-export const GOLD_GRADIENT = ['#F3DEA6', '#E0BE6E', '#C29A3E', '#8C6824'];
+export const GOLD_GRADIENT = ['#F3DEA6', '#E0BE6E', '#C29A3E', '#8C6824'] as const;
 export const GOLD_GRADIENT_VERTICAL = {
   start: { x: 0, y: 0 },
   end: { x: 0, y: 1 },

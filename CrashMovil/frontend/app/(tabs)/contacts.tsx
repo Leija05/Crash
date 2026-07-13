@@ -13,7 +13,6 @@ import { useI18n } from '../../src/i18n';
 import { contactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import GlassCard from '../../src/components/GlassCard';
-import { FloatingActionButton } from '../../src/components/FloatingActionButton';
 import { haptics } from '../../src/utils/haptics';
 
 export default function ContactsScreen() {

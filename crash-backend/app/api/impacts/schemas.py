@@ -13,3 +13,4 @@ class ImpactInput(BaseModel):
     speed_kmh: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    simulated: Optional[bool] = False
