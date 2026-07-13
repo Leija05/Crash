@@ -71,5 +71,8 @@ class Settings:
     MAX_UPLOAD_SIZE_MB: int = int(os.environ.get("MAX_UPLOAD_SIZE_MB", "500"))
     ALLOWED_EXTENSIONS: list[str] = [".apk"]
 
+    # Secreto para validar webhooks de EAS Build (opcional pero recomendado)
+    EAS_WEBHOOK_SECRET: str = os.environ.get("EAS_WEBHOOK_SECRET", "")
+
 
 settings = Settings()

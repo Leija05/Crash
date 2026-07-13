@@ -1,21 +1,23 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Switch,
+  KeyboardAvoidingView, Platform, Switch, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp, withSpring, withTiming, Easing, useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, GOLD_HAIRLINE, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
-import { settingsAPI, authAPI } from '../../src/services/api';
+import { settingsAPI, authAPI, versionsAPI, API_BASE } from '../../src/services/api';
 import SectionHeader from '../../src/components/SectionHeader';
 import GlassCard from '../../src/components/GlassCard';
+import GlassButton from '../../src/components/GlassButton';
 import PremiumModal from '../../src/components/PremiumModal';
 import { DarkSwitch, Slider } from '../../src/components/DarkSwitch';
 
@@ -65,7 +67,7 @@ export default function SettingsScreen() {
     finally { setLoading(false); }
   }, [token]);
 
-  useFocusEffect(useCallback(() => { fetchData(); fetchCompany(); }, [fetchData, fetchCompany]));
+  useFocusEffect(useCallback(() => { fetchData(); fetchCompany(); checkForUpdate(); }, [fetchData, fetchCompany]));
 
   const linkCompany = async () => {
     if (!token) return;
@@ -126,6 +128,48 @@ export default function SettingsScreen() {
   };
 
   const [logoutOpen, setLogoutOpen] = useState(false);
+
+  const localVersion = Constants.expoConfig?.version || (Constants as any).manifest?.version || '0.0.0';
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'uptodate' | 'available' | 'error'>('idle');
+  const [updateNotes, setUpdateNotes] = useState('');
+  const [updateUrl, setUpdateUrl] = useState('');
+  const [updateMandatory, setUpdateMandatory] = useState(false);
+
+  const versionTuple = (v?: string) => ((v || '').match(/\d+/g) || []).map(Number);
+  const isNewer = (remote?: string, local?: string) => {
+    const a = versionTuple(remote);
+    const b = versionTuple(local);
+    const len = Math.max(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+      const x = a[i] || 0;
+      const y = b[i] || 0;
+      if (x > y) return true;
+      if (x < y) return false;
+    }
+    return false;
+  };
+
+  const checkForUpdate = async () => {
+    setUpdateStatus('checking');
+    try {
+      const data = await versionsAPI.latest('android');
+      if (!data?.version) { setUpdateStatus('error'); return; }
+      setLatestVersion(data.version);
+      setUpdateNotes(data.notes || '');
+      setUpdateUrl(data.download_url || '');
+      setUpdateMandatory(!!data.mandatory);
+      setUpdateStatus(isNewer(data.version, localVersion) ? 'available' : 'uptodate');
+    } catch {
+      setUpdateStatus('error');
+    }
+  };
+
+  const openUpdate = () => {
+    if (!updateUrl) return;
+    const url = updateUrl.startsWith('/') ? `${API_BASE}${updateUrl}` : updateUrl;
+    Linking.openURL(url).catch(() => {});
+  };
 
   const doLogout = async () => {
     setLogoutOpen(false);
@@ -344,6 +388,74 @@ export default function SettingsScreen() {
             </GlassCard>
           </Animated.View>
 
+          <Animated.View
+            entering={FadeInUp.duration(500).delay(520).springify().damping(26).stiffness(200)}
+            style={{ marginBottom: SPACING.md }}
+          >
+            <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
+              <SectionHeader title={t('settings.updateSection')} icon="cloud-download" accent />
+              <View style={styles.updateRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.updateLabel}>{t('settings.updateCurrent')}</Text>
+                  <Text style={styles.updateValue}>v{localVersion}</Text>
+                </View>
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <Text style={styles.updateLabel}>{t('settings.updateLatest')}</Text>
+                  <Text style={[styles.updateValue, { color: updateStatus === 'available' ? GOLD : COLORS.text }]}>
+                    {latestVersion ? `v${latestVersion}` : updateStatus === 'checking' ? '...' : '—'}
+                  </Text>
+                </View>
+              </View>
+
+              {updateStatus === 'uptodate' && (
+                <View style={[styles.updateStatusBox, { borderColor: 'rgba(52,199,89,0.25)', backgroundColor: 'rgba(52,199,89,0.08)' }]}>
+                  <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                  <Text style={[styles.updateStatusText, { color: COLORS.success }]}>{t('settings.updateUpToDate')}</Text>
+                </View>
+              )}
+              {updateStatus === 'available' && (
+                <View style={[styles.updateStatusBox, { borderColor: GOLD_HAIRLINE, backgroundColor: 'rgba(200,162,60,0.08)' }]}>
+                  <Ionicons name="arrow-up-circle" size={16} color={GOLD} />
+                  <Text style={[styles.updateStatusText, { color: GOLD }]}>{t('settings.updateAvailable')}</Text>
+                </View>
+              )}
+              {updateStatus === 'error' && (
+                <View style={[styles.updateStatusBox, { borderColor: 'rgba(255,59,48,0.25)', backgroundColor: 'rgba(255,59,48,0.08)' }]}>
+                  <Ionicons name="alert-circle" size={16} color={COLORS.danger} />
+                  <Text style={[styles.updateStatusText, { color: COLORS.danger }]}>{t('settings.updateError')}</Text>
+                </View>
+              )}
+
+              {updateStatus === 'available' && updateNotes ? (
+                <View style={styles.updateNotesBox}>
+                  <Text style={styles.updateNotesLabel}>{t('settings.updateNotes')}</Text>
+                  <Text style={styles.updateNotesText}>{updateNotes}</Text>
+                </View>
+              ) : null}
+
+              <GlassButton
+                title={updateStatus === 'checking' ? t('settings.updateChecking') : t('settings.updateCheck')}
+                onPress={checkForUpdate}
+                variant="ghost"
+                icon="refresh"
+                size="md"
+                loading={updateStatus === 'checking'}
+                disabled={updateStatus === 'checking'}
+                style={{ marginTop: 14 }}
+              />
+              {updateStatus === 'available' ? (
+                <GlassButton
+                  title={t('settings.updateNow')}
+                  onPress={openUpdate}
+                  variant="accent"
+                  icon="download-outline"
+                  size="md"
+                  style={{ marginTop: 8 }}
+                />
+              ) : null}
+            </GlassCard>
+          </Animated.View>
+
           <TouchableOpacity testID="logout-btn" style={styles.logoutBtn} onPress={() => setLogoutOpen(true)}>
             <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
             <Text style={styles.logoutText}>{t('settings.logout')}</Text>
@@ -437,4 +549,12 @@ const styles = StyleSheet.create({
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: 'rgba(255,59,48,0.10)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)', marginTop: 8 },
   logoutText: { fontSize: FONT_SIZE.md, color: COLORS.danger, fontWeight: '700' },
   version: { textAlign: 'center', color: COLORS.textDim, fontSize: FONT_SIZE.xs, marginTop: 12 },
+  updateRow: { flexDirection: 'row', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(200,162,60,0.10)', marginBottom: SPACING.md },
+  updateLabel: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: COLORS.textSec, letterSpacing: 2, marginBottom: 4, textTransform: 'uppercase' },
+  updateValue: { fontSize: FONT_SIZE.lg, fontWeight: '900', color: COLORS.text, letterSpacing: 1 },
+  updateStatusBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 12, borderRadius: RADIUS.md, borderWidth: 1, marginTop: 12 },
+  updateStatusText: { fontSize: FONT_SIZE.sm, fontWeight: '800', letterSpacing: 0.5, flex: 1 },
+  updateNotesBox: { marginTop: 12, padding: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, backgroundColor: COLORS.glassBg },
+  updateNotesLabel: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
+  updateNotesText: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, lineHeight: 18 },
 });

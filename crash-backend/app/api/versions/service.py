@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import uuid
+import httpx
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, UploadFile
@@ -142,3 +143,87 @@ async def get_latest_version(platform: str = "android") -> dict:
         return {}
     latest = max(published, key=lambda d: _version_tuple(d.get("version", "0")))
     return latest
+
+
+async def _download_and_store_apk(artifact_url: str, version: str) -> str:
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.apk"
+    filepath = os.path.join(settings.UPLOAD_DIR, filename)
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    downloaded = 0
+    async with httpx.AsyncClient(timeout=300, follow_redirects=True) as client:
+        async with client.stream("GET", artifact_url) as resp:
+            resp.raise_for_status()
+            with open(filepath, "wb") as f:
+                async for chunk in resp.aiter_bytes(chunk_size=1024 * 256):
+                    downloaded += len(chunk)
+                    if downloaded > max_bytes:
+                        f.close()
+                        os.remove(filepath)
+                        raise HTTPException(400, "El APK excede el tamaño máximo permitido")
+                    f.write(chunk)
+    logger.info("APK de EAS descargado: %s (%s MB, v%s)", filename, round(downloaded / (1024 * 1024), 2), version)
+    return f"/uploads/versions/{filename}"
+
+
+async def ingest_eas_build(payload: dict) -> dict:
+    """Procesa el evento de EAS Build y registra/actualiza la versión en la BD.
+
+    Diseñado para usarse como webhook de EAS Build. Crea la versión como borrador
+    (published=False) para que el superadmin la revise, edite la descripción y la publique.
+    """
+    data = (payload or {}).get("data") or {}
+    if data.get("status") != "finished":
+        return {"ok": True, "ignored": "not_finished", "status": data.get("status")}
+    platform = (data.get("platform") or "android").strip().lower()
+    if platform != "android":
+        return {"ok": True, "ignored": "platform", "platform": platform}
+    profile = (data.get("buildProfile") or data.get("profile") or "").strip().lower()
+    if profile not in ("preview", "production"):
+        return {"ok": True, "ignored": "profile", "profile": profile}
+
+    metadata = data.get("metadata") or {}
+    version = _clean_str(
+        data.get("appVersion") or data.get("version") or (metadata.get("appVersion") if isinstance(metadata, dict) else ""),
+        20,
+    )
+    if not version or not _VERSION_RE.match(version):
+        return {"ok": False, "error": "version_invalid", "raw": data.get("appVersion")}
+
+    artifacts = data.get("artifacts") or {}
+    artifact_url = artifacts.get("application") or artifacts.get("apk") or data.get("artifactUrl")
+    if not artifact_url:
+        return {"ok": False, "error": "no_artifact"}
+
+    download_url = await _download_and_store_apk(artifact_url, version)
+
+    notes = _clean_str(metadata.get("notes") if isinstance(metadata, dict) else "") or ""
+    build_id = _clean_str(data.get("buildId") or data.get("id"))
+    update_notes = _clean_str(data.get("updateNotes") or "")
+
+    db = await get_db()
+    existing = await db.app_versions.find_one({"version": version, "platform": platform})
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "version": version,
+        "platform": platform,
+        "download_url": download_url,
+        "notes": notes or update_notes,
+        "mandatory": bool(existing.get("mandatory", False)) if existing else False,
+        "published": False,
+        "size_mb": existing.get("size_mb") if existing else None,
+        "eas_build_id": build_id,
+        "updated_at": now,
+        "published_at": None,
+    }
+
+    if existing:
+        await db.app_versions.update_one({"id": existing.get("id")}, {"$set": doc})
+        doc["id"] = existing.get("id")
+        logger.info("Versión EAS actualizada: %s (%s)", version, platform)
+        return _serialize(doc)
+
+    doc.update({"id": uuid.uuid4().hex, "created_at": now})
+    await db.app_versions.insert_one(dict(doc))
+    logger.info("Versión EAS registrada: %s (%s)", version, platform)
+    return _serialize(doc)

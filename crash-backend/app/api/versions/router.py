@@ -1,6 +1,7 @@
 import os
+import secrets
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Query, UploadFile, Request, Header
 from starlette.responses import FileResponse, RedirectResponse
 
 from app.api.versions.service import (
@@ -11,11 +12,32 @@ from app.api.versions.service import (
     get_latest_version,
     upload_apk,
     get_version_download_url,
+    ingest_eas_build,
 )
 from app.core.config import settings
 from app.core.security import get_current_superadmin
 
 router = APIRouter(prefix="/versions", tags=["versions"])
+
+
+@router.post("/eas-webhook")
+async def versions_eas_webhook(
+    payload: dict,
+    request: Request,
+    x_eas_secret: str = Header(None),
+):
+    """Webhook de EAS Build. Registra la versión en la BD al terminar el build.
+
+    Protegido opcionalmente por EAS_WEBHOOK_SECRET (header x-eas-secret o ?secret=).
+    """
+    secret = settings.EAS_WEBHOOK_SECRET
+    if secret:
+        provided = x_eas_secret or request.query_params.get("secret") or ""
+        if not provided or not secrets.compare_digest(provided, secret):
+            from fastapi import HTTPException
+            raise HTTPException(401, "Webhook no autorizado")
+    result = await ingest_eas_build(payload)
+    return result
 
 
 @router.get("/latest")

@@ -1518,6 +1518,9 @@ function VersionsTab() {
   const [error, setError] = useState("");
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState({ notes: "", mandatory: false, published: false });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     try { const { data } = await versionsAPI.list(); setList(data || []); } catch {}
@@ -1566,6 +1569,23 @@ function VersionsTab() {
     catch (e) { err(e); }
     setDeleting(false);
   }, [pendingDelete, load]);
+
+  const openEdit = useCallback((v) => {
+    setEditing(v);
+    setEditForm({ notes: v.notes || "", mandatory: !!v.mandatory, published: !!v.published });
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    try {
+      await versionsAPI.update(editing.id, { notes: editForm.notes, mandatory: editForm.mandatory, published: editForm.published });
+      setEditing(null);
+      load();
+      ok(editForm.published ? "Versión publicada" : "Versión guardada");
+    } catch (e) { err(e); }
+    setSavingEdit(false);
+  }, [editing, editForm, load]);
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>;
 
@@ -1628,6 +1648,7 @@ function VersionsTab() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
+              <button onClick={() => openEdit(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all" title="Editar descripción">{v.published ? "Editar" : "Revisar"}</button>
               <button onClick={() => toggleMandatory(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all" title="Obligatoria">{v.mandatory ? "Opcional" : "Obligar"}</button>
               <button onClick={() => togglePublish(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all">{v.published ? "Ocultar" : "Publicar"}</button>
               <button onClick={() => setPendingDelete({ id: v.id, version: v.version })} className="h-8 w-8 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
@@ -1647,6 +1668,49 @@ function VersionsTab() {
         busy={deleting}
         testId="confirm-delete-version"
       />
+
+      <PremiumModal
+        visible={!!editing}
+        onClose={() => !savingEdit && setEditing(null)}
+        title={editing ? `Versión v${editing.version}` : "Editar versión"}
+        eyebrow="SuperAdmin · Versiones"
+        closeOnBackdrop={!savingEdit}
+        footer={
+          <>
+            <button onClick={() => setEditing(null)} disabled={savingEdit} className="flex-1 rounded-xl border border-white/10 hover:bg-white/5 px-4 py-3 text-sm font-semibold text-neutral-300 transition-all disabled:opacity-50">Cancelar</button>
+            <button onClick={saveEdit} disabled={savingEdit} className="flex-[1.4] rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold px-4 py-3 text-sm transition-all flex items-center justify-center gap-2">
+              {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {editForm.published ? "Publicar" : "Guardar borrador"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4 w-full">
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500 mb-1">Novedades / descripción</label>
+            <textarea
+              value={editForm.notes}
+              onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+              placeholder="Describe qué hay de nuevo en esta versión..."
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none resize-none"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer py-1">
+            <input type="checkbox" checked={editForm.published} onChange={(e) => setEditForm((f) => ({ ...f, published: e.target.checked }))} className="accent-emerald-500 flex-shrink-0" />
+            <span>Publicar (visible en la web y notifica a la app)</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer py-1">
+            <input type="checkbox" checked={editForm.mandatory} onChange={(e) => setEditForm((f) => ({ ...f, mandatory: e.target.checked }))} className="accent-amber-500 flex-shrink-0" />
+            <span>Marcar como actualización obligatoria</span>
+          </label>
+          {editing?.download_url && (
+            <button onClick={() => window.open(`${api.defaults.baseURL}/versions/${editing.id}/download`, "_blank")} className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200">
+              <Download className="h-3 w-3" /> Probar descarga ({editing.download_url.startsWith("/uploads/") ? editing.download_url.split("/").pop() : "enlace externo"})
+            </button>
+          )}
+        </div>
+      </PremiumModal>
     </div>
   );
 }
