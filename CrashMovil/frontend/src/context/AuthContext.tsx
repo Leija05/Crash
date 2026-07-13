@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
           setToken(storedToken);
           setRefreshToken(storedRefresh);
-          await refreshCheckSuperAdmin(storedToken);
+          setIsSuperAdmin(!!userData?.is_root || (await authAPI.checkSuperAdmin(storedToken)));
         }
       }
     } catch {
@@ -106,11 +106,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ]);
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
-    setUser(data.user);
-    await refreshCheckSuperAdmin(data.access_token);
+    const me = await authAPI.me(data.access_token).catch(() => data.user);
+    setUser(me);
+    setIsSuperAdmin(!!(me as any)?.is_root || (await authAPI.checkSuperAdmin(data.access_token)));
     // Vincular ubicación actual con la cuenta
     linkPermissionLocationOnLogin(data.access_token);
-  }, [refreshCheckSuperAdmin]);
+  }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     const data = await authAPI.register(name, email, password);
@@ -120,11 +121,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ]);
     setToken(data.access_token);
     setRefreshToken(data.refresh_token);
-    setUser(data.user);
-    await refreshCheckSuperAdmin(data.access_token);
+    const me = await authAPI.me(data.access_token).catch(() => data.user);
+    setUser(me);
+    setIsSuperAdmin(!!(me as any)?.is_root || (await authAPI.checkSuperAdmin(data.access_token)));
     // Vincular ubicación actual con la cuenta
     linkPermissionLocationOnLogin(data.access_token);
-  }, [refreshCheckSuperAdmin]);
+  }, []);
 
   const logout = useCallback(async () => {
     await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
