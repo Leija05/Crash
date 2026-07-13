@@ -3,9 +3,10 @@ import { memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, FONT, GOLD } from '../../src/theme';
+import { COLORS, RADIUS, SHADOWS, FONT, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 import { haptics } from '../../src/utils/haptics';
@@ -17,7 +18,7 @@ function AnimatedTabIcon({ name, color, size, focused, highlight }: { name: any;
 
   if (focused) {
     scale.value = withSequence(
-      withSpring(1.15, { stiffness: 400, damping: 8 }),
+      withSpring(1.18, { stiffness: 400, damping: 8 }),
       withSpring(1, { stiffness: 300, damping: 15 })
     );
   }
@@ -28,18 +29,30 @@ function AnimatedTabIcon({ name, color, size, focused, highlight }: { name: any;
 
   return (
     <View style={styles.iconOuter}>
-      <View style={[styles.iconDot, focused && styles.iconDotActive]} />
       <Animated.View
         entering={FadeIn.duration(300)}
         style={[
           styles.iconWrap,
           highlight && !focused && styles.iconWrapHighlight,
-          focused && styles.iconWrapActive,
+          focused && styles.iconPillActive,
           animatedStyle,
         ]}
       >
-        <AnimatedIonicon name={name} size={size - 2} color={color} />
+        {focused && (
+          <LinearGradient
+            colors={GOLD_GRADIENT}
+            start={GOLD_GRADIENT_DIAGONAL.start}
+            end={GOLD_GRADIENT_DIAGONAL.end}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+        <AnimatedIonicon
+          name={name}
+          size={size - 2}
+          color={focused ? '#1A1206' : color}
+        />
       </Animated.View>
+      <View style={[styles.iconDot, focused && styles.iconDotActive]} />
     </View>
   );
 }
@@ -51,7 +64,7 @@ function HomeIcon({ color, size, focused }: { color: string; size: number; focus
 
   if (focused) {
     scale.value = withSequence(
-      withSpring(1.2, { stiffness: 400, damping: 8 }),
+      withSpring(1.22, { stiffness: 400, damping: 8 }),
       withSpring(1, { stiffness: 300, damping: 15 })
     );
   }
@@ -62,13 +75,21 @@ function HomeIcon({ color, size, focused }: { color: string; size: number; focus
 
   return (
     <View style={styles.iconOuter}>
-      <View style={[styles.iconDot, focused && styles.iconDotActive]} />
       <Animated.View
         entering={FadeIn.duration(300)}
-        style={[styles.iconWrap, focused && [styles.iconWrapActive, { backgroundColor: 'rgba(255,215,0,0.15)' }], animatedStyle]}
+        style={[styles.iconWrap, focused && styles.iconPillActive, animatedStyle]}
       >
-        <AnimatedIonicon name="flash" size={size - 2} color={focused ? GOLD : color} />
+        {focused && (
+          <LinearGradient
+            colors={GOLD_GRADIENT}
+            start={GOLD_GRADIENT_DIAGONAL.start}
+            end={GOLD_GRADIENT_DIAGONAL.end}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+        <AnimatedIonicon name="flash" size={size - 2} color={focused ? '#1A1206' : color} />
       </Animated.View>
+      <View style={[styles.iconDot, focused && styles.iconDotActive]} />
     </View>
   );
 }
@@ -78,13 +99,26 @@ const MemoHomeIcon = memo(HomeIcon);
 function TabBarBackground() {
   return (
     <View style={styles.bgWrap} pointerEvents="none">
-      <BlurView
-        intensity={Platform.OS === 'ios' ? 40 : 28}
-        tint="dark"
+      <LinearGradient
+        colors={['rgba(240,216,154,0.55)', 'rgba(200,154,62,0.30)', 'rgba(140,104,36,0.18)']}
+        start={GOLD_GRADIENT_DIAGONAL.start}
+        end={GOLD_GRADIENT_DIAGONAL.end}
         style={StyleSheet.absoluteFill}
       />
-      <View style={styles.bgTint} />
-      <View style={styles.bgHighlight} />
+      <View style={styles.bgInner}>
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 46 : 30}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.bgTint} />
+        <LinearGradient
+          colors={['rgba(240,216,154,0.30)', 'rgba(240,216,154,0)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.bgHighlight}
+        />
+      </View>
     </View>
   );
 }
@@ -96,17 +130,17 @@ export default function TabLayout() {
 
   if (!loading && !token) return <Redirect href="/login" />;
 
-  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 16 : 10);
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 14 : 10);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: [styles.tabBar, { bottom: bottomInset }],
+        tabBarStyle: [styles.tabBar, { bottom: bottomInset, height: 78 + bottomInset }],
         tabBarActiveTintColor: GOLD,
         tabBarInactiveTintColor: COLORS.textDim,
         tabBarLabelStyle: styles.tabLabel,
-        tabBarItemStyle: { paddingTop: 4 },
+        tabBarItemStyle: { paddingTop: 6 },
         tabBarBackground: () => <TabBarBackground />,
       }}
       screenListeners={{
@@ -125,41 +159,45 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    left: 14,
-    right: 14,
+    left: 12,
+    right: 12,
     backgroundColor: 'transparent',
     borderTopWidth: 0,
-    borderRadius: RADIUS.xl,
-    height: 62,
-    paddingBottom: 6,
-    paddingTop: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(230,200,120,0.16)',
-    ...SHADOWS.lg,
+    borderRadius: RADIUS.xxl,
+    borderWidth: 0,
+    paddingTop: 2,
+    paddingBottom: 0,
+    ...SHADOWS.xl,
   },
   bgWrap: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.xxl,
+    overflow: 'hidden',
+    padding: 1.2,
+  },
+  bgInner: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: RADIUS.xxl - 1.2,
     overflow: 'hidden',
   },
   bgTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,10,10,0.55)',
+    backgroundColor: 'rgba(8,8,8,0.62)',
   },
   bgHighlight: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(230,200,120,0.25)',
+    left: 18,
+    right: 18,
+    height: 1.5,
+    borderRadius: 1,
   },
   tabLabel: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontFamily: FONT.medium,
     fontWeight: '700',
-    letterSpacing: 0.8,
-    marginTop: 1,
+    letterSpacing: 0.9,
+    marginTop: 3,
     textTransform: 'uppercase',
   },
   iconOuter: {
@@ -167,29 +205,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: 'transparent',
-    marginBottom: 3,
+    marginTop: 4,
   },
   iconDotActive: {
     backgroundColor: GOLD,
-    ...SHADOWS.glow(GOLD),
+    ...SHADOWS.glow(GOLD, 0.45, 8),
   },
   iconWrap: {
-    width: 34,
-    height: 22,
+    width: 48,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
   },
-  iconWrapActive: {
-    backgroundColor: 'rgba(255,215,0,0.10)',
+  iconPillActive: {
+    ...SHADOWS.glow(GOLD, 0.5, 16),
   },
   iconWrapHighlight: {
-    backgroundColor: 'rgba(200,162,60,0.10)',
+    backgroundColor: 'rgba(217,180,91,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(230,200,120,0.22)',
+    borderColor: 'rgba(240,216,154,0.28)',
   },
 });

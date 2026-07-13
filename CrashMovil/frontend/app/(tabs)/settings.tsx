@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   header: { marginBottom: SPACING.md },
   title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
   subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 4 },
-  deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)', marginBottom: SPACING.md },
+  deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(217,180,91,0.10)', marginBottom: SPACING.md },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
   statusDevice: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },

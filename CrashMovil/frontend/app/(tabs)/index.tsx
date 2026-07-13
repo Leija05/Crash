@@ -817,7 +817,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     backgroundColor: 'rgba(255,215,0,0.03)',
   },
-  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 20 },
+  scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 90 },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

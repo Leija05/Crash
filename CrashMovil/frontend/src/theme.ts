@@ -1,17 +1,21 @@
 import { Platform } from 'react-native';
 
-export const GOLD = '#C8A23C';
-export const GOLD_LIGHT = '#E6C878';
-export const GOLD_DARK = '#9C7521';
+export const GOLD = '#D9B45B';
+export const GOLD_LIGHT = '#F0D89A';
+export const GOLD_DARK = '#A87E2E';
 export const GOLD_DEEP = '#6E5214';
-export const GOLD_SOFT = 'rgba(200,162,60,0.10)';
-export const GOLD_STRONG = 'rgba(200,162,60,0.20)';
-export const GOLD_GLASS = 'rgba(200,162,60,0.06)';
-export const GOLD_HAIRLINE = 'rgba(230,200,120,0.22)';
-export const GOLD_GRADIENT = ['#E9CD82', '#C8A23C', '#9C7521'];
+export const GOLD_SOFT = 'rgba(217,180,91,0.10)';
+export const GOLD_STRONG = 'rgba(217,180,91,0.20)';
+export const GOLD_GLASS = 'rgba(217,180,91,0.06)';
+export const GOLD_HAIRLINE = 'rgba(240,216,154,0.20)';
+export const GOLD_GRADIENT = ['#F3DEA6', '#E0BE6E', '#C29A3E', '#8C6824'];
 export const GOLD_GRADIENT_VERTICAL = {
   start: { x: 0, y: 0 },
   end: { x: 0, y: 1 },
+};
+export const GOLD_GRADIENT_DIAGONAL = {
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 1 },
 };
 
 export const COLORS = {
@@ -20,9 +24,9 @@ export const COLORS = {
   surface: '#0D0D0D',
   surfaceAlt: '#111111',
   elevated: '#1A1A1A',
-  border: 'rgba(200,162,60,0.12)',
-  borderStrong: 'rgba(200,162,60,0.22)',
-  hairline: 'rgba(230,200,120,0.22)',
+  border: 'rgba(217,180,91,0.12)',
+  borderStrong: 'rgba(217,180,91,0.22)',
+  hairline: 'rgba(240,216,154,0.22)',
   text: '#FFFFFF',
   textSec: '#D8D2C4',
   textDim: '#8C8674',
@@ -41,9 +45,9 @@ export const COLORS = {
   cardBg: '#0D0D0D',
   overlay: 'rgba(0,0,0,0.85)',
   glassBg: 'rgba(10,10,10,0.85)',
-  glassBorder: 'rgba(200,162,60,0.10)',
+  glassBorder: 'rgba(217,180,91,0.10)',
   glassBgStrong: 'rgba(18,16,10,0.95)',
-  glassBorderStrong: 'rgba(200,162,60,0.18)',
+  glassBorderStrong: 'rgba(217,180,91,0.18)',
   sevGreen: '#34C759',
   sevYellow: '#FFD700',
   sevOrange: '#FF9500',
