@@ -1,5 +1,7 @@
 import os
 import secrets
+import hashlib
+import hmac
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile, Request, Header
 from starlette.responses import FileResponse, RedirectResponse
@@ -22,20 +24,40 @@ router = APIRouter(prefix="/versions", tags=["versions"])
 
 @router.post("/eas-webhook")
 async def versions_eas_webhook(
-    payload: dict,
     request: Request,
     x_eas_secret: str = Header(None),
+    expo_signature: str = Header(None),
 ):
     """Webhook de EAS Build. Registra la versión en la BD al terminar el build.
 
-    Protegido opcionalmente por EAS_WEBHOOK_SECRET (header x-eas-secret o ?secret=).
+    EAS firma el cuerpo con HMAC-SHA256 usando el secreto del webhook y lo envía
+    en la cabecera 'Expo-Signature'. También acepta el secreto en crudo vía
+    cabecera 'x-eas-secret' o query param '?secret=' para pruebas manuales.
     """
     secret = settings.EAS_WEBHOOK_SECRET
+    raw_body = await request.body()
+
     if secret:
+        authorized = False
         provided = x_eas_secret or request.query_params.get("secret") or ""
-        if not provided or not secrets.compare_digest(provided, secret):
+        if provided and secrets.compare_digest(provided, secret):
+            authorized = True
+        if not authorized and expo_signature:
+            expected = hmac.new(
+                secret.encode("utf-8"), raw_body, hashlib.sha256
+            ).hexdigest()
+            if secrets.compare_digest(expo_signature, expected):
+                authorized = True
+        if not authorized:
             from fastapi import HTTPException
             raise HTTPException(401, "Webhook no autorizado")
+
+    try:
+        payload = await request.json()
+    except Exception:
+        from fastapi import HTTPException
+        raise HTTPException(400, "Payload inválido")
+
     result = await ingest_eas_build(payload)
     return result
 
