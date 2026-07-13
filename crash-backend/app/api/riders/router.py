@@ -11,6 +11,7 @@ from app.api.riders.service import (
     get_settings,
     update_profile,
     update_settings,
+    verify_contact,
 )
 from app.core.database import get_db
 from app.core.security import get_current_rider
@@ -67,6 +68,14 @@ async def remove_contact(contact_id: str, user: dict = Depends(get_current_rider
     if not deleted:
         raise HTTPException(status_code=404, detail="Contacto no encontrado")
     return {"message": "Contacto eliminado"}
+
+
+@router.patch("/contacts/{contact_id}/verify")
+async def verify_contact_endpoint(contact_id: str, user: dict = Depends(get_current_rider)):
+    result = await verify_contact(user["id"], contact_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Contacto no encontrado")
+    return result
 
 
 @router.get("/settings")

@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList,
-  RefreshControl, ActivityIndicator, Modal, KeyboardAvoidingView, Platform,
+  RefreshControl, ActivityIndicator, Modal, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +18,7 @@ import { haptics } from '../../src/utils/haptics';
 export default function ContactsScreen() {
   const { t } = useI18n();
   const { token } = useAuth();
-  const { alert } = useAlert();
+  const { alert, confirm } = useAlert();
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,6 +70,43 @@ export default function ContactsScreen() {
     }
   };
 
+  const toWhatsappPhone = (raw: string): string => {
+    let digits = (raw || '').replace(/\D/g, '');
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (digits.startsWith('521')) digits = '52' + digits.slice(3);
+    if (digits.length === 10) digits = '52' + digits;
+    return digits;
+  };
+
+  const verifyContact = async (contact: any) => {
+    if (!token) return;
+    const phone = toWhatsappPhone(contact.phone);
+    const waUrl = `whatsapp://send?phone=${phone}`;
+    const opened = await Linking.canOpenURL(waUrl).then((ok) => (ok ? Linking.openURL(waUrl) : Promise.resolve())).then(() => true).catch(() => false);
+    haptics.medium();
+    const confirmed = await confirm({
+      title: t('contacts.verifyTitle'),
+      message: t('contacts.verifyConfirm', { phone: contact.phone }),
+      confirmText: t('contacts.verifyConfirmBtn'),
+      cancelText: t('common.cancel'),
+    });
+    if (!confirmed) return;
+    try {
+      const updated = await contactsAPI.verify(token, contact.id);
+      setContacts((prev) => prev.map((c) => (c.id === contact.id ? { ...c, ...updated } : c)));
+      if (updated?.verified) {
+        haptics.success();
+        alert({ title: t('contacts.verifiedTitle'), message: t('contacts.verifiedMessage', { name: contact.name }) });
+      } else {
+        haptics.warning();
+        alert({ title: t('contacts.notVerifiedTitle'), message: t('contacts.notVerifiedMessage', { phone: contact.phone }) });
+      }
+    } catch (e: any) {
+      haptics.error();
+      alert({ title: t('common.error'), message: e.message || t('contacts.verifyError') });
+    }
+  };
+
   const filteredContacts = contacts.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.phone.includes(searchQuery)
@@ -87,10 +124,22 @@ export default function ContactsScreen() {
           {item.relationship ? <Text style={styles.cardRel}>{item.relationship}</Text> : null}
         </View>
         <View style={styles.cardActions}>
-          <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
-            <Text style={styles.verifiedText}>{t('contacts.active')}</Text>
-          </View>
+          {item.verified ? (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={12} color={COLORS.success} />
+              <Text style={styles.verifiedText}>{t('contacts.active')}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              testID={`verify-contact-${item.id}-btn`}
+              style={styles.verifyBtn}
+              onPress={() => verifyContact(item)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="logo-whatsapp" size={14} color={GOLD} />
+              <Text style={styles.verifyText}>{t('contacts.verify')}</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             testID={`delete-contact-${item.id}-btn`}
             onPress={() => deleteContact(item.id)}
@@ -249,6 +298,13 @@ const styles = StyleSheet.create({
   cardActions: { alignItems: 'flex-end', gap: 6 },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.pill, backgroundColor: 'rgba(52,211,153,0.08)' },
   verifiedText: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: COLORS.success, letterSpacing: 1 },
+  verifyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(217,180,91,0.10)',
+    borderWidth: 1, borderColor: 'rgba(240,216,154,0.30)',
+  },
+  verifyText: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD, letterSpacing: 0.5 },
   deleteBtn: { padding: 6 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingTop: 60 },

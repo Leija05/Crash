@@ -89,6 +89,7 @@ export const contactsAPI = {
   add: (token: string, data: { name: string; phone: string; relationship?: string }) =>
     apiRequest('/riders/contacts', { method: 'POST', body: data, token }),
   delete: (token: string, contactId: string) => apiRequest(`/riders/contacts/${contactId}`, { method: 'DELETE', token }),
+  verify: (token: string, contactId: string) => apiRequest(`/riders/contacts/${contactId}/verify`, { method: 'PATCH', token }),
 };
 
 export const impactsAPI = {

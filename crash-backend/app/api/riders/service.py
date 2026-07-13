@@ -63,6 +63,27 @@ async def delete_contact(user_id: str, contact_id: str) -> bool:
     return result.deleted_count > 0
 
 
+async def verify_contact(user_id: str, contact_id: str) -> dict:
+    db = await get_db()
+    contact = await db.emergency_contacts.find_one({"id": contact_id, "user_id": user_id})
+    if not contact:
+        return {}
+    validation = await validate_whatsapp_contact(contact["phone"].strip())
+    is_valid = bool(validation.get("is_whatsapp_user"))
+    await db.emergency_contacts.update_one(
+        {"id": contact_id, "user_id": user_id},
+        {"$set": {
+            "verified": is_valid,
+            "verified_at": datetime.now(timezone.utc).isoformat() if is_valid else None,
+            "whatsapp_validation": validation,
+        }},
+    )
+    contact["verified"] = is_valid
+    contact["verified_at"] = datetime.now(timezone.utc).isoformat() if is_valid else None
+    contact.pop("_id", None)
+    return contact
+
+
 async def get_settings(user_id: str) -> dict:
     db = await get_db()
     settings = await db.user_settings.find_one({"user_id": user_id}, {"_id": 0})
