@@ -171,27 +171,50 @@ async def ingest_eas_build(payload: dict) -> dict:
 
     Diseñado para usarse como webhook de EAS Build. Crea la versión como borrador
     (published=False) para que el superadmin la revise, edite la descripción y la publique.
+
+    Soporta tanto el payload real de EAS (campos al nivel raíz) como una variante
+    envuelta en `data` por compatibilidad con integraciones previas.
     """
-    data = (payload or {}).get("data") or {}
+    # EAS envía los campos al nivel raíz; algunas integraciones los envuelven en `data`.
+    data = (payload or {}).get("data") or payload or {}
+    metadata = data.get("metadata") or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+
     if data.get("status") != "finished":
         return {"ok": True, "ignored": "not_finished", "status": data.get("status")}
-    platform = (data.get("platform") or "android").strip().lower()
+    platform = (data.get("platform") or metadata.get("platform") or "android").strip().lower()
     if platform != "android":
         return {"ok": True, "ignored": "platform", "platform": platform}
-    profile = (data.get("buildProfile") or data.get("profile") or "").strip().lower()
+    profile = (
+        data.get("buildProfile")
+        or data.get("profile")
+        or metadata.get("buildProfile")
+        or ""
+    ).strip().lower()
     if profile not in ("preview", "production"):
         return {"ok": True, "ignored": "profile", "profile": profile}
 
-    metadata = data.get("metadata") or {}
     version = _clean_str(
-        data.get("appVersion") or data.get("version") or (metadata.get("appVersion") if isinstance(metadata, dict) else ""),
+        metadata.get("appVersion")
+        or data.get("appVersion")
+        or data.get("version")
+        or "",
         20,
     )
     if not version or not _VERSION_RE.match(version):
-        return {"ok": False, "error": "version_invalid", "raw": data.get("appVersion")}
+        return {"ok": False, "error": "version_invalid", "raw": metadata.get("appVersion") or data.get("appVersion")}
 
     artifacts = data.get("artifacts") or {}
-    artifact_url = artifacts.get("application") or artifacts.get("apk") or data.get("artifactUrl")
+    if not isinstance(artifacts, dict):
+        artifacts = {}
+    artifact_url = (
+        artifacts.get("applicationArchiveUrl")
+        or artifacts.get("application")
+        or artifacts.get("apk")
+        or artifacts.get("buildUrl")
+        or data.get("artifactUrl")
+    )
     if not artifact_url:
         return {"ok": False, "error": "no_artifact"}
 
