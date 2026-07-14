@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import * as FileSystem from 'expo-file-system';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming, FadeIn } from 'react-native-reanimated';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Animated, { useAnimatedStyle, FadeIn } from 'react-native-reanimated';
 import PremiumModal from './PremiumModal';
 import GlassButton from './GlassButton';
 import { installApk } from '../native/ApkInstaller';
 import { API_BASE, versionsAPI } from '../services/api';
 import { useI18n } from '../i18n';
-import { COLORS, RADIUS, SPACING, SHADOWS, FONT, FONT_SIZE, GOLD } from '../theme';
+import { COLORS, RADIUS, SHADOWS, FONT, GOLD } from '../theme';
 
 export type UpdateInfo = {
   version?: string;
@@ -27,6 +28,11 @@ type Props = {
 
 type Phase = 'idle' | 'downloading' | 'verifying' | 'installing' | 'done' | 'error';
 
+const RING = 150;
+const STROKE = 10;
+const RADIUS_RING = (RING - STROKE) / 2;
+const CIRC = 2 * Math.PI * RADIUS_RING;
+
 function humanBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -40,11 +46,12 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
   const [speed, setSpeed] = useState(0);
   const [eta, setEta] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
-  const prog = useSharedValue(0);
   const totalRef = useRef(0);
   const lastRef = useRef({ time: 0, bytes: 0 });
 
-  const animatedRing = useAnimatedStyle(() => ({ transform: [{ rotate: `${prog.value * 360}deg` }] }));
+  const centerScale = useAnimatedStyle(() => ({
+    transform: [{ scale: phase === 'done' ? 1.06 : 1 }],
+  }));
 
   const reset = () => {
     setPhase('idle');
@@ -52,7 +59,6 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
     setSpeed(0);
     setEta(0);
     setErrorMsg('');
-    prog.value = withTiming(0, { duration: 300 });
   };
 
   const startDownload = async () => {
@@ -83,7 +89,6 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
           }
           const ratio = totalRef.current > 0 ? p.totalBytesWritten / totalRef.current : 0;
           setProgress(ratio);
-          prog.value = withTiming(ratio, { duration: 150 });
         },
       });
 
@@ -104,6 +109,7 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
   };
 
   const mandatory = !!info?.mandatory;
+  const showRing = phase === 'downloading' || phase === 'verifying' || phase === 'installing' || phase === 'done';
 
   return (
     <PremiumModal
@@ -115,7 +121,7 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
       footer={
         phase === 'downloading' || phase === 'verifying' || phase === 'installing' ? (
           <View style={styles.statusBar}>
-            <View style={[styles.statusDot, { backgroundColor: GOLD }]} />
+            <Animated.View style={[styles.statusDot, { backgroundColor: GOLD }]} />
             <Text style={styles.statusText}>
               {phase === 'downloading' && t('update.downloading', 'Descargando…')}
               {phase === 'verifying' && t('update.verifying', 'Verificando…')}
@@ -142,25 +148,62 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
       }
     >
       <View style={styles.body}>
-        <View style={styles.versionRow}>
-          <Text style={styles.versionOld}>v{localVersion}</Text>
-          <Text style={styles.arrow}>→</Text>
-          <Text style={styles.versionNew}>v{info?.version}</Text>
+        {mandatory && (
+          <View style={styles.mandatoryBadge}>
+            <Text style={styles.mandatoryText}>{t('update.required', 'Requerida')}</Text>
+          </View>
+        )}
+
+        <View style={styles.versionCard}>
+          <View style={styles.versionPill}>
+            <Text style={styles.versionPillLabel}>{t('update.current', 'Actual')}</Text>
+            <Text style={[styles.versionPillValue, { color: COLORS.textSec }]}>v{localVersion}</Text>
+          </View>
+          <View style={styles.versionArrow}>
+            <Animated.Text style={{ color: GOLD, fontSize: 18, fontWeight: '900' }}>→</Animated.Text>
+          </View>
+          <View style={[styles.versionPill, styles.versionPillNew]}>
+            <Text style={styles.versionPillLabel}>{t('update.new', 'Nueva')}</Text>
+            <Text style={[styles.versionPillValue, { color: GOLD }]}>v{info?.version}</Text>
+          </View>
         </View>
 
-        {(phase === 'downloading' || phase === 'verifying' || phase === 'installing' || phase === 'done') && (
+        {showRing && (
           <View style={styles.ringWrap}>
-            <Animated.View style={[styles.ringTrack]} />
-            <Animated.View style={[styles.ringFill, animatedRing]} />
-            <View style={styles.ringCenter}>
+            <View style={styles.ringGlow} pointerEvents="none" />
+            <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
+              <Defs>
+                <LinearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor="#F3DEA6" />
+                  <Stop offset="0.5" stopColor="#E0BE6E" />
+                  <Stop offset="1" stopColor="#C29A3E" />
+                </LinearGradient>
+              </Defs>
+              <Circle cx={RING / 2} cy={RING / 2} r={RADIUS_RING} stroke="rgba(217,180,91,0.12)" strokeWidth={STROKE} fill="none" />
+              <Circle
+                cx={RING / 2}
+                cy={RING / 2}
+                r={RADIUS_RING}
+                stroke="url(#ringGrad)"
+                strokeWidth={STROKE}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={CIRC}
+                strokeDashoffset={CIRC * (1 - progress)}
+                transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+              />
+            </Svg>
+            <Animated.View style={[styles.ringCenter, centerScale]}>
               {phase === 'done' ? (
-                <Animated.View entering={FadeIn} style={[styles.checkBadge, { backgroundColor: COLORS.success }]}>
+                <Animated.View entering={FadeIn.duration(350)} style={[styles.checkBadge, { backgroundColor: COLORS.success }]}>
                   <Text style={styles.checkMark}>✓</Text>
                 </Animated.View>
-              ) : (
+              ) : phase === 'downloading' ? (
                 <Text style={styles.percent}>{Math.round(progress * 100)}%</Text>
+              ) : (
+                <ActivityIndicator size="small" color={GOLD} />
               )}
-            </View>
+            </Animated.View>
           </View>
         )}
 
@@ -171,7 +214,7 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
           </View>
         )}
         {phase === 'downloading' && eta > 0 && (
-          <Text style={styles.eta}>{t('update.eta', 'Tiempo restante ~{{s}}s', { s: Math.ceil(eta) })}</Text>
+          <Text style={styles.eta}>{t('update.eta', { s: Math.ceil(eta) })}</Text>
         )}
 
         <Text style={styles.desc}>
@@ -189,10 +232,120 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
 
 const styles = StyleSheet.create({
   body: { width: '100%', alignItems: 'center', gap: 12 },
-  versionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  versionOld: { color: COLORS.textDim, fontSize: 15, fontWeight: '700' },
-  arrow: { color: COLORS.textSec, fontSize: 15 },
-  versionNew: { color: GOLD, fontSize: 18, fontWeight: '900' },
+  mandatoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.30)',
+  },
+  mandatoryText: {
+    color: COLORS.danger,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  versionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    width: '100%',
+    padding: 12,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.glassBg,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+  },
+  versionPill: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  versionPillNew: {
+    backgroundColor: 'rgba(217,180,91,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(217,180,91,0.30)',
+  },
+  versionPillLabel: {
+    color: COLORS.textDim,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+  },
+  versionPillValue: {
+    fontSize: 17,
+    fontWeight: '900',
+    fontFamily: FONT.mono,
+  },
+  versionArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(217,180,91,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(217,180,91,0.20)',
+  },
+  ringWrap: {
+    width: RING,
+    height: RING,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 6,
+  },
+  ringGlow: {
+    position: 'absolute',
+    width: RING * 0.7,
+    height: RING * 0.7,
+    borderRadius: RING * 0.35,
+    backgroundColor: GOLD,
+    opacity: 0.08,
+  },
+  ringCenter: {
+    width: RING - 34,
+    height: RING - 34,
+    borderRadius: (RING - 34) / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(217,180,91,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(217,180,91,0.16)',
+  },
+  percent: { color: GOLD, fontSize: 28, fontWeight: '900', fontFamily: FONT.mono },
+  spinner: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 3,
+  },
+  checkBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.glow(COLORS.success, 0.4, 16),
+  },
+  checkMark: { color: '#fff', fontSize: 30, fontWeight: '900' },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 8,
+  },
+  metaText: { color: COLORS.textDim, fontSize: 11, fontWeight: '600', fontFamily: FONT.mono },
+  eta: { color: COLORS.textDim, fontSize: 11, marginTop: 2 },
   desc: { color: COLORS.textSec, fontSize: 13, textAlign: 'center', lineHeight: 19 },
   notes: {
     color: COLORS.textDim,
@@ -203,12 +356,14 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     paddingTop: 12,
     width: '100%',
+    marginTop: 2,
   },
   error: {
     color: COLORS.danger,
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
+    marginTop: 4,
   },
   statusBar: {
     flexDirection: 'row',
@@ -221,34 +376,4 @@ const styles = StyleSheet.create({
     width: 8, height: 8, borderRadius: 4,
   },
   statusText: { color: COLORS.textSec, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
-  ringWrap: {
-    width: 132, height: 132, alignItems: 'center', justifyContent: 'center',
-    marginVertical: 6,
-  },
-  ringTrack: {
-    position: 'absolute', width: 132, height: 132, borderRadius: 66,
-    borderWidth: 8, borderColor: 'rgba(217,180,91,0.12)',
-  },
-  ringFill: {
-    position: 'absolute', width: 132, height: 132, borderRadius: 66,
-    borderWidth: 8, borderColor: 'transparent',
-    borderTopColor: GOLD, borderRightColor: GOLD,
-  },
-  ringCenter: {
-    width: 112, height: 112, borderRadius: 56,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(217,180,91,0.06)',
-  },
-  percent: { color: GOLD, fontSize: 26, fontWeight: '900' },
-  checkBadge: {
-    width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center',
-    ...SHADOWS.glow(COLORS.success, 0.4, 16),
-  },
-  checkMark: { color: '#fff', fontSize: 30, fontWeight: '900' },
-  metaRow: {
-    flexDirection: 'row', justifyContent: 'space-between', width: '100%',
-    paddingHorizontal: 8,
-  },
-  metaText: { color: COLORS.textDim, fontSize: 11, fontWeight: '600' },
-  eta: { color: COLORS.textDim, fontSize: 11, marginTop: 2 },
 });
