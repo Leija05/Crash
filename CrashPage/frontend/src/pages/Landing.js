@@ -12,8 +12,8 @@ import {
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
 
-const CONTACT_WHATSAPP = "5210000000000000";
-const CONTACT_EMAIL = "contacto@crash.io";
+const CONTACT_WHATSAPP = "528674718298";
+const CONTACT_EMAIL = "leija901123@gmail.com";
 const CYCLES = [
   { key: "cycleSemanal", label: "Semanal" },
   { key: "cycleMensual", label: "Mensual" },
@@ -637,7 +637,7 @@ function Landing() {
               <motion.span
                 animate={{ opacity: [1, 0.3, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="w-1.5 h-1.5 rounded-full bg-red-500"
+                className="w-1.5 h-1.5 rounded-full bg-green-500"
               />
               {t("landing.heroBadge", "Ecosistema de cascos · Monitoreo en vivo")}
             </motion.div>
