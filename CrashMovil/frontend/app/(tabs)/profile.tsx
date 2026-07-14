@@ -15,6 +15,7 @@ import { profileAPI, contactsAPI } from '../../src/services/api';
 import { FloatingActionButton } from '../../src/components/FloatingActionButton';
 import { useEmergencyAlert } from '../../src/hooks/useEmergencyAlert';
 import { haptics } from '../../src/utils/haptics';
+import { useTabBarScroll } from '../../src/context/TabBarContext';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -35,6 +36,7 @@ export default function ProfileScreen() {
   const [notes, setNotes] = useState('');
 
   const bloodTypeAnim = useSharedValue(1);
+  const onTabScroll = useTabBarScroll();
 
   const { trigger: triggerEmergency, sending: sendingEmergency } = useEmergencyAlert({
     token,
@@ -106,10 +108,12 @@ export default function ProfileScreen() {
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView
+        <Animated.ScrollView
           contentContainerStyle={styles.scroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={GOLD} />}
           keyboardShouldPersistTaps="handled"
+          onScroll={onTabScroll}
+          scrollEventThrottle={16}
         >
           <Animated.View entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)} style={styles.header}>
             <Text style={styles.title}>{t('profile.profileTitle')}</Text>
@@ -172,7 +176,7 @@ export default function ProfileScreen() {
               </>
             )}
           </TouchableOpacity>
-        </ScrollView>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
       
       <View style={styles.emergencyBar}>

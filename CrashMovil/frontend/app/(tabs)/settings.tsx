@@ -20,6 +20,7 @@ import GlassCard from '../../src/components/GlassCard';
 import GlassButton from '../../src/components/GlassButton';
 import PremiumModal from '../../src/components/PremiumModal';
 import { DarkSwitch } from '../../src/components/DarkSwitch';
+import { useTabBarScroll } from '../../src/context/TabBarContext';
 
 function GroupSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -34,6 +35,7 @@ export default function SettingsScreen() {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
   const { token, logout } = useAuth();
+  const onTabScroll = useTabBarScroll();
   const { deviceName, setDeviceName, notifyAlertsConfigChanged } = useAppSettings();
   const { connected, deviceName: liveDevice, disconnect, nativeAvailable } = useBluetooth();
   const { alert, confirm } = useAlert();
@@ -200,7 +202,12 @@ export default function SettingsScreen() {
       <View style={styles.ambientGlow} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <Animated.ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          onScroll={onTabScroll}
+          scrollEventThrottle={16}
+        >
           <Animated.View entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)} style={styles.header}>
             <Text style={styles.title}>{t('settings.title').toUpperCase()}</Text>
             <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
@@ -480,7 +487,7 @@ export default function SettingsScreen() {
             <Text style={styles.logoutText}>{t('settings.logout')}</Text>
           </TouchableOpacity>
           <Text style={styles.version}>C.R.A.S.H. v3.0 · Gold Edition</Text>
-        </ScrollView>
+        </Animated.ScrollView>
 
         <PremiumModal
           visible={logoutOpen}

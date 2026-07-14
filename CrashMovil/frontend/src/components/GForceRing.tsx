@@ -111,19 +111,25 @@ export default function GForceRing({
             <Animated.View
               key={`seg-${i}`}
               entering={FadeIn.duration(150).delay(i * 3).springify().damping(25).stiffness(200)}
-               style={[
-                styles.segment,
-                {
-                  width: segmentWidth,
-                  height: segmentHeight,
-                  top: center - segmentHeight,
-                  left: center - segmentWidth / 2,
-                  backgroundColor: segmentColor,
-                  opacity: active ? 1 : 0.4,
-                  transform: [{ rotate: `${angle}deg` }],
-                },
+              style={[
+                styles.segmentLayer,
+                { width: size, height: size, transform: [{ rotate: `${angle}deg` }] },
               ]}
-            />
+            >
+              <View
+                style={[
+                  styles.segmentBar,
+                  {
+                    width: segmentWidth,
+                    height: segmentHeight,
+                    top: center - segmentHeight,
+                    left: center - segmentWidth / 2,
+                    backgroundColor: segmentColor,
+                    opacity: active ? 1 : 0.4,
+                  },
+                ]}
+              />
+            </Animated.View>
           );
         })}
         <Animated.View style={[styles.criticalPulse, pulseStyle]} pointerEvents="none" />
@@ -188,10 +194,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  segment: {
+  segmentLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  segmentBar: {
     position: 'absolute',
     borderRadius: 999,
-    transformOrigin: 'center bottom',
   },
   criticalPulse: {
     position: 'absolute',

@@ -1,15 +1,16 @@
 import { Redirect, Tabs } from 'expo-router';
 import { memo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View, Platform } from 'react-native';
+import { StyleSheet, View, Platform, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence } from 'react-native-reanimated';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence, interpolate } from 'react-native-reanimated';
 import { COLORS, RADIUS, SHADOWS, FONT, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 import { haptics } from '../../src/utils/haptics';
+import { TabBarProvider, useTabBar } from '../../src/context/TabBarContext';
 
 const AnimatedIonicon = Animated.createAnimatedComponent(Ionicons);
 
@@ -119,65 +120,118 @@ function TabBarBackground() {
           style={styles.bgHighlight}
         />
       </View>
+      <View style={styles.bgTopLine} />
     </View>
+  );
+}
+
+function AppTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
+  const { collapse } = useTabBar();
+
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 14 : 10);
+  const fullH = 72 + bottomInset * 0.9;
+  const miniH = 60 + bottomInset * 0.5;
+
+  const barStyle = useAnimatedStyle(() => ({
+    height: interpolate(collapse.value, [0, 1], [fullH, miniH]),
+  }));
+  const rowStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(collapse.value, [0, 1], [1, 0.94]) }],
+  }));
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(collapse.value, [0, 1], [1, 0]),
+    transform: [{ translateY: interpolate(collapse.value, [0, 1], [0, -2]) }],
+  }));
+
+  return (
+    <Animated.View style={[styles.floatBar, barStyle, { bottom: bottomInset }]}>
+      <TabBarBackground />
+      <Animated.View style={[styles.floatRow, rowStyle]}>
+        {state.routes.map((route: any, idx: number) => {
+          const { options } = descriptors[route.key];
+          const label: string = options.title ?? route.name;
+          const focused = state.index === idx;
+          const Icon = options.tabBarIcon;
+          return (
+            <TouchableOpacity
+              key={route.key}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate(route.name)}
+              style={styles.tabItem}
+            >
+              {Icon ? Icon({ color: focused ? GOLD : COLORS.textDim, size: 26, focused }) : null}
+              <Animated.Text style={[styles.tabLabel, labelStyle]}>{label}</Animated.Text>
+            </TouchableOpacity>
+          );
+        })}
+      </Animated.View>
+    </Animated.View>
   );
 }
 
 export default function TabLayout() {
   const { token, loading } = useAuth();
   const { t } = useI18n();
-  const insets = useSafeAreaInsets();
 
   if (!loading && !token) return <Redirect href="/login" />;
 
-  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 14 : 10);
-
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: [styles.tabBar, { bottom: bottomInset, height: 78 + bottomInset }],
-        tabBarActiveTintColor: GOLD,
-        tabBarInactiveTintColor: COLORS.textDim,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarItemStyle: { paddingTop: 6 },
-        tabBarBackground: () => <TabBarBackground />,
-      }}
-      screenListeners={{
-        tabPress: () => haptics.selection(),
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: t('tabs.home'), tabBarIcon: ({ color, size, focused }) => <MemoHomeIcon color={color} size={size} focused={focused} /> }} />
-      <Tabs.Screen name="impacts" options={{ title: t('nav.impacts'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="warning" color={color} size={size} focused={focused} /> }} />
-      <Tabs.Screen name="contacts" options={{ title: t('nav.contacts'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="people" color={color} size={size} focused={focused} /> }} />
-      <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="person-circle" color={color} size={size} focused={focused} /> }} />
-      <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="settings-sharp" color={focused ? color : GOLD} size={size} focused={focused} highlight /> }} />
-    </Tabs>
+    <TabBarProvider>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: styles.tabBarProxy,
+          tabBarBackground: () => null,
+        }}
+        tabBar={(props) => <AppTabBar {...props} />}
+        screenListeners={{ tabPress: () => haptics.selection() }}
+      >
+        <Tabs.Screen name="index" options={{ title: t('tabs.home'), tabBarIcon: ({ color, size, focused }) => <MemoHomeIcon color={color} size={size} focused={focused} /> }} />
+        <Tabs.Screen name="impacts" options={{ title: t('nav.impacts'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="warning" color={color} size={size} focused={focused} /> }} />
+        <Tabs.Screen name="contacts" options={{ title: t('nav.contacts'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="people" color={color} size={size} focused={focused} /> }} />
+        <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="person-circle" color={color} size={size} focused={focused} /> }} />
+        <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarIcon: ({ color, size, focused }) => <MemoAnimatedIcon name="settings-sharp" color={color} size={size} focused={focused} /> }} />
+      </Tabs>
+    </TabBarProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
+  tabBarProxy: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+  },
+  floatBar: {
     position: 'absolute',
     left: 12,
     right: 12,
-    backgroundColor: 'transparent',
-    borderTopWidth: 0,
     borderRadius: RADIUS.xxl,
-    borderWidth: 0,
-    paddingTop: 2,
-    paddingBottom: 0,
+    overflow: 'visible',
+    borderWidth: 1,
+    borderColor: 'rgba(240,216,154,0.18)',
     ...SHADOWS.xl,
+  },
+  floatRow: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 6,
   },
   bgWrap: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: RADIUS.xxl,
     overflow: 'hidden',
-    padding: 1.2,
   },
   bgInner: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: RADIUS.xxl - 1.2,
+    borderRadius: RADIUS.xxl,
     overflow: 'hidden',
   },
   bgTint: {
@@ -192,6 +246,20 @@ const styles = StyleSheet.create({
     height: 1.5,
     borderRadius: 1,
   },
+  bgTopLine: {
+    position: 'absolute',
+    top: 0.6,
+    left: 10,
+    right: 10,
+    height: 1,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabLabel: {
     fontSize: 9.5,
     fontFamily: FONT.medium,
@@ -199,6 +267,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.9,
     marginTop: 3,
     textTransform: 'uppercase',
+    color: COLORS.textDim,
   },
   iconOuter: {
     alignItems: 'center',

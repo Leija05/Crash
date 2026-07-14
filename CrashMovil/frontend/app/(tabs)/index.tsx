@@ -25,6 +25,7 @@ import GPSMap from '../../src/components/GPSMap';
 import { DarkSwitch } from '../../src/components/DarkSwitch';
 import StickyNotification from '../../src/components/StickyNotification';
 import { haptics } from '../../src/utils/haptics';
+import { useTabBarScroll } from '../../src/context/TabBarContext';
 
 const STAGGER = 60;
 
@@ -76,6 +77,8 @@ export default function DashboardScreen() {
     permissionGranted, grantedLocation, currentLocation, isTracking,
     requestPermission,
   } = useLocation();
+
+  const onTabScroll = useTabBarScroll();
 
   const [refreshing, setRefreshing] = useState(false);
   const [peakG, setPeakG] = useState(0);
@@ -544,9 +547,11 @@ export default function DashboardScreen() {
         />
       )}
 
-      <ScrollView
+      <Animated.ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />}
         contentContainerStyle={styles.scroll}
+        onScroll={onTabScroll}
+        scrollEventThrottle={16}
       >
         <Stagger index={0}>
           <View style={styles.header}>
@@ -789,7 +794,7 @@ export default function DashboardScreen() {
             </TouchableOpacity>
           )}
         </Stagger>
-      </ScrollView>
+      </Animated.ScrollView>
 
       <PremiumModal
         visible={countdown !== null}

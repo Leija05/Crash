@@ -10,6 +10,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 import { impactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS, GOLD } from '../../src/theme';
+import { useTabBarScroll } from '../../src/context/TabBarContext';
 
 function sevColor(s: string) {
   if (s === 'low') return COLORS.success;
@@ -25,6 +26,7 @@ export default function ImpactsScreen() {
   const [impacts, setImpacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const onTabScroll = useTabBarScroll();
 
   const fetchImpacts = useCallback(async () => {
     if (!token) return;
@@ -87,12 +89,14 @@ export default function ImpactsScreen() {
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
       ) : (
-        <FlatList
+        <Animated.FlatList
           data={impacts}
           keyExtractor={(item) => item.id}
           renderItem={renderImpact}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchImpacts(); }} tintColor={GOLD} />}
+          onScroll={onTabScroll}
+          scrollEventThrottle={16}
           ListEmptyComponent={
             <View style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name="shield-checkmark" size={32} color={COLORS.success} /></View>

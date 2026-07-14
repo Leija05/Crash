@@ -14,6 +14,7 @@ import { contactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import GlassCard from '../../src/components/GlassCard';
 import { haptics } from '../../src/utils/haptics';
+import { useTabBarScroll } from '../../src/context/TabBarContext';
 
 export default function ContactsScreen() {
   const { t } = useI18n();
@@ -28,6 +29,7 @@ export default function ContactsScreen() {
   const [relationship, setRelationship] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const onTabScroll = useTabBarScroll();
 
   const fetchContacts = useCallback(async () => {
     if (!token) return;
@@ -186,12 +188,14 @@ export default function ContactsScreen() {
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
       ) : (
-        <FlatList
+        <Animated.FlatList
           data={filteredContacts}
           keyExtractor={(item) => item.id}
           renderItem={renderContact}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchContacts(); }} tintColor={GOLD} />}
+          onScroll={onTabScroll}
+          scrollEventThrottle={16}
           ListEmptyComponent={
             <Animated.View entering={FadeInUp.duration(500).delay(200).springify().damping(26).stiffness(200)} style={styles.empty}>
               <View style={styles.emptyIcon}><Ionicons name="people-outline" size={32} color={COLORS.textDim} /></View>
