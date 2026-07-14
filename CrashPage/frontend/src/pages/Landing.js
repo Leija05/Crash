@@ -843,7 +843,7 @@ function Landing() {
         {/* ── PROJECT MEMORY ─────────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-4 py-10">
           <ScrollReveal>
-            <TiltCard className="card-premium p-8 lg:p-12 relative overflow-hidden" style={{ borderRadius: 20 }}>
+            <div className="card-premium p-8 lg:p-12 relative overflow-hidden" style={{ borderRadius: 20 }}>
               <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-red-500/10 blur-[100px]" />
               <div className="relative">
                 <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">{t("landing.eyebrowProject", "El Proyecto C.R.A.S.H.")}</div>
@@ -891,7 +891,7 @@ function Landing() {
                     <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowTeam", "Equipo · Autores")}</div>
                     <ul className="space-y-2 text-sm text-zinc-300">
                       {TEAM.map((m) => (
-                        <motion.li key={m} whileHover={{ x: 3 }} className="flex items-start gap-2"><Users size={14} className="text-red-400 mt-1 shrink-0" /><span>{m}</span></motion.li>
+                        <motion.li key={m} className="flex items-start gap-2"><Users size={14} className="text-red-400 mt-1 shrink-0" /><span>{m}</span></motion.li>
                       ))}
                     </ul>
                   </div>
@@ -899,7 +899,7 @@ function Landing() {
                     <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowAdvisors", "Asesores")}</div>
                     <ul className="space-y-2 text-sm text-zinc-300 mb-6">
                       {ADVISORS.map((a) => (
-                        <motion.li key={a} whileHover={{ x: 3 }} className="flex items-start gap-2"><Building2 size={14} className="text-red-400 mt-1 shrink-0" /><span>{a}</span></motion.li>
+                        <motion.li key={a} className="flex items-start gap-2"><Building2 size={14} className="text-red-400 mt-1 shrink-0" /><span>{a}</span></motion.li>
                       ))}
                     </ul>
                     <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowNorms", "Normatividad aplicable")}</div>
@@ -911,7 +911,7 @@ function Landing() {
                   </div>
                 </div>
               </div>
-            </TiltCard>
+            </div>
           </ScrollReveal>
         </section>
 
