@@ -23,6 +23,7 @@ interface DarkSwitchProps {
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
   trackColor?: string;
+  offTrackColor?: string;
   thumbColor?: string;
 }
 
@@ -33,12 +34,13 @@ export function DarkSwitch({
   description, 
   icon, 
   disabled = false, 
-  size = 'md',
+  size = 'md', 
   trackColor = GOLD,
+  offTrackColor = '#2A2A34',
   thumbColor = GOLD,
 }: DarkSwitchProps) {
   const thumbX = useSharedValue(value ? 1 : 0);
-  const trackBg = useSharedValue(value ? trackColor : '#2A2A34');
+  const trackBg = useSharedValue(value ? trackColor : offTrackColor);
   const thumbBg = useSharedValue(thumbColor);
   const glowOpacity = useSharedValue(value ? 0.4 : 0);
   const labelClr = useSharedValue(value ? trackColor : COLORS.textSec);
@@ -83,7 +85,7 @@ export function DarkSwitch({
     onValueChange(newValue);
     
     thumbX.value = withSpring(newValue ? 1 : 0, ANIMATION.springBouncy);
-    trackBg.value = withTiming(newValue ? trackColor : '#2A2A34', { duration: 200 });
+    trackBg.value = withTiming(newValue ? trackColor : offTrackColor, { duration: 200 });
     thumbBg.value = withTiming(thumbColor, { duration: 200 });
     glowOpacity.value = withTiming(newValue ? 0.4 : 0, { duration: 200 });
     labelClr.value = withTiming(newValue ? trackColor : COLORS.textSec, { duration: 200 });

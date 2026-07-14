@@ -315,7 +315,8 @@ export default function SettingsScreen() {
                   onValueChange={setAutoCall}
                   label={t('settings.autoCalls')}
                   icon="call-outline"
-                  trackColor={GOLD}
+                  trackColor={COLORS.success}
+                  offTrackColor={COLORS.danger}
                 />
 
                 <DarkSwitch

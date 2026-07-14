@@ -859,7 +859,7 @@ function Landing() {
                 <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowProblem", "Problemática")}</div>
                 <div className="grid md:grid-cols-3 gap-4 mb-8">
                   {PROBLEMS.map((p) => (
-                    <motion.div key={p.key} whileHover={{ y: -3, borderColor: "rgba(239,68,68,0.3)" }} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors">
+                    <motion.div key={p.key} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors">
                       <div className="font-bold text-[15px] mb-1.5 text-red-300">{t(`landing.${p.key}`, p.t)}</div>
                       <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${p.key}Desc`, p.d)}</p>
                     </motion.div>
@@ -869,7 +869,7 @@ function Landing() {
                 <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowValue", "Propuesta de valor")}</div>
                 <div className="grid md:grid-cols-3 gap-4 mb-8">
                   {VALUE.map((v) => (
-                    <motion.div key={v.key} whileHover={{ y: -3 }} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors">
+                    <motion.div key={v.key} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors">
                       <div className="font-bold text-[15px] mb-1.5 text-red-300">{t(`landing.${v.key}`, v.t)}</div>
                       <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${v.key}Desc`, v.d)}</p>
                     </motion.div>
@@ -879,7 +879,7 @@ function Landing() {
                 <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowArch", "Arquitectura técnica")}</div>
                 <div className="grid md:grid-cols-2 gap-4 mb-8">
                   {ARCH.map((a) => (
-                    <motion.div key={a.key} whileHover={{ y: -2 }} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors">
+                    <motion.div key={a.key} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors">
                       <div className="font-bold text-[15px] mb-1.5">{t(`landing.${a.key}`, a.t)}</div>
                       <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${a.key}Desc`, a.d)}</p>
                     </motion.div>

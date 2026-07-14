@@ -87,11 +87,13 @@ async def validate_whatsapp_contact(phone: str) -> dict:
             "reason": f"No se pudo contactar la API de WhatsApp: {exc}",
         }
     if resp.status_code >= 400:
+        logger.warning(f"WhatsApp contact check returned {resp.status_code}: {resp.text}")
         return {
             "checked": False,
             "is_whatsapp_user": False,
             "can_receive_in_dev_mode": False,
-            "reason": f"No se pudo validar en WhatsApp API: {resp.text}",
+            "reason": "Verificación automática de WhatsApp no disponible; se usará confirmación manual.",
+            "api_error": resp.text,
         }
     data = resp.json() if resp.text else {}
     first = ((data.get("contacts") or [{}])[0]) if isinstance(data, dict) else {}

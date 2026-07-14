@@ -159,12 +159,12 @@ export const SHADOWS = {
 };
 
 export const ANIMATION = {
-  fast: { duration: 200 },
-  normal: { duration: 300 },
-  slow: { duration: 500 },
-  spring: { stiffness: 300, damping: 20 },
-  springBouncy: { stiffness: 400, damping: 12 },
-  springGentle: { stiffness: 200, damping: 25 },
+  fast: { duration: 180 },
+  normal: { duration: 260 },
+  slow: { duration: 420 },
+  spring: { stiffness: 280, damping: 26 },
+  springBouncy: { stiffness: 320, damping: 22 },
+  springGentle: { stiffness: 200, damping: 28 },
   stagger: 60,
 };
 
