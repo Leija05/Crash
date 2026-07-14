@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   versionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   versionOld: { color: COLORS.textDim, fontSize: 15, fontWeight: '700' },
   arrow: { color: COLORS.textSec, fontSize: 15 },
-  versionNew: { color: GOLD, fontSize: 18, fontWeight: '900' },
+  versionNew: { color: COLORS.primary, fontSize: 18, fontWeight: '900' },
   desc: { color: COLORS.textSec, fontSize: 13, textAlign: 'center', lineHeight: 19 },
   notes: {
     color: COLORS.textDim,

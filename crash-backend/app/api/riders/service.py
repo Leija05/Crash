@@ -69,7 +69,9 @@ async def verify_contact(user_id: str, contact_id: str) -> dict:
     if not contact:
         return {}
     validation = await validate_whatsapp_contact(contact["phone"].strip())
-    is_valid = bool(validation.get("is_whatsapp_user"))
+    # Si la API de WhatsApp no está disponible/configurada, confiamos en la
+    # verificación manual del usuario (abrió el chat de WhatsApp y confirmó).
+    is_valid = bool(validation.get("is_whatsapp_user")) or not validation.get("checked")
     await db.emergency_contacts.update_one(
         {"id": contact_id, "user_id": user_id},
         {"$set": {

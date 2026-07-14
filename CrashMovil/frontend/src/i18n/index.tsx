@@ -8,7 +8,7 @@ export type LocaleCode = 'es' | 'en';
 const LOCALES: Record<string, any> = { es, en };
 
 type I18nCtx = {
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, params?: Record<string, any> | string) => string;
   locale: LocaleCode;
   setLocale: (code: LocaleCode) => Promise<void>;
   locales: { code: LocaleCode; label: string }[];
@@ -39,17 +39,24 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string, fallback?: string) => {
+    (key: string, params?: Record<string, any> | string) => {
       const keys = key.split('.');
       let val: any = LOCALES[locale];
       for (const k of keys) {
         if (val && typeof val === 'object' && k in val) {
           val = val[k];
         } else {
-          return fallback || key;
+          val = undefined;
+          break;
         }
       }
-      return typeof val === 'string' ? val : fallback || key;
+      let str: string = typeof val === 'string' ? val : (typeof params === 'string' ? params : key);
+      if (str && typeof params === 'object' && params) {
+        str = str.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, name: string) =>
+          params[name] !== undefined ? String(params[name]) : `{{${name}}}`,
+        );
+      }
+      return str;
     },
     [locale],
   );
