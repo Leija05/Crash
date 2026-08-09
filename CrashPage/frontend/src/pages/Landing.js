@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   motion, useScroll, useTransform, useSpring, useMotionValue, useMotionTemplate,
-  AnimatePresence, useReducedMotion,
+  AnimatePresence, useReducedMotion, useMotionValueEvent,
 } from "framer-motion";
 import {
   Smartphone, Cpu, Monitor,
@@ -14,25 +14,15 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
+import CtaFooter from "../components/CtaFooter";
+import PlansModal from "../components/PlansModal";
+import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
+import { openExternal } from "../lib/openExternal";
+import { mx, CYCLE_MULT, B2C_DEVICE, B2C_SUB, B2B_DEVICE, B2B_SUB_PER_DRIVER } from "../lib/pricing";
 
 const CONTACT_WHATSAPP = "528674718298";
 const CONTACT_EMAIL = "leija901123@gmail.com";
-const CYCLES = [
-  { key: "cycleSemanal", label: "Semanal" },
-  { key: "cycleMensual", label: "Mensual" },
-  { key: "cycleBimestral", label: "Bimestral" },
-  { key: "cycleTrimestral", label: "Trimestral" },
-  { key: "cycleAnual", label: "Anual" },
-];
-const CYCLE_MULT = { Semanal: 0.3, Mensual: 1, Bimestral: 1.9, Trimestral: 2.7, Anual: 9.6 };
 const HERO = "https://images.pexels.com/photos/2611685/pexels-photo-2611685.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940";
-
-const B2C_DEVICE = 1499;
-const B2C_SUB = 49;
-const B2B_DEVICE = 1999;
-const B2B_SUB_PER_DRIVER = 150;
-
-const mx = (n) => `$${Number(Math.round(n)).toLocaleString("es-MX")} MXN`;
 
 const PROJECT_META = {
   evento: "Cumbre Nacional de Desarrollo Tecnológico, Emprendimiento e Innovación · InnovaTecNM 2026",
@@ -122,7 +112,7 @@ function CrashLogoSvg({ className = "h-9 w-9", style }) {
 /* ── Premium brand lockup ─────────────────────────────────────────── */
 function Brand({ compact = false }) {
   return (
-    <motion.span className="flex items-center gap-3 group select-none" whileHover="hover" initial="initial">
+    <motion.span className="flex items-center gap-3 group select-none cursor-pointer" whileHover="hover" whileTap={{ scale: 0.95, transition: { duration: 0.12 } }} initial="initial">
       <motion.span className="relative shrink-0"
         variants={{
           initial: { scale: 1 },
@@ -406,6 +396,8 @@ function Counter({ to, prefix = "", suffix = "", decimals = 0 }) {
 function HeroChip({ className = "", anim = "chip-float", label, value, unit = "", hint, delay = "0s" }) {
   return (
     <div className={`absolute ${className}`}>
+      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-px bg-red-500/40" />
+      <span className="absolute -left-[3.5px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
       <div className="glass-refined hud-frame rounded-xl px-4 py-3" style={{ animation: `${anim} 7s ease-in-out ${delay} infinite` }}>
         <div className="hud-ticker text-neutral-500 flex items-center gap-2">
           <span className="glow-dot bg-red-500 text-red-500" />{label}
@@ -423,11 +415,72 @@ function HeroChip({ className = "", anim = "chip-float", label, value, unit = ""
 function CockpitSection({ t }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
+  const [active, setActive] = useState(0);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
 
-  const op0 = useTransform(scrollYProgress, [0, 0.28, 0.36], [1, 1, 0]);
-  const op1 = useTransform(scrollYProgress, [0.3, 0.6, 0.68], [0, 1, 0]);
-  const op2 = useTransform(scrollYProgress, [0.62, 0.9], [0, 1]);
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    if (v < 0.25) setActive(0);
+    else if (v < 0.5) setActive(1);
+    else if (v < 0.75) setActive(2);
+    else setActive(3);
+  });
+
+  // Crossfade por fase (solapamiento corto para no "parpadear")
+  const opacities = [
+    useTransform(scrollYProgress, [0, 0.2, 0.26], [1, 1, 0]),
+    useTransform(scrollYProgress, [0.24, 0.44, 0.5], [0, 1, 0]),
+    useTransform(scrollYProgress, [0.49, 0.69, 0.75], [0, 1, 0]),
+    useTransform(scrollYProgress, [0.74, 0.94], [0, 1]),
+  ];
+
+  // Entrada por fase: el contenido sube y se asienta con ease-out
+  const entrances = [
+    { y: useTransform(scrollYProgress, [0, 0.07], [56, 0]), scale: useTransform(scrollYProgress, [0, 0.1], [0.96, 1]) },
+    { y: useTransform(scrollYProgress, [0.25, 0.32], [56, 0]), scale: useTransform(scrollYProgress, [0.25, 0.35], [0.96, 1]) },
+    { y: useTransform(scrollYProgress, [0.5, 0.57], [56, 0]), scale: useTransform(scrollYProgress, [0.5, 0.6], [0.96, 1]) },
+    { y: useTransform(scrollYProgress, [0.75, 0.82], [56, 0]), scale: useTransform(scrollYProgress, [0.75, 0.85], [0.96, 1]) },
+  ];
+
+  // Parallax de los números gigantes de fondo
+  const wmYs = [
+    useTransform(scrollYProgress, [0, 0.25], [70, -70]),
+    useTransform(scrollYProgress, [0.25, 0.5], [70, -70]),
+    useTransform(scrollYProgress, [0.5, 0.75], [70, -70]),
+    useTransform(scrollYProgress, [0.75, 1], [70, -70]),
+  ];
+
+  // Checklist omnicanal (fase 03): cada canal aparece con el scroll
+  const checks = [
+    useTransform(scrollYProgress, [0.55, 0.6], [0, 1]),
+    useTransform(scrollYProgress, [0.6, 0.65], [0, 1]),
+    useTransform(scrollYProgress, [0.65, 0.7], [0, 1]),
+  ];
+  const checkXs = [
+    useTransform(scrollYProgress, [0.55, 0.6], [14, 0]),
+    useTransform(scrollYProgress, [0.6, 0.65], [14, 0]),
+    useTransform(scrollYProgress, [0.65, 0.7], [14, 0]),
+  ];
+
+  // Log de la caja negra (fase 04): líneas reveladas por el scroll
+  const logs = [
+    useTransform(scrollYProgress, [0.78, 0.8], [0, 1]),
+    useTransform(scrollYProgress, [0.81, 0.83], [0, 1]),
+    useTransform(scrollYProgress, [0.84, 0.86], [0, 1]),
+    useTransform(scrollYProgress, [0.87, 0.89], [0, 1]),
+  ];
+  const logXs = [
+    useTransform(scrollYProgress, [0.78, 0.8], [12, 0]),
+    useTransform(scrollYProgress, [0.81, 0.83], [12, 0]),
+    useTransform(scrollYProgress, [0.84, 0.86], [12, 0]),
+    useTransform(scrollYProgress, [0.87, 0.89], [12, 0]),
+  ];
+
+  // Gauge de confianza (fase 02) y almacenamiento (fase 04): se llenan con el scroll
+  const confGauge = useTransform(scrollYProgress, [0.28, 0.44], [0.35, 0.96]);
+  const storage = useTransform(scrollYProgress, [0.74, 0.94], [0.2, 0.64]);
+
+  // Parallax horizontal sutil de la columna de visuales
+  const visualX = useTransform(scrollYProgress, [0, 1], [20, -20]);
 
   const steps = [
     {
@@ -435,29 +488,41 @@ function CockpitSection({ t }) {
       tag: t("landing.cockpitTag1", "SENSOR · MPU-6050"),
       title: t("landing.cockpitTitle1", "Detección"),
       text: t("landing.cockpitText1", "El nodo sensor captura la curva de fuerza-G en milisegundos y la transmite por Bluetooth al teléfono del conductor."),
+      meta: [["RESPUESTA", "≤ 8 ms"], ["UMBRAL", "2.5 G"]],
     },
     {
       n: "02",
       tag: t("landing.cockpitTag2", "RED NEURONAL · FASTAPI"),
       title: t("landing.cockpitTitle2", "Triaje IA"),
       text: t("landing.cockpitText2", "La red neuronal clasifica la gravedad y estima la probabilidad de lesión antes de decidir el protocolo de respuesta."),
+      meta: [["MODELO", "NN-4L"], ["PRECISIÓN", "94%"]],
     },
     {
       n: "03",
       tag: t("landing.cockpitTag3", "ALERTA · OMNICANAL"),
       title: t("landing.cockpitTitle3", "Despliegue"),
       text: t("landing.cockpitText3", "Alertas a WhatsApp Business, contactos de emergencia y centro de control con GPS exacto del incidente."),
+      meta: [["CANALES", "3"], ["GEO", "± 2 m"]],
+    },
+    {
+      n: "04",
+      tag: t("landing.cockpitTag4", "CAJA NEGRA · 6 EJES"),
+      title: t("landing.cockpitTitle4", "Evidencia"),
+      text: t("landing.cockpitText4", "Cada impacto queda firmado en la caja negra del dispositivo: telemetría completa, diagnóstico IA y trazabilidad forense."),
+      meta: [["RETENCIÓN", "90 DÍAS"], ["CRIPTO", "SHA-256"]],
     },
   ];
-
-  const opacities = [op0, op1, op2];
 
   const visuals = [
     (
       <div key="v0" className="relative w-64 h-64 sm:w-72 sm:h-72">
+        <span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none" style={{ y: wmYs[0] }}>01</span>
         <div className="radar-sweep absolute inset-0 rounded-full bg-[#0a0a0a] border border-white/10" />
         <div className="absolute inset-9 rounded-full border border-white/5" />
         <div className="absolute rounded-full border border-white/5" style={{ inset: "4.5rem" }} />
+        <div className="radar-arm" />
+        <span className="blip" />
+        <span className="blip" style={{ animationDelay: "2.8s" }} />
         <div className="absolute inset-0 flex items-center justify-center">
           <span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_18px_rgba(239,68,68,0.9)]" />
         </div>
@@ -466,96 +531,259 @@ function CockpitSection({ t }) {
       </div>
     ),
     (
-      <div key="v1" className="double-bezel rounded-3xl w-full max-w-sm">
-        <div className="glass-refined rounded-[calc(1.5rem-2px)] p-8">
-          <div className="hud-ticker text-neutral-500 mb-6 flex items-center justify-between">
+      <div key="v1" className="double-bezel rounded-3xl w-full max-w-md">
+        <div className="glass-refined rounded-[calc(1.5rem-2px)] p-6 sm:p-8">
+          <div className="hud-ticker text-neutral-500 flex items-center justify-between">
             <span>FORMA DE ONDA</span><span className="text-red-400">ANALIZANDO</span>
           </div>
-          <div className="wave-bars h-20">
+          <div className="wave-bars h-16 sm:h-20 mt-5">
             {Array.from({ length: 26 }).map((_, i) => (
               <span key={i} style={{ animationDelay: `${(i % 9) * 0.09}s`, height: `${20 + ((i * 37) % 62)}px` }} />
             ))}
           </div>
-          <div className="mt-6 flex items-center justify-between">
-            <span className="hud-ticker text-neutral-500">SEVERIDAD</span>
-            <span className="hud-ticker text-red-400 border border-red-500/40 bg-red-500/10 rounded-md px-2.5 py-1">CRÍTICA</span>
+          <div className="mt-6 grid grid-cols-[auto_1fr] gap-5 items-center">
+            <div className="relative h-24 w-24 shrink-0">
+              <svg className="h-24 w-24" viewBox="0 0 120 120">
+                <defs>
+                  <linearGradient id="confGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" />
+                    <stop offset="100%" stopColor="#f97316" />
+                  </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                <motion.circle
+                  cx="60" cy="60" r="52" fill="none" stroke="url(#confGrad)" strokeWidth="6" strokeLinecap="round"
+                  transform="rotate(-90 60 60)"
+                  style={{ pathLength: confGauge }}
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center font-mono text-xl font-bold">96%</span>
+            </div>
+            <div>
+              <div className="hud-ticker text-neutral-500 mb-2">CONFIANZA IA</div>
+              <div className="flex items-center justify-between">
+                <span className="hud-ticker text-neutral-500">SEVERIDAD</span>
+                <span className="hud-ticker text-red-400 border border-red-500/40 bg-red-500/10 rounded-md px-2.5 py-1">CRÍTICA</span>
+              </div>
+              <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full" style={{ width: "78%" }} />
+              </div>
+              <div className="mt-2 hud-ticker text-neutral-600">LESIÓN ESTIMADA <span className="text-white">78%</span></div>
+            </div>
           </div>
-          <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <motion.div className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full"
-              initial={{ width: "12%" }} animate={{ width: "78%" }}
-              transition={{ duration: 1.6, ease: [0.16, 1, 0.3, 1] }} />
-          </div>
-          <div className="mt-2 hud-ticker text-neutral-600">LESIÓN ESTIMADA <span className="text-white">78%</span></div>
         </div>
       </div>
     ),
     (
-      <div key="v2" className="relative w-72 h-64 sm:w-80">
-        <div className="absolute left-1/2 top-4 -translate-x-1/2">
-          <span className="pulse-ring w-44 h-44" />
-          <span className="pulse-ring w-44 h-44" style={{ animationDelay: "0.9s" }} />
-          <span className="pulse-ring w-44 h-44" style={{ animationDelay: "1.8s" }} />
+      <div key="v2" className="relative w-full max-w-[380px] flex flex-col items-center gap-4 sm:gap-5">
+        <span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none" style={{ y: wmYs[2] }}>03</span>
+        <div className="relative shrink-0">
+          <span className="pulse-ring w-36 h-36 sm:w-44 sm:h-44" />
+          <span className="pulse-ring w-36 h-36 sm:w-44 sm:h-44" style={{ animationDelay: "0.9s" }} />
+          <span className="pulse-ring w-36 h-36 sm:w-44 sm:h-44" style={{ animationDelay: "1.8s" }} />
           <div className="relative h-14 w-14 rounded-full bg-red-500/15 border border-red-500/50 flex items-center justify-center backdrop-blur-sm">
             <MapPin className="h-6 w-6 text-red-400" />
           </div>
         </div>
-        <div className="absolute bottom-2 left-0 glass-refined hud-frame rounded-lg px-3 py-2 max-w-[200px]">
-          <div className="hud-ticker text-neutral-500">SMS + WHATSAPP</div>
-          <div className="text-xs font-mono mt-0.5 text-white">IMPACTO CRÍTICO · 6.2G</div>
+        <div className="relative w-full grid grid-cols-2 gap-3">
+          <div className="glass-refined hud-frame rounded-lg px-3 py-2">
+            <div className="hud-ticker text-neutral-500">SMS + WHATSAPP</div>
+            <div className="text-[11px] font-mono mt-0.5 text-white">IMPACTO CRÍTICO · 6.2G</div>
+          </div>
+          <div className="glass-refined hud-frame rounded-lg px-3 py-2">
+            <div className="hud-ticker text-neutral-500 flex items-center gap-1.5"><LocateFixed className="h-3 w-3 text-red-400" />GPS</div>
+            <div className="text-[11px] font-mono mt-0.5">27.48°N · 99.50°W</div>
+          </div>
         </div>
-        <div className="absolute bottom-14 right-0 glass-refined hud-frame rounded-lg px-3 py-2 max-w-[180px]">
-          <div className="hud-ticker text-neutral-500 flex items-center gap-1.5"><LocateFixed className="h-3 w-3 text-red-400" />GPS</div>
-          <div className="text-xs font-mono mt-0.5">27.48°N · 99.50°W</div>
+        <div className="relative w-full space-y-1.5">
+          {[
+            ["WHATSAPP BUSINESS", "T+1.2s"],
+            ["CONTACTOS DE EMERGENCIA", "T+2.4s"],
+            ["CENTRO DE CONTROL", "T+3.1s"],
+          ].map(([label, eta], i) => (
+            <motion.div
+              key={label}
+              className="flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2"
+              style={{ opacity: checks[i], x: checkXs[i] }}
+            >
+              <span className="h-4 w-4 rounded-full border border-emerald-500/50 bg-emerald-500/15 flex items-center justify-center">
+                <Check className="h-2.5 w-2.5 text-emerald-400" />
+              </span>
+              <span className="text-[10px] font-mono tracking-[0.15em] text-neutral-300">{label}</span>
+              <span className="ml-auto hud-ticker text-neutral-600">{eta}</span>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    ),
+    (
+      <div key="v3" className="relative w-full max-w-md">
+        <span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none" style={{ y: wmYs[3] }}>04</span>
+        <div className="double-bezel rounded-3xl">
+          <div className="glass-refined rounded-[calc(1.5rem-2px)] p-6 sm:p-8">
+            <div className="hud-ticker text-neutral-500 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="glow-dot bg-red-500 text-red-500 breathe-animation" />
+                CAJA NEGRA
+              </span>
+              <span className="text-red-400">GRABANDO</span>
+            </div>
+            <div className="mt-5 space-y-2 font-mono text-[11px] sm:text-xs">
+              {[
+                ["IMPACTO 6.2G · T+0.0s", "REGISTRADO"],
+                ["TELEMETRÍA 6 EJES · 120s", "GUARDADO"],
+                ["DIAGNÓSTICO IA · TRIAGE", "SINCRONIZADO"],
+                ["FIRMA SHA-256", "VERIFICADA"],
+              ].map(([line, state], i) => (
+                <motion.div
+                  key={line}
+                  className="flex items-baseline gap-2"
+                  style={{ opacity: logs[i], x: logXs[i] }}
+                >
+                  <span className="text-red-500">›</span>
+                  <span className="text-neutral-400">{line}</span>
+                  <span className="ml-auto hud-ticker text-neutral-600 whitespace-nowrap">{state}</span>
+                </motion.div>
+              ))}
+            </div>
+            <div className="mt-6">
+              <div className="hud-ticker text-neutral-500 flex items-center justify-between mb-2">
+                <span>ALMACENAMIENTO</span><span className="text-white">128 MB · 64%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <motion.div className="h-full origin-left bg-gradient-to-r from-red-600 to-orange-400 rounded-full" style={{ scaleX: storage }} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     ),
   ];
 
+  const bars = [
+    useTransform(scrollYProgress, [0, 0.25], [0, 1]),
+    useTransform(scrollYProgress, [0, 0.5], [0, 1]),
+    useTransform(scrollYProgress, [0, 0.75], [0, 1]),
+    useTransform(scrollYProgress, [0, 1], [0, 1]),
+  ];
+
   const textPanels = steps.map((s, i) => (
     <motion.div key={s.n} className="absolute inset-0 flex flex-col justify-center" style={{ opacity: opacities[i] }}>
       <div className="flex items-center gap-3 mb-5">
-        <span className="tactical-index text-lg">{s.n} / 03</span>
+        <span className="tactical-index text-lg">{s.n} / 04</span>
         <span className="h-px flex-1 bg-gradient-to-r from-red-500/40 to-transparent" />
       </div>
       <div className="hud-ticker text-red-400 mb-3">{s.tag}</div>
-      <h3 className="font-bold font-mono text-4xl sm:text-5xl tracking-tight mb-4">{s.title}</h3>
+      <h3 className="font-bold font-mono text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-4">{s.title}</h3>
       <p className="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-md">{s.text}</p>
-      <div className="mt-8 h-1.5 rounded-full bg-white/10 overflow-hidden max-w-xs">
-        <motion.div className="h-full bg-gradient-to-r from-red-600 via-red-400 to-orange-300 rounded-full"
-          style={{ width: `${(i + 1) * 33}%` }} transition={{ duration: 0.6 }} />
+      <div className="mt-5 flex flex-wrap gap-2">
+        {s.meta.map(([k, v]) => (
+          <span key={k} className="hud-ticker text-neutral-500 border border-white/10 rounded-md px-2 py-1">
+            {k} <span className="text-white">{v}</span>
+          </span>
+        ))}
+      </div>
+      <div className="mt-6 h-1.5 rounded-full bg-white/10 overflow-hidden max-w-xs">
+        <motion.div className="h-full origin-left bg-gradient-to-r from-red-600 via-red-400 to-orange-300 rounded-full" style={{ scaleX: bars[i] }} />
       </div>
     </motion.div>
   ));
 
+  const header = (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+        <div>
+          <div className="hud-ticker text-red-400 mb-3 flex items-center gap-3">
+            <Radio size={14} className="animate-pulse" />
+            {t("landing.eyebrowProtocol", "Protocolo de respuesta")}
+            <span className="tactical-index">SEQ-04</span>
+          </div>
+          <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight">
+            {t("landing.titleProtocol", "Del impacto a la evidencia, en 4 fases")}
+          </h2>
+        </div>
+        <div className="flex items-center">
+          {steps.map((s, i) => (
+            <div key={s.n} className="flex items-center">
+              <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 border transition-colors duration-500 ${active === i ? "border-red-500/40 bg-red-500/10" : "border-white/10 bg-white/[0.02]"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${active === i ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]" : "bg-zinc-600"}`} />
+                <span className={`hud-ticker transition-colors duration-500 ${active === i ? "text-white" : "text-neutral-500"}`}>
+                  {t(`landing.cockpitPhase${i + 1}`, `FASE ${s.n}`)}
+                </span>
+              </div>
+              {i < steps.length - 1 && (
+                <span className={`w-6 sm:w-12 h-px transition-colors duration-500 ${active > i ? "bg-red-500/40" : "bg-white/10"}`} />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="h-px bg-white/10 mt-4 lg:mt-6 overflow-hidden">
+        <motion.div className="h-full origin-left bg-gradient-to-r from-red-600 via-red-400 to-orange-300" style={{ scaleX: scrollYProgress }} />
+      </div>
+    </div>
+  );
+
   if (reduce) {
     return (
       <section id="cockpit" className="max-w-6xl mx-auto px-4 py-20 sm:py-28">
-        <div className="grid gap-10 lg:grid-cols-2 items-center">
-          <div className="order-2 lg:order-1 relative h-[340px] flex justify-center">{visuals[0]}</div>
-          <div className="order-1 lg:order-2 relative h-[340px]">{textPanels[0]}</div>
+        <div className="mb-14">{header}</div>
+        <div className="space-y-20">
+          {steps.map((s, i) => (
+            <div key={s.n} className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+              <div className={i % 2 === 1 ? "lg:order-2" : ""}>
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="tactical-index text-lg">{s.n} / 04</span>
+                  <span className="h-px flex-1 bg-gradient-to-r from-red-500/40 to-transparent" />
+                </div>
+                <div className="hud-ticker text-red-400 mb-3">{s.tag}</div>
+                <h3 className="font-bold font-mono text-3xl sm:text-4xl tracking-tight mb-3">{s.title}</h3>
+                <p className="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-md">{s.text}</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {s.meta.map(([k, v]) => (
+                    <span key={k} className="hud-ticker text-neutral-500 border border-white/10 rounded-md px-2 py-1">
+                      {k} <span className="text-white">{v}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className={`flex justify-center ${i % 2 === 1 ? "lg:order-1" : ""}`}>{visuals[i]}</div>
+            </div>
+          ))}
         </div>
       </section>
     );
   }
 
   return (
-    <section id="cockpit" ref={ref} className="relative h-[340vh]">
-      <div className="sticky top-0 h-[100dvh] flex items-center justify-center px-4 overflow-hidden">
+    <section id="cockpit" ref={ref} className="relative h-[480vh]">
+      <div className="sticky top-0 h-[100dvh] flex flex-col justify-center overflow-hidden">
         <div className="pointer-events-none absolute inset-0 opacity-30 scanlines" />
-        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 lg:gap-14 items-center">
-          <div className="relative h-[320px] sm:h-[380px] lg:h-[460px]">
-            {visuals.map((v, i) => (
-              <motion.div key={v.key} className="absolute inset-0 flex items-center justify-center" style={{ opacity: opacities[i], pointerEvents: "none" }}>
-                {v}
-              </motion.div>
-            ))}
-          </div>
-          <div className="relative h-[300px] sm:h-[340px] lg:h-[420px]">
-            {textPanels}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.05),transparent_65%)]" />
+
+        <div className="relative w-full max-w-6xl mx-auto px-5 sm:px-8">
+          <div className="mb-6 lg:mb-10">{header}</div>
+
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-20 items-center">
+            <div className="relative h-[250px] sm:h-[320px] lg:h-[420px]">
+              {textPanels}
+            </div>
+            <motion.div style={{ x: visualX }} className="relative h-[320px] sm:h-[360px] lg:h-[460px]">
+              {visuals.map((v, i) => (
+                <motion.div
+                  key={v.key}
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ opacity: opacities[i], y: entrances[i].y, scale: entrances[i].scale, pointerEvents: "none" }}
+                >
+                  {v}
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
         </div>
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-          <span className="hud-ticker text-neutral-600 flex items-center gap-2">
+
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 pointer-events-none">
+          <span className="hud-ticker text-neutral-600">
             {t("landing.cockpitHint", "Desplázate para explorar el protocolo")}
           </span>
           <ChevronDown className="scroll-hint h-5 w-5 text-red-500/70" />
@@ -564,6 +792,7 @@ function CockpitSection({ t }) {
     </section>
   );
 }
+
 
 /* ── Interactive impact simulator ──────────────────────────────────── */
 function ImpactSimulator() {
@@ -690,8 +919,10 @@ function Landing() {
   const [plans, setPlans] = useState([]);
   const [cycle, setCycle] = useState("Mensual");
   const [audience, setAudience] = useState("b2c");
+  const [plansOpen, setPlansOpen] = useState(false);
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [cartExiting, setCartExiting] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
   const { t } = useI18n();
 
@@ -712,12 +943,7 @@ function Landing() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (!cartOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [cartOpen]);
+  useBodyScrollLock(plansOpen || cartOpen);
 
   const deviceB2B = plans[0]?.device_b2b || B2B_DEVICE;
   const deviceB2C = plans[0]?.device_b2c || B2C_DEVICE;
@@ -761,7 +987,7 @@ function Landing() {
   };
   const orderWhatsApp = () => {
     if (!cart.length) return;
-    window.open(`https://wa.me/${CONTACT_WHATSAPP}?text=${buildMessage()}`, "_blank");
+    openExternal(`https://wa.me/${CONTACT_WHATSAPP}?text=${buildMessage()}`, t("landing.cartWhatsapp", "WhatsApp"));
   };
   const orderEmail = () => {
     if (!cart.length) return;
@@ -781,8 +1007,16 @@ function Landing() {
   ];
 
   /* ── Scroll-linked hero parallax ─────────────────────────────── */
-  const { scrollYProgress } = useScroll();
+  const { scrollY, scrollYProgress } = useScroll();
   const heroScale = useTransform(scrollYProgress, [0, 0.2], [1, 1.08]);
+
+  /* ── Header: full-bleed joined to hero at top, island pill when scrolled ── */
+  const [scrolled, setScrolled] = useState(false);
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    setScrolled(latest > 32);
+  });
+  const HEADER_EASE = [0.16, 1, 0.3, 1];
+  const pillTransition = { duration: 0.45, ease: HEADER_EASE };
 
   /* ── Stagger container variants ────────────────────────────────── */
   const staggerContainer = {
@@ -811,6 +1045,27 @@ function Landing() {
     el.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`);
   }, []);
 
+  /* ── Scroll suave al inicio (logo / marca) ───────────────────────── */
+  const smoothScrollTop = useCallback((e) => {
+    e?.preventDefault();
+    const start = window.scrollY;
+    if (start === 0) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    const duration = 900;
+    const easeInOutQuint = (x) => (x < 0.5 ? 16 * x * x * x * x * x : 1 - Math.pow(-2 * x + 2, 5) / 2);
+    const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / duration);
+      window.scrollTo(0, Math.round(start * (1 - easeInOutQuint(p))));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, []);
+
   return (
     <div className="page-enter bg-[#050505] text-white min-h-screen relative">
       <ScrollProgress />
@@ -826,70 +1081,98 @@ function Landing() {
       </div>
 
       <div className="relative z-10">
-        {/* ── ISLAND NAV ──────────────────────────────────────────── */}
+        {/* ── HEADER: unido al hero arriba · isla flotante al scrollear ── */}
         <motion.header
           initial={{ y: -24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.55, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="sticky top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4"
+          transition={{ duration: 0.55, delay: 0.1, ease: HEADER_EASE }}
+          className="sticky top-0 z-50"
         >
-          <div className="mx-auto max-w-5xl rounded-full border border-white/10 bg-black/60 backdrop-blur-2xl shadow-[0_10px_50px_rgba(0,0,0,0.5)] px-3 sm:px-5 h-14 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-              <Brand compact />
-            </Link>
-            <nav className="hidden md:flex items-center gap-7">
-              {[
-                { href: "#ecosistema", l: t("landing.navEco", "Ecosistema") },
-                { href: "#cockpit", l: t("landing.navCockpit", "Cabina") },
-                { href: "#simulador", l: t("landing.navSim", "Simulador") },
-                { href: "#planes", l: t("landing.navPlanes", "Planes") },
-              ].map((n) => (
-                <motion.a
-                  key={n.href}
-                  href={n.href}
-                  whileHover={{ y: -1 }}
-                  className="hud-ticker text-neutral-400 hover:text-white transition-colors"
+          <motion.div
+            animate={{
+              paddingTop: scrolled ? 12 : 0,
+              paddingLeft: scrolled ? 16 : 0,
+              paddingRight: scrolled ? 16 : 0,
+            }}
+            transition={pillTransition}
+          >
+            <motion.div
+              initial={false}
+              animate={{
+                maxWidth: scrolled ? "64rem" : "100%",
+                borderRadius: scrolled ? 9999 : 0,
+                backgroundColor: scrolled ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0)",
+                borderColor: scrolled ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0)",
+                boxShadow: scrolled ? "0 10px 50px rgba(0,0,0,0.5)" : "0 0 0 rgba(0,0,0,0)",
+                backdropFilter: scrolled ? "blur(24px)" : "blur(0px)",
+                WebkitBackdropFilter: scrolled ? "blur(24px)" : "blur(0px)",
+              }}
+              transition={pillTransition}
+              className="mx-auto h-14 border flex items-center justify-between px-3 sm:px-5"
+            >
+              <Link to="/" onClick={smoothScrollTop} className="flex items-center gap-2.5 flex-shrink-0" aria-label={t("landing.backToTop", "Volver al inicio")}>
+                <Brand compact />
+              </Link>
+              <nav className="hidden md:flex items-center gap-7">
+                {[
+                  { href: "#ecosistema", l: t("landing.navEco", "Ecosistema") },
+                  { href: "#cockpit", l: t("landing.navCockpit", "Cabina") },
+                  { href: "#simulador", l: t("landing.navSim", "Simulador") },
+                  { href: "#planes", l: t("landing.navPlanes", "Planes") },
+                ].map((n) => (
+                  <motion.a
+                    key={n.href}
+                    href={n.href}
+                    onClick={(e) => {
+                      if (n.href === "#planes") {
+                        e.preventDefault();
+                        setPlansOpen(true);
+                      }
+                    }}
+                    whileHover={{ y: -1 }}
+                    className="hud-ticker text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    {n.l}
+                  </motion.a>
+                ))}
+              </nav>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <motion.button
+                  onClick={() => setCartOpen(true)}
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.94 }}
+                  className="relative p-2 text-zinc-300 hover:text-white transition-colors"
+                  aria-label={t("landing.cartOpenAria", "Abrir carrito")}
                 >
-                  {n.l}
-                </motion.a>
-              ))}
-            </nav>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <motion.button
-                onClick={() => setCartOpen(true)}
-                whileHover={{ scale: 1.06 }}
-                whileTap={{ scale: 0.94 }}
-                className="relative p-2 text-zinc-300 hover:text-white transition-colors"
-                aria-label={t("landing.cartOpenAria", "Abrir carrito")}
-              >
-                <ShoppingCart size={19} />
-                <AnimatePresence>
-                  {cart.length > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center font-mono font-bold"
-                    >
-                      {cart.length}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-              <Magnetic strength={0.12}>
-                <Link
-                  to="/login"
-                  className="btn-gradient-border text-white font-bold text-xs sm:text-sm px-3.5 sm:px-5 py-2 rounded-full inline-block"
-                >
-                  {t("landing.navAccess", "Acceso monitoristas")}
-                </Link>
-              </Magnetic>
-            </div>
-          </div>
+                  <ShoppingCart size={19} />
+                  <AnimatePresence>
+                    {cart.length > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center font-mono font-bold"
+                      >
+                        {cart.length}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+                <Magnetic strength={0.12}>
+                  <Link
+                    to="/login"
+                    className="btn-gradient-border text-white font-bold text-xs sm:text-sm px-3.5 sm:px-5 py-2 rounded-full inline-block"
+                  >
+                    {t("landing.navAccess", "Acceso monitoristas")}
+                  </Link>
+                </Magnetic>
+              </div>
+            </motion.div>
+          </motion.div>
         </motion.header>
 
         {/* ── HERO ──────────────────────────────────────────────────── */}
-        <section className="relative overflow-hidden">
+        <section className="relative -mt-14 overflow-hidden">
           <motion.div className="absolute inset-0" style={{ scale: heroScale }}>
             <img src={HERO} alt={t("landing.heroAlt", "Motociclista de noche")} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/85" />
@@ -897,10 +1180,13 @@ function Landing() {
           </motion.div>
           <div className="absolute inset-0 opacity-40 scanlines pointer-events-none" />
 
-          {/* Chips de telemetría flotantes */}
-          <HeroChip className="hidden lg:block top-24 right-[8%]" label="G-FORCE" value="4.2" unit="G" hint="PICO REGISTRADO · 14:32:08" delay="0s" />
-          <HeroChip className="hidden lg:block top-[46%] right-[4%]" anim="chip-float-2" label="RSP TIME" value="8.2" unit="s" hint="RESPUESTA ESTIMADA" delay="1.2s" />
-          <HeroChip className="hidden lg:block bottom-40 left-[5%]" anim="chip-float-2" label="GPS LOCK" value="27.48°N 99.50°W" hint="NUEVO LAREDO · MX" delay="0.6s" />
+          {/* Chips de telemetría flotantes — rail HUD derecho */}
+          <div aria-hidden className="hidden lg:block absolute right-[4%] xl:right-[7%] top-1/2 -translate-y-1/2 w-[196px] pointer-events-none">
+            <span className="absolute left-0 top-7 bottom-7 w-px border-l border-dashed border-red-500/15" />
+            <HeroChip className="top-0 right-0 w-full" label="G-FORCE" value="4.2" unit="G" hint="PICO REGISTRADO · 14:32:08" delay="0s" />
+            <HeroChip className="top-[9.5rem] right-0 w-full" anim="chip-float-2" label="RSP TIME" value="8.2" unit="s" hint="RESPUESTA ESTIMADA" delay="1.2s" />
+            <HeroChip className="top-[19rem] right-0 w-full" anim="chip-float-2" label="GPS LOCK" value="27.48°N" unit="99.50°W" hint="NUEVO LAREDO · MX" delay="0.6s" />
+          </div>
 
           <div className="relative max-w-6xl mx-auto px-4 py-20 sm:py-24 lg:py-28">
             <motion.div
@@ -961,10 +1247,10 @@ function Landing() {
                 </Magnetic>
               )}
               <Magnetic>
-                <motion.a href="#planes" whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
-                  className="bg-white text-black font-bold px-6 py-3 rounded-full flex items-center gap-2 shadow-lg shadow-white/10">
+                <motion.button type="button" onClick={() => setPlansOpen(true)} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}
+                  className="bg-white text-black font-bold px-6 py-3 rounded-full flex items-center gap-2 shadow-lg shadow-white/10 cursor-pointer">
                   {t("landing.heroCtaPlans", "Ver planes")} <ArrowRight size={18} />
-                </motion.a>
+                </motion.button>
               </Magnetic>
               <Magnetic>
                 <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
@@ -1294,296 +1580,126 @@ function Landing() {
           </ScrollReveal>
         </section>
 
-        {/* ── PLANS ──────────────────────────────────────────────────── */}
-        <section id="planes" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
-          <ScrollReveal>
-            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-2">{t("landing.titlePlans", "Planes y precios")}</h2>
-            <p className="text-zinc-400 mb-6 text-sm max-w-2xl">
-              {t("landing.planesIntro", "El precio a empresas (B2B) es superior al del usuario final (B2C) porque incluye dashboard corporativo, telemetría de flotilla e instalación. Elige tu perfil para ver precios en MXN.")}
-            </p>
-          </ScrollReveal>
-
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-flex gap-1 border border-white/10 rounded-full p-1 mb-6 bg-white/[0.02]"
-          >
-            <motion.button
-              onClick={() => setAudience("b2c")}
-              whileTap={{ scale: 0.97 }}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${audience === "b2c" ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
-            >
-              <Users size={15} /> {t("landing.audienceB2c", "Usuario (B2C)")}
-            </motion.button>
-            <motion.button
-              onClick={() => setAudience("b2b")}
-              whileTap={{ scale: 0.97 }}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${audience === "b2b" ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
-            >
-              <Building2 size={15} /> {t("landing.audienceB2b", "Empresa (B2B)")}
-            </motion.button>
-          </motion.div>
-
-          <AnimatePresence mode="wait">
-            {audience === "b2c" ? (
-              <motion.div
-                key="b2c"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="grid md:grid-cols-2 gap-5"
-              >
-                <TiltCard className="hud-frame glass-refined p-6 flex flex-col rounded-3xl" style={{ borderRadius: 20 }}>
-                  <div className="font-bold font-mono text-2xl">{t("landing.planPersonal", "Plan Personal")}</div>
-                  <div className="text-zinc-500 text-sm mt-1">{t("landing.planPersonalDesc", "Protección para motociclistas particulares y repartidores independientes.")}</div>
-                  <div className="mt-6 flex items-end gap-2">
-                    <span className="font-mono font-bold text-4xl tactical-num">{mx(subB2C)}</span>
-                    <span className="text-zinc-500 text-sm mb-1 font-mono">/ {cycle.toLowerCase()}</span>
-                  </div>
-                  <ul className="mt-6 space-y-3 text-sm flex-1">
-                    {[
-                      "Monitoreo en vivo con IA",
-                      "Alertas de impacto a contactos",
-                      "Historial de telemetría",
-                      "App móvil C.R.A.S.H.",
-                      "Dispositivo con 46% de margen",
-                    ].map((f, i) => (
-                      <li key={f} className="flex items-center gap-2.5 text-zinc-300">
-                        <Check size={15} className="text-red-400 shrink-0" /> {t(`landing.b2cFeat${i + 1}`, f)}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="grid grid-cols-2 gap-2 mt-6">
-                    <motion.button
-                      onClick={() => addItems([{ key: `b2c-device`, kind: "device", audience: "b2c" }])}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="border border-white/15 hover:border-white/40 font-bold py-3 rounded-full transition-all hover:bg-white/5 text-sm"
-                    >
-                      {t("landing.btnDevice", "Dispositivo")} {mx(deviceB2C)}
-                    </motion.button>
-                    <motion.button
-                      onClick={() => addItems([{ key: `b2c-sub-${cycle}`, kind: "b2csub", cycle }])}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="bg-white text-black font-bold py-3 rounded-full transition-all hover:bg-zinc-200 text-sm"
-                    >
-                      {t("landing.btnSubscription", "Suscripción")}
-                    </motion.button>
-                  </div>
-                </TiltCard>
-
-                <TiltCard className="hud-frame glass-refined p-6 flex flex-col justify-center rounded-3xl" style={{ borderRadius: 20 }}>
-                  <div className="text-red-400 text-xs font-mono uppercase tracking-[0.2em] mb-3">{t("landing.whyCrash", "¿Por qué C.R.A.S.H.?")}</div>
-                  <p className="text-zinc-300 text-sm leading-relaxed mb-4">
-                    {t("landing.whyPara", "En 2024 se registraron 61,869 accidentes con motocicleta en México. Más de 386 mil personas usan la moto como herramienta de trabajo.")}
-                  </p>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                      <span className="text-zinc-500">{t("landing.priceDeviceB2c", "Dispositivo (B2C)")}</span>
-                      <span className="font-mono font-bold">{mx(deviceB2C)}</span>
-                    </div>
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                      <span className="text-zinc-500">{t("landing.priceSubMonth", "Suscripción / mes")}</span>
-                      <span className="font-mono font-bold">{mx(subB2C)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">{t("landing.priceProduction", "Costo de producción")}</span>
-                      <span className="font-mono font-bold text-red-400">$800 MXN</span>
-                    </div>
-                  </div>
-                </TiltCard>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="b2b"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="inline-flex flex-wrap gap-1 border border-white/10 rounded-full p-1 mb-8 bg-white/[0.02]">
-                  {CYCLES.map((c) => (
-                    <motion.button
-                      key={c.key}
-                      onClick={() => setCycle(c.label)}
-                      whileTap={{ scale: 0.97 }}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${cycle === c.label ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
-                    >
-                      {t(`landing.${c.key}`, c.label)}
-                    </motion.button>
-                  ))}
-                </div>
-
-                <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid md:grid-cols-3 gap-5">
-                  {plans.map((p) => (
-                    <motion.div key={p.name} variants={scaleInItem}>
-                      <TiltCard
-                        className={`hud-frame glass-refined p-6 flex flex-col transition-all duration-300 rounded-3xl ${p.popular ? "shimmer-border ring-1 ring-white/10 scale-[1.02]" : ""}`}
-                        style={{ borderRadius: 20 }}
-                      >
-                        {p.popular && (
-                          <div className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-400 mb-3 bg-red-500/10 px-2.5 py-1 rounded-full self-start">
-                            <Check size={10} /> {t("landing.popular", "Más popular")}
-                          </div>
-                        )}
-                        <div className="font-bold font-mono text-2xl">{p.name}</div>
-                        <div className="text-zinc-500 text-sm mt-1">{t("landing.planDrivers", "Hasta {d} repartidores · {m} monitores").replace("{d}", p.max_drivers).replace("{m}", p.max_monitors)}</div>
-                        <div className="mt-6 flex items-end gap-2">
-                          <span className="font-mono font-bold text-4xl tactical-num">{mx(Math.round((p.price || 0) * (CYCLE_MULT[cycle] || 1)))}</span>
-                          <span className="text-zinc-500 text-sm mb-1 font-mono">{t(`landing.cycleSlash${cycle}`, `/ ${cycle.toLowerCase()}`)}</span>
-                        </div>
-                        <div className="text-[11px] text-zinc-500 mt-1">{t("landing.planIncludesSaas", "Incluye SaaS a {amt} por repartidor/mes").replace("{amt}", mx(subB2BPerDriver))}</div>
-                        <ul className="mt-6 space-y-3 text-sm flex-1">
-                          {(p.features && p.features.length ? p.features : ["Monitoreo en tiempo real", "Alertas de impacto", "Historial de telemetría", "Soporte"]).map((f, i) => (
-                            <li key={f} className="flex items-center gap-2.5 text-zinc-300">
-                              <Check size={15} className="text-red-400 shrink-0" />
-                              {p.features && p.features.length ? f : t(`landing.b2bDefFeat${i}`, f)}
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="grid grid-cols-2 gap-2 mt-6">
-                          <motion.button
-                            onClick={() => addItems([{ key: `b2b-device`, kind: "device", audience: "b2b" }])}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="border border-white/15 hover:border-white/40 font-bold py-3 rounded-full transition-all hover:bg-white/5 text-sm"
-                          >
-                            {t("landing.btnDisp", "Disp.")} {mx(deviceB2B)}
-                          </motion.button>
-                          <motion.button
-                            onClick={() => addItems([{ key: `plan-${p.name}-b2b-${cycle}`, kind: "plan", planName: p.name, cycle }])}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className={`font-bold py-3 rounded-full transition-all text-sm ${p.popular ? "bg-white text-black hover:bg-zinc-200 shadow-lg shadow-white/10" : "border border-white/15 hover:border-white/40 hover:bg-white/5"}`}
-                          >
-                            {t("landing.btnPlan", "Plan")}
-                          </motion.button>
-                        </div>
-                      </TiltCard>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <p className="text-xs text-zinc-600 mt-8 leading-relaxed max-w-2xl">
-            {t("landing.plansFooter", "El precio B2B (empresa) es superior al B2C porque suma instalación, soporte, dashboard corporativo con telemetría de flotilla y prevención de accidentes laborales. Las empresas acceden a un Centro de Control que reduce primas de seguro y responsabilidad civil.")}
-          </p>
-        </section>
-
-        {/* ── FOOTER ──────────────────────────────────────────────────── */}
-        <motion.footer
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="border-t border-white/[0.04] py-12 text-center"
-        >
-          <div className="max-w-6xl mx-auto px-4">
-            <motion.div className="flex items-center justify-center gap-2 mb-4" whileHover={{ scale: 1.02 }}>
-              <Brand compact />
-            </motion.div>
-            <div className="flex items-center justify-center gap-3 hud-ticker text-neutral-600 mb-3">
-              <span className="glow-dot bg-emerald-400 text-emerald-400" /> SISTEMA OPERATIVO · STATUS NOMINAL
-            </div>
-            <p className="text-zinc-600 text-sm font-mono">
-              {t("landing.footerTag", "Critical Response Alert System for Helmets · Hecho en México")}
-            </p>
-          </div>
-        </motion.footer>
+        {/* ── CTA + FOOTER ───────────────────────────────────────────── */}
+        <CtaFooter
+          brand={<Brand compact />}
+          onPlansClick={() => setPlansOpen(true)}
+          onBrandClick={smoothScrollTop}
+          onBookCall={() => openExternal(`https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent("Hola C.R.A.S.H., quiero agendar una llamada estratégica para conocer la plataforma.")}`, "Abrir WhatsApp")}
+        />
       </div>
+
+      {plansOpen && createPortal((
+        <PlansModal
+          onClose={() => setPlansOpen(false)}
+          audience={audience}
+          onAudienceChange={setAudience}
+          cycle={cycle}
+          onCycleChange={setCycle}
+          plans={plans}
+          deviceB2C={deviceB2C}
+          deviceB2B={deviceB2B}
+          subB2C={subB2C}
+          subB2BPerDriver={subB2BPerDriver}
+          onAddItems={addItems}
+        />
+      ), document.body)}
 
       {cartOpen && createPortal((
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          animate={{ opacity: cartExiting ? 0 : 1 }}
+          transition={{ duration: 0.18 }}
+          onAnimationComplete={() => {
+            if (cartExiting) {
+              setCartExiting(false);
+              setCartOpen(false);
+            }
+          }}
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
         >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setCartOpen(false)}
+            onClick={() => setCartExiting(true)}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={cartExiting
+              ? { opacity: 0, scale: 0.95, y: 10, transition: { duration: 0.15, ease: "easeIn" } }
+              : { opacity: 1, scale: 1, y: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className="hud-frame glass-refined relative w-full max-w-md max-h-[85vh] bg-[#0a0a0a] rounded-2xl flex flex-col shadow-[0_30px_80px_rgba(0,0,0,0.6)] overflow-hidden"
           >
-            <div className="px-5 h-16 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
-              <span className="font-bold font-mono flex items-center gap-2 text-base">
-                <ShoppingCart size={18} /> {t("landing.cartTitle", "Carrito")} {cart.length > 0 && <span className="text-xs text-zinc-500">({cart.length})</span>}
-              </span>
-              <motion.button
-                onClick={() => setCartOpen(false)}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/30 transition-all"
-                aria-label={t("landing.cartCloseAria", "Cerrar carrito")}
-              >
-                <X size={16} />
-              </motion.button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
-              <AnimatePresence>
-                {cart.length === 0 && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center text-center py-10 gap-3">
-                    <ShoppingCart size={32} className="text-zinc-700" />
-                    <p className="text-zinc-600 text-sm">{t("landing.cartEmpty", "Tu carrito está vacío.")}</p>
-                    <p className="text-zinc-700 text-xs">{t("landing.cartAdd", "Agrega un plan para comenzar.")}</p>
-                  </motion.div>
-                )}
-                {cart.map((i) => (
-                  <motion.div
-                    key={i.key}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20, height: 0, marginBottom: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="glass-refined p-3.5 flex items-center justify-between gap-3 overflow-hidden rounded-xl"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{labelOf(i)}</div>
-                      <div className="font-mono text-zinc-400 text-sm mt-0.5">{mx(priceOfItem(i))}</div>
-                    </div>
-                    <motion.button
-                      onClick={() => removeFromCart(i.key)}
-                      whileHover={{ scale: 1.1, color: "#ef4444" }}
-                      className="w-7 h-7 shrink-0 rounded-md border border-white/10 flex items-center justify-center text-zinc-500 transition-colors"
-                      aria-label="Quitar del carrito"
+              <div className="px-5 h-16 flex items-center justify-between border-b border-white/[0.06] flex-shrink-0">
+                <span className="font-bold font-mono flex items-center gap-2 text-base">
+                  <ShoppingCart size={18} /> {t("landing.cartTitle", "Carrito")} {cart.length > 0 && <span className="text-xs text-zinc-500">({cart.length})</span>}
+                </span>
+                <motion.button
+                  onClick={() => setCartExiting(true)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="w-8 h-8 rounded-lg border border-white/[0.08] flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/30 transition-all"
+                  aria-label={t("landing.cartCloseAria", "Cerrar carrito")}
+                >
+                  <X size={16} />
+                </motion.button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
+                <AnimatePresence>
+                  {cart.length === 0 && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center text-center py-10 gap-3">
+                      <ShoppingCart size={32} className="text-zinc-700" />
+                      <p className="text-zinc-600 text-sm">{t("landing.cartEmpty", "Tu carrito está vacío.")}</p>
+                      <p className="text-zinc-700 text-xs">{t("landing.cartAdd", "Agrega un plan para comenzar.")}</p>
+                    </motion.div>
+                  )}
+                  {cart.map((i) => (
+                    <motion.div
+                      key={i.key}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20, height: 0, marginBottom: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="glass-refined p-3.5 flex items-center justify-between gap-3 overflow-hidden rounded-xl"
                     >
-                      <X size={13} />
-                    </motion.button>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-            <div className="p-4 border-t border-white/[0.06] space-y-3 bg-black/20 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400 text-sm uppercase tracking-wider font-mono">{t("landing.cartTotal", "Total")}</span>
-                <motion.span key={total} initial={{ scale: 1.1 }} animate={{ scale: 1 }} className="font-mono font-bold text-2xl tactical-num">{mx(total)}</motion.span>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{labelOf(i)}</div>
+                        <div className="font-mono text-zinc-400 text-sm mt-0.5">{mx(priceOfItem(i))}</div>
+                      </div>
+                      <motion.button
+                        onClick={() => removeFromCart(i.key)}
+                        whileHover={{ scale: 1.1, color: "#ef4444" }}
+                        className="w-7 h-7 shrink-0 rounded-md border border-white/10 flex items-center justify-center text-zinc-500 transition-colors"
+                        aria-label="Quitar del carrito"
+                      >
+                        <X size={13} />
+                      </motion.button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-              <p className="text-xs text-zinc-600 leading-relaxed">
-                {t("landing.cartInfo", "Recibe la información del plan por WhatsApp o correo. La compra es simulada: al confirmar generamos tus tokens.")}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <motion.button onClick={orderWhatsApp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-red-500 text-white font-bold py-3 rounded-full flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(239,68,68,0.3)]">
-                  <MessageCircle size={20} /> {t("landing.cartWhatsapp", "WhatsApp")}
-                </motion.button>
-                <motion.button onClick={orderEmail} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="border border-white/15 hover:border-white/40 font-bold py-3 rounded-full flex items-center justify-center gap-2 transition-all hover:bg-white/5">
-                  <Mail size={20} /> {t("landing.cartEmail", "Correo")}
-                </motion.button>
+              <div className="p-4 border-t border-white/[0.06] space-y-3 bg-black/20 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400 text-sm uppercase tracking-wider font-mono">{t("landing.cartTotal", "Total")}</span>
+                  <motion.span key={total} initial={{ scale: 1.1 }} animate={{ scale: 1 }} className="font-mono font-bold text-2xl tactical-num">{mx(total)}</motion.span>
+                </div>
+                <p className="text-xs text-zinc-600 leading-relaxed">
+                  {t("landing.cartInfo", "Recibe la información del plan por WhatsApp o correo. La compra es simulada: al confirmar generamos tus tokens.")}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <motion.button onClick={orderWhatsApp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-red-500 text-white font-bold py-3 rounded-full flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-[0_0_24px_rgba(239,68,68,0.3)]">
+                    <MessageCircle size={20} /> {t("landing.cartWhatsapp", "WhatsApp")}
+                  </motion.button>
+                  <motion.button onClick={orderEmail} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="border border-white/15 hover:border-white/40 font-bold py-3 rounded-full flex items-center justify-center gap-2 transition-all hover:bg-white/5">
+                    <Mail size={20} /> {t("landing.cartEmail", "Correo")}
+                  </motion.button>
+                </div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      ), document.body)}
+        ), document.body)}
     </div>
   );
 }

@@ -1,37 +1,40 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef } from "react";
 import { animate } from "framer-motion";
 import { Bluetooth, BluetoothOff, Gauge, MapPin, Activity, Battery } from "lucide-react";
 import { useI18n } from "../i18n";
+import { EmptyState, Skeleton } from "./ui/design-system";
 
-const fmtNum = (v, digits = 0) =>
-  typeof v === "number" && Number.isFinite(v) ? v.toFixed(digits) : "—";
+const EASE = [0.16, 1, 0.3, 1];
 
-/** Número con conteo animado tipo instrumento (odómetro con overshoot). */
+/**
+ * Número con conteo animado tipo instrumento. Escribe directo al DOM
+ * (textContent) para NO re-renderizar React por frame.
+ */
 function AnimatedValue({ value, decimals = 0, className, prefix = "", suffix = "" }) {
   const ref = useRef(null);
-  const [display, setDisplay] = useState(value != null ? Number(value).toFixed(decimals) : "—");
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     if (value == null || !Number.isFinite(value)) {
-      setDisplay("—");
+      el.textContent = `${prefix}—${suffix}`;
       return;
     }
-    const from = parseFloat(display.replace(/,/g, "")) || 0;
+    const from = parseFloat(el.textContent.replace(/[^0-9.-]/g, "")) || 0;
     const controls = animate(from, value, {
       duration: 0.6,
-      ease: [0.16, 1, 0.3, 1],
+      ease: EASE,
       onUpdate: (v) => {
-        setDisplay(v.toFixed(decimals));
+        el.textContent = `${prefix}${v.toFixed(decimals)}${suffix}`;
       },
     });
     return () => controls.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, decimals, prefix, suffix]);
 
   return (
     <span ref={ref} className={`tactical-num ${className || ""}`}>
       {prefix}
-      {display}
+      {value != null && Number.isFinite(value) ? Number(value).toFixed(decimals) : "—"}
       {suffix}
     </span>
   );
@@ -39,18 +42,25 @@ function AnimatedValue({ value, decimals = 0, className, prefix = "", suffix = "
 
 function TelemetryBento({ driver }) {
   const { t } = useI18n();
+
   if (!driver) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="telemetry-bento-empty">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="double-bezel">
-            <div className="glass-refined rounded-[16.5px] h-[140px] flex items-center justify-center">
-              <span className="text-[10px] uppercase tracking-[0.3em] text-neutral-600">
-                {t("telemetryBento.selectDriver", "Selecciona un conductor")}
-              </span>
+            <div className="glass-refined rounded-[16.5px] min-h-[128px] p-5 flex items-center justify-center">
+              <Skeleton className="w-full h-full min-h-[88px] rounded-xl" />
             </div>
           </div>
         ))}
+        <div className="col-span-2 lg:col-span-4">
+          <EmptyState
+            icon={Gauge}
+            title={t("telemetryBento.selectDriver", "Selecciona un conductor")}
+            description={t("telemetryBento.selectDriverHint", "Elige un conductor en la flota para ver su telemetría en vivo: fuerza-G, velocidad, casco y GPS.")}
+            className="py-4"
+          />
+        </div>
       </div>
     );
   }
@@ -70,50 +80,10 @@ function TelemetryBento({ driver }) {
   const speedColor = speed != null && speed > 80 ? "text-amber-400" : "text-white";
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in" data-testid="telemetry-bento">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="telemetry-bento">
+      {/* 01 · G-FORCE — la métrica principal */}
       <div className={`double-bezel ${gforceTone === "critical" ? "metric-scan" : ""}`}>
-        <div className="glass-refined rounded-[16.5px] p-5 h-full hover-lift">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{t("telemetryBento.helmet", "Casco")} · Bluetooth</div>
-          <div className="mt-2">
-            <div className="flex items-center gap-3">
-              {driver.helmet_connected ? (
-                <Bluetooth className="h-7 w-7 text-emerald-400" />
-              ) : (
-                <BluetoothOff className="h-7 w-7 text-red-400" />
-              )}
-              <div>
-                <div className={`font-mono text-2xl font-bold ${driver.helmet_connected ? "text-emerald-400" : "text-red-400"}`}>
-                  {driver.helmet_connected ? "ONLINE" : "OFFLINE"}
-                </div>
-                <div className="text-xs text-neutral-400 mt-0.5">
-                  {driver.helmet_connected ? t("telemetryBento.connectedHeadset", "Conectado al headset") : t("telemetryBento.noRecentTelemetry", "Sin telemetría reciente")}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="double-bezel">
-        <div className="glass-refined rounded-[16.5px] p-5 h-full hover-lift">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{t("telemetryBento.speed", "Velocidad")}</div>
-          <div className="mt-2">
-            <div className="flex items-end gap-2">
-              <Gauge className="h-7 w-7 text-emerald-400 mb-1" />
-              <div>
-                <AnimatedValue
-                  value={speed}
-                  className={`font-mono text-4xl font-bold tracking-tighter ${speedColor}`}
-                />
-                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">km/h</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`double-bezel ${gforceTone === "critical" ? "metric-scan" : ""}`}>
-        <div className={`glass-refined rounded-[16.5px] p-5 h-full hover-lift ${gforceTone === "critical" ? "glass-card-red" : gforceTone === "active" ? "glass-card-emerald" : ""}`}>
+        <div className={`glass-refined rounded-[16.5px] p-5 min-h-[128px] h-full hover-lift ${gforceTone === "critical" ? "glass-card-red" : gforceTone === "active" ? "glass-card-emerald" : ""}`}>
           <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">G-Force</div>
           <div className="mt-2">
             <div className="flex items-end gap-2">
@@ -141,8 +111,52 @@ function TelemetryBento({ driver }) {
         </div>
       </div>
 
+      {/* 02 · VELOCIDAD */}
       <div className="double-bezel">
-        <div className="glass-refined rounded-[16.5px] p-5 h-full hover-lift">
+        <div className="glass-refined rounded-[16.5px] p-5 min-h-[128px] h-full hover-lift">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{t("telemetryBento.speed", "Velocidad")}</div>
+          <div className="mt-2">
+            <div className="flex items-end gap-2">
+              <Gauge className="h-7 w-7 text-emerald-400 mb-1" />
+              <div>
+                <AnimatedValue
+                  value={speed}
+                  className={`font-mono text-4xl font-bold tracking-tighter ${speedColor}`}
+                />
+                <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">km/h</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 03 · CASCO / BLUETOOTH */}
+      <div className="double-bezel">
+        <div className="glass-refined rounded-[16.5px] p-5 min-h-[128px] h-full hover-lift">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{t("telemetryBento.helmet", "Casco")} · Bluetooth</div>
+          <div className="mt-2">
+            <div className="flex items-center gap-3">
+              {driver.helmet_connected ? (
+                <Bluetooth className="h-7 w-7 text-emerald-400" />
+              ) : (
+                <BluetoothOff className="h-7 w-7 text-red-400" />
+              )}
+              <div>
+                <div className={`font-mono text-2xl font-bold ${driver.helmet_connected ? "text-emerald-400" : "text-red-400"}`}>
+                  {driver.helmet_connected ? "ONLINE" : "OFFLINE"}
+                </div>
+                <div className="text-xs text-neutral-400 mt-0.5">
+                  {driver.helmet_connected ? t("telemetryBento.connectedHeadset", "Conectado al headset") : t("telemetryBento.noRecentTelemetry", "Sin telemetría reciente")}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 04 · GPS + BATERÍA */}
+      <div className="double-bezel">
+        <div className="glass-refined rounded-[16.5px] p-5 min-h-[128px] h-full hover-lift">
           <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">GPS · {t("telemetryBento.battery", "Batería")}</div>
           <div className="mt-2">
             <div className="flex items-start gap-2">

@@ -6148,6 +6148,11 @@ hpack.js@^2.1.6:
     readable-stream "^2.0.1"
     wbuf "^1.1.0"
 
+hls.js@^1.6.17:
+  version "1.6.17"
+  resolved "https://registry.yarnpkg.com/hls.js/-/hls.js-1.6.17.tgz#0c96c04e620a52970b036361af17b81e3e0be1f3"
+  integrity sha512-NUplVGVuc1hSPwdB/9/cbRkUmLrYi75/hqiXKdA+l300pJNxDu96R7jRb2imDzWJqIUF4I5ThmAdp9GvOCXsuQ==
+
 html-encoding-sniffer@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/html-encoding-sniffer/-/html-encoding-sniffer-2.0.1.tgz#42a6dc4fd33f00281176e8b23759ca4e4fa185f3"

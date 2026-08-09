@@ -1670,7 +1670,7 @@ function VersionsTab() {
       />
 
       <PremiumModal
-        visible={!!editing}
+        open={!!editing}
         onClose={() => !savingEdit && setEditing(null)}
         title={editing ? `Versión v${editing.version}` : "Editar versión"}
         eyebrow="SuperAdmin · Versiones"

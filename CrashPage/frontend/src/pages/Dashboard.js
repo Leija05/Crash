@@ -11,6 +11,7 @@ import DriverDetailSheet from "../components/DriverDetailSheet";
 import CrashHistoryModal from "../components/CrashHistoryModal";
 import SystemHealthPanel from "../components/SystemHealthPanel";
 import PremiumModal from "../components/ui/Modal";
+import AnimatedBackdrop from "../components/ui/AnimatedBackdrop";
 import { useCrashSocket } from "../lib/ws";
 import { useAuth } from "../auth/AuthContext";
 import { api, companyAPI, monitorAPI, formatApiError } from "../lib/api";
@@ -241,23 +242,25 @@ function Dashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="h-screen w-full p-3 lg:p-4 flex flex-col gap-3 lg:gap-4 overflow-hidden bg-[#0A0A0A] red-accent-panel"
+      className="relative min-h-screen lg:h-screen w-full p-3 lg:p-4 flex flex-col gap-3 lg:gap-4 overflow-x-hidden lg:overflow-hidden bg-[var(--bg-app)] red-accent-panel"
     >
+      <AnimatedBackdrop />
+
       <Topbar
         status={status}
         alertCount={activeAlertCount}
         onOpenHistory={handleOpenHistory}
       />
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 min-h-0">
+      <div className="relative flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 lg:min-h-0">
         <motion.aside
           custom={0}
           variants={PANEL_VARIANTS}
           initial="hidden"
           animate="visible"
-          className="lg:col-span-3 min-h-0 flex flex-col gap-3 lg:gap-4"
+          className="lg:col-span-3 lg:min-h-0 flex flex-col gap-3 lg:gap-4"
         >
-          <div className="hud-frame flex-1 min-h-0 rounded-2xl glass-refined p-4 flex flex-col">
+          <div className="hud-frame lg:flex-1 rounded-2xl glass-refined p-4 flex flex-col lg:min-h-0">
             <motion.div
               className="flex-1 min-h-0"
               initial={{ opacity: 0 }}
@@ -305,14 +308,15 @@ function Dashboard() {
           variants={PANEL_VARIANTS}
           initial="hidden"
           animate="visible"
-          className="lg:col-span-6 flex flex-col gap-3 lg:gap-4 min-h-0"
+          className="lg:col-span-6 flex flex-col gap-3 lg:gap-4 lg:min-h-0"
         >
           <motion.div
-            className="hud-frame flex-1 rounded-2xl overflow-hidden min-h-[280px] relative"
+            className="hud-frame lg:flex-1 rounded-2xl overflow-hidden min-h-[320px] lg:min-h-0 relative"
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
+            <div aria-hidden className="hud-frame absolute inset-0 z-[450] pointer-events-none rounded-2xl" />
             <LiveMap
               drivers={visibleDrivers}
               alerts={visibleAlerts}
@@ -375,7 +379,7 @@ function Dashboard() {
           variants={PANEL_VARIANTS}
           initial="hidden"
           animate="visible"
-          className="lg:col-span-3 min-h-0 flex"
+          className="lg:col-span-3 lg:min-h-0 flex max-h-[60vh] lg:max-h-none"
         >
           <motion.div
             className="flex-1 min-h-0"

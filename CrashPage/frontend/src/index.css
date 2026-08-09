@@ -4,16 +4,49 @@
 
 :root {
     color-scheme: dark;
+    /* Surfaces */
     --bg-app: #0A0A0A;
     --bg-app-2: #0d0d0f;
+    --surface-1: rgba(255, 255, 255, 0.03);
+    --surface-2: rgba(255, 255, 255, 0.06);
+    --surface-solid: #121214;
     --glass-bg: rgba(255, 255, 255, 0.03);
     --glass-border: rgba(255, 255, 255, 0.07);
     --glass-blur: 24px;
+    /* Texto */
+    --text-primary: #f5f5f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    /* Acentos (1 acento principal + semánticos de estado) */
+    --accent: #ef4444;
+    --accent-soft: rgba(239, 68, 68, 0.12);
     --glow-emerald: rgba(16, 185, 129, 0.25);
     --glow-red: rgba(239, 68, 68, 0.25);
     --glow-amber: rgba(245, 158, 11, 0.25);
+    /* Radio (regla: tarjetas 16 · inputs 8 · botones pill) */
+    --radius-card: 16px;
+    --radius-input: 8px;
+    --radius-pill: 9999px;
+    /* Elevación: sombras tintadas al fondo, nunca negro puro */
+    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --shadow-modal: 0 32px 96px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    /* Movimiento: UI < 300ms · marketing puede ser más largo */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --duration-fast: 160ms;
+    --duration-base: 250ms;
+    --duration-slow: 400ms;
     --transition-premium: 400ms cubic-bezier(0.16, 1, 0.3, 1);
     --transition-snap: 250ms cubic-bezier(0.32, 0.72, 0, 1);
+    /* Escala de z-index (única y documentada) */
+    --z-base: 0;
+    --z-decor: 1;      /* fondos, grano, orbes */
+    --z-nav: 50;       /* header, sidebar */
+    --z-map: 400;      /* controles y overlays del mapa */
+    --z-map-hud: 450;  /* brackets HUD sobre el mapa */
+    --z-overlay: 900;  /* comandos, capas intermedias */
+    --z-modal: 1000;   /* modales estándar */
+    --z-portal: 2000;  /* portales críticos (widgets flotantes) */
 }
 
 html, body, #root {
@@ -188,6 +221,53 @@ h1, h2, h3, h4, h5, h6 {
     body { @apply bg-background text-foreground; }
 }
 
+@layer components {
+    .liquid-glass-strong {
+        background: rgba(255, 255, 255, 0.01);
+        background-blend-mode: luminosity;
+        backdrop-filter: blur(50px);
+        -webkit-backdrop-filter: blur(50px);
+        border: none;
+        box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.05),
+            inset 0 1px 1px rgba(255, 255, 255, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .liquid-glass-strong::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1.4px;
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.5) 0%,
+            rgba(255, 255, 255, 0.2) 20%,
+            rgba(255, 255, 255, 0) 40%,
+            rgba(255, 255, 255, 0) 60%,
+            rgba(255, 255, 255, 0.2) 80%,
+            rgba(255, 255, 255, 0.5) 100%
+        );
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    .liquid-glass-strong:hover::before {
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.9) 0%,
+            rgba(255, 255, 255, 0.4) 20%,
+            rgba(255, 255, 255, 0.1) 40%,
+            rgba(255, 255, 255, 0.1) 60%,
+            rgba(255, 255, 255, 0.4) 80%,
+            rgba(255, 255, 255, 0.9) 100%
+        );
+    }
+}
+
 body[data-theme='light'] {
   --bg-app: #f0f4f8;
   --bg-app-2: #e2e8f0;
@@ -281,12 +361,142 @@ body[data-theme='light'] .red-accent-panel::after{border-color:rgba(220,38,38,.2
   50% { border-color: rgba(239,68,68,0.6); }
 }
 
+/* ── Fondo animado mission-control (Dashboard/Admin) ────────────── */
+.grid-floor {
+  position: absolute;
+  left: -25%;
+  right: -25%;
+  bottom: -8%;
+  height: 42%;
+  transform: perspective(620px) rotateX(62deg);
+  transform-origin: bottom center;
+  background-image:
+    linear-gradient(rgba(239, 68, 68, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(239, 68, 68, 0.10) 1px, transparent 1px);
+  background-size: 44px 44px;
+  background-position: 0 0;
+  animation: gridPan 26s linear infinite;
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.9), transparent 92%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.9), transparent 92%);
+  pointer-events: none;
+}
+
+@keyframes gridPan {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 44px; }
+}
+
+.orb-drift {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.orb-a {
+  top: -12%;
+  left: -10%;
+  width: 46vw;
+  height: 46vw;
+  max-width: 560px;
+  max-height: 560px;
+  background: radial-gradient(circle, rgba(239,68,68,0.16) 0%, transparent 70%);
+  animation: orbFloat 18s ease-in-out infinite alternate;
+}
+
+.orb-b {
+  bottom: -16%;
+  right: -12%;
+  width: 40vw;
+  height: 40vw;
+  max-width: 480px;
+  max-height: 480px;
+  background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%);
+  animation: orbFloat 24s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes orbFloat {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(6vw, 4vh, 0) scale(1.12); }
+  100% { transform: translate3d(-4vw, 8vh, 0) scale(0.96); }
+}
+
+.scan-sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(239,68,68,0.28) 45%, rgba(239,68,68,0.55) 50%, rgba(239,68,68,0.28) 55%, transparent);
+  animation: scanSweep 14s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes scanSweep {
+  0% { top: -2%; opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { top: 102%; opacity: 0; }
+}
+
+/* ── Radar (cockpit fase 01): brazo + blips ───────────────────────── */
+.radar-arm {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+  animation: radarSpin 3.4s linear infinite;
+  pointer-events: none;
+}
+
+.radar-arm::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 1px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.85), transparent);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.55);
+}
+
+@keyframes radarSpin {
+  to { transform: rotate(360deg); }
+}
+
+.blip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 9999px;
+  background: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+  opacity: 0;
+  animation: blipPing 5.6s ease-out infinite;
+}
+
+@keyframes blipPing {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  8% { opacity: 1; }
+  26% { opacity: 0; transform: translate(52px, -34px) scale(1.15); }
+  100% { opacity: 0; transform: translate(52px, -34px) scale(1.15); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .panel-entrance,
   .alert-flashing,
   .crash-marker .pulse,
   .animate-scale-in,
   .animate-fade-in,
+  .grid-floor,
+  .orb-a,
+  .orb-b,
+  .scan-sweep,
+  .radar-arm,
+  .blip,
   body::before {
     animation: none !important;
   }
@@ -642,6 +852,13 @@ textarea:focus-visible {
   to { opacity: 1; transform: scale(1); }
 }
 
+/* Overlay / fade entrance (usada por PremiumModal y TelemetryBento) */
+.animate-fade-in { animation: fadeIn 300ms ease-out both; }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Consistent thin dividers */
 .hr-soft { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent); border: 0; }
 
@@ -984,7 +1201,7 @@ body[data-theme='light'] .hairline-top::before { background: linear-gradient(90d
 }
 
 /* Anillo expansivo (despliegue de emergencia) */
-.pulse-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(239,68,68,0.55); animation: pulseRing 2.6s cubic-bezier(0.16,1,0.3,1) infinite; pointer-events: none; }
+.pulse-ring { position: absolute; inset: 0; margin: auto; border-radius: 50%; border: 1px solid rgba(239,68,68,0.55); animation: pulseRing 2.6s cubic-bezier(0.16,1,0.3,1) infinite; pointer-events: none; }
 @keyframes pulseRing {
   0% { transform: scale(0.45); opacity: 0; }
   25% { opacity: 1; }

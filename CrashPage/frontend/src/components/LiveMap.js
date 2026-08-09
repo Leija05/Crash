@@ -251,7 +251,7 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
       ) : null}
 
       {noGpsCount > 0 ? (
-        <div data-testid="no-gps-banner" className="absolute top-4 right-4 z-[400] max-w-[280px] rounded-xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-amber-300">
+        <div data-testid="no-gps-banner" className="absolute top-16 right-4 z-[400] max-w-[280px] rounded-xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-xl px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-amber-300">
           {noGpsCount} {t("liveMap.withoutGps", "sin GPS")} — {t("liveMap.noCoordsMsg", "el mobile aún no envía coordenadas en /api/telemetry")}
         </div>
       ) : null}

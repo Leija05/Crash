@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { X } from "lucide-react";
 import CrashLogo from "../CrashLogo";
 import { useCloseOnBrowserBack, closeModalViaHistory } from "../../hooks/useCloseOnBrowserBack";
+import { useBodyScrollLock } from "../../hooks/useBodyScrollLock";
 
 const SIZES = {
   sm: "max-w-sm",
@@ -38,6 +39,7 @@ export default function PremiumModal({
   testId,
 }) {
   useCloseOnBrowserBack(open, onClose);
+  useBodyScrollLock(open);
 
   const requestClose = useCallback(() => {
     closeModalViaHistory(onClose);
@@ -47,12 +49,7 @@ export default function PremiumModal({
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") requestClose(); };
     window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [open, requestClose]);
 
   if (!open) return null;
