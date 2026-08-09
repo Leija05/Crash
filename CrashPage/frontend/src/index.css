@@ -903,3 +903,147 @@ body[data-theme='light'] .glass-refined {
 body[data-theme='light'] .hud-frame::before,
 body[data-theme='light'] .hud-frame::after { border-color: rgba(15,23,42,0.25); }
 body[data-theme='light'] .hairline-top::before { background: linear-gradient(90deg, transparent, rgba(15,23,42,0.2), transparent); }
+
+/* ════════════════════════════════════════════════════════════════
+   C.R.A.S.H. v3 — Landing superfuturista
+   Cine sci-fi: scanlines, radar, grano, spotlight, cockpit pinned
+   ════════════════════════════════════════════════════════════════ */
+
+/* Grano de película (fixed, pointer-events none) */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Scanlines CRT sutiles */
+.scanlines {
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,0.028) 0 1px, transparent 1px 3px);
+}
+
+/* Barrido de radar con conic-gradient */
+.radar-sweep {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.radar-sweep::before {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(239,68,68,0.0) 0deg, rgba(239,68,68,0.5) 55deg, transparent 110deg);
+  animation: radarSpin 3.4s linear infinite;
+}
+.radar-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), inset 0 0 60px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+@keyframes radarSpin { to { transform: rotate(360deg); } }
+
+/* Chip flotante (telemetría hero) */
+.chip-float { animation: chipFloat 7s ease-in-out infinite; }
+.chip-float-2 { animation: chipFloat 8.5s ease-in-out infinite reverse; }
+@keyframes chipFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* Spotlight que sigue al cursor en tarjetas */
+.card-spot { position: relative; overflow: hidden; }
+.card-spot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(430px circle at var(--mx, 50%) var(--my, 50%), rgba(239,68,68,0.13), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.45s cubic-bezier(0.16,1,0.3,1);
+  pointer-events: none;
+  z-index: 1;
+}
+.card-spot:hover::after { opacity: 1; }
+
+/* Barras de onda (equalizer triaje IA) */
+.wave-bars { display: flex; align-items: flex-end; gap: 4px; height: 64px; }
+.wave-bars span {
+  width: 5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ef4444, rgba(239,68,68,0.25));
+  transform-origin: bottom;
+  animation: waveBar 1.15s ease-in-out infinite;
+}
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+/* Anillo expansivo (despliegue de emergencia) */
+.pulse-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(239,68,68,0.55); animation: pulseRing 2.6s cubic-bezier(0.16,1,0.3,1) infinite; pointer-events: none; }
+@keyframes pulseRing {
+  0% { transform: scale(0.45); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* Cursor blink terminal */
+.tick-blink { animation: tickBlink 1.2s steps(2, start) infinite; }
+@keyframes tickBlink { 50% { opacity: 0; } }
+
+/* Texto tipo terminal de datos en vivo */
+.hud-ticker {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Índice táctico 01/02/03 */
+.tactical-index {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: rgba(255,255,255,0.28);
+}
+
+/* Chevron que invita a bajar (pulso) */
+.scroll-hint { animation: scrollHint 2.2s ease-in-out infinite; }
+@keyframes scrollHint {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+
+/* Línea de progreso con scanline */
+.progress-scan { position: relative; overflow: hidden; }
+.progress-scan::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation: progressScan 1.8s linear infinite;
+}
+@keyframes progressScan { from { left: -40%; } to { left: 100%; } }
+
+/* Reduced motion para el sistema v3 */
+@media (prefers-reduced-motion: reduce) {
+  .grain-overlay,
+  .scanlines { display: none; }
+  .radar-sweep::before,
+  .chip-float,
+  .chip-float-2,
+  .wave-bars span,
+  .pulse-ring,
+  .tick-blink,
+  .scroll-hint,
+  .progress-scan::after {
+    animation: none !important;
+  }
+  .chip-float, .chip-float-2 { transform: none !important; }
+  .pulse-ring { display: none; }
+}
