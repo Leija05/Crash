@@ -30,10 +30,11 @@ const SUPPORT_VARIANTS = {
 };
 
 const PANEL_VARIANTS = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 28, scale: 0.985 },
   visible: (i) => ({
     opacity: 1,
     y: 0,
+    scale: 1,
     transition: { type: "spring", stiffness: 180, damping: 24, delay: i * 0.08 },
   }),
 };
@@ -256,7 +257,7 @@ function Dashboard() {
           animate="visible"
           className="lg:col-span-3 min-h-0 flex flex-col gap-3 lg:gap-4"
         >
-          <div className="flex-1 min-h-0 rounded-2xl border border-white/10 glass-card backdrop-premium p-4 flex flex-col">
+          <div className="hud-frame flex-1 min-h-0 rounded-2xl glass-refined p-4 flex flex-col">
             <motion.div
               className="flex-1 min-h-0"
               initial={{ opacity: 0 }}
@@ -307,7 +308,7 @@ function Dashboard() {
           className="lg:col-span-6 flex flex-col gap-3 lg:gap-4 min-h-0"
         >
           <motion.div
-            className="flex-1 rounded-2xl border border-white/10 overflow-hidden min-h-[280px] relative"
+            className="hud-frame flex-1 rounded-2xl overflow-hidden min-h-[280px] relative"
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}

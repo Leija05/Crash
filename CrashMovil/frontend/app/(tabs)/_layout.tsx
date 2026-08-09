@@ -5,8 +5,8 @@ import { StyleSheet, View, Platform, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence, interpolate } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, FONT, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL } from '../../src/theme';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence, interpolate, Extrapolation } from 'react-native-reanimated';
+import { COLORS, RADIUS, SHADOWS, FONT, FONT_SIZE, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL, EASING } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 import { haptics } from '../../src/utils/haptics';
@@ -50,7 +50,7 @@ function AnimatedTabIcon({ name, color, size, focused, highlight }: { name: any;
         <AnimatedIonicon
           name={name}
           size={size - 2}
-          color={focused ? '#1A1206' : color}
+          color={focused ? '#241A05' : color}
         />
       </Animated.View>
       <View style={[styles.iconDot, focused && styles.iconDotActive]} />
@@ -88,7 +88,7 @@ function HomeIcon({ color, size, focused }: { color: string; size: number; focus
             style={StyleSheet.absoluteFill}
           />
         )}
-        <AnimatedIonicon name="flash" size={size - 2} color={focused ? '#1A1206' : color} />
+        <AnimatedIonicon name="flash" size={size - 2} color={focused ? '#241A05' : color} />
       </Animated.View>
       <View style={[styles.iconDot, focused && styles.iconDotActive]} />
     </View>
@@ -261,10 +261,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 9.5,
-    fontFamily: FONT.medium,
-    fontWeight: '700',
-    letterSpacing: 0.9,
+    fontSize: FONT_SIZE.xs,
+    fontFamily: FONT.heading,
+    fontWeight: '600',
+    letterSpacing: 1,
     marginTop: 3,
     textTransform: 'uppercase',
     color: COLORS.textDim,

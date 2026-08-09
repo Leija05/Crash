@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import { motion } from "framer-motion";
-import { LogOut, Wifi, WifiOff, History, Settings, Download } from "lucide-react";
+import { LogOut, WifiOff, History, Settings, Download } from "lucide-react";
 import CrashStatsWidget from "./CrashStatsWidget";
 import CrashLogo from "./CrashLogo";
 import SettingsModal from "./SettingsModal";
@@ -28,7 +28,7 @@ function Topbar({ status, alertCount, onOpenHistory }) {
 
   return (
     <>
-      <header className="flex items-center gap-2 px-3 py-2 rounded-2xl border border-red-500/30 bg-white/[0.03] backdrop-blur-2xl red-accent-panel flex-wrap">
+      <header className="hud-frame flex items-center gap-2 px-3 py-2.5 rounded-2xl glass-refined red-accent-panel flex-wrap">
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="relative flex-shrink-0">
             <div className="h-8 w-8 rounded-xl bg-red-500/15 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.28)] avatar-ring">
@@ -37,13 +37,13 @@ function Topbar({ status, alertCount, onOpenHistory }) {
           </div>
           <div className="leading-tight hidden sm:block">
             <div className="text-[8px] uppercase tracking-[0.4em] text-neutral-500 leading-none">Critical Response</div>
-            <div className="text-sm font-bold tracking-tight leading-tight">C.R.A.S.H.</div>
+            <div className="text-sm font-bold tracking-tight leading-tight shimmer-brand">C.R.A.S.H.</div>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap flex-1 justify-end">
           <motion.button
-            whileHover={{ scale: 1.04 }}
+            whileHover={{ scale: 1.04, y: -1 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => setSettingsOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 hover:border-white/30 hover:bg-white/5 text-[9px] uppercase tracking-[0.2em] text-neutral-400 transition-all"
@@ -54,7 +54,7 @@ function Topbar({ status, alertCount, onOpenHistory }) {
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.04 }}
+            whileHover={{ scale: 1.04, y: -1 }}
             whileTap={{ scale: 0.96 }}
             onClick={() => setExportOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 text-[9px] uppercase tracking-[0.2em] text-neutral-400 transition-all"
@@ -76,7 +76,7 @@ function Topbar({ status, alertCount, onOpenHistory }) {
           <CrashStatsWidget />
 
           <motion.button
-            whileHover={{ scale: 1.04 }}
+            whileHover={{ scale: 1.04, y: -1 }}
             whileTap={{ scale: 0.96 }}
             data-testid="open-crash-history"
             onClick={onOpenHistory}
@@ -91,7 +91,11 @@ function Topbar({ status, alertCount, onOpenHistory }) {
             data-testid="ws-status"
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[9px] uppercase tracking-[0.15em] ${status === "open" ? "border-red-500/40 bg-red-500/10 text-red-300 glow-red" : "border-amber-500/30 bg-amber-500/10 text-amber-300"}`}
           >
-            {status === "open" ? <Wifi className="h-2.5 w-2.5" /> : <WifiOff className="h-2.5 w-2.5" />}
+            {status === "open" ? (
+              <span className="glow-dot bg-emerald-400 text-emerald-400" />
+            ) : (
+              <WifiOff className="h-2.5 w-2.5" />
+            )}
             <span className="hidden sm:inline">{STATUS_LABEL[status] || status}</span>
           </motion.div>
 

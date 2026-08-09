@@ -1,6 +1,7 @@
 import { View, ScrollView, StyleSheet, type ViewStyle } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { COLORS, SPACING, GOLD } from '../theme';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming, interpolate, Extrapolation } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import { COLORS, SPACING, GOLD, EASING } from '../theme';
 
 interface ScreenShellProps {
   children: React.ReactNode;
@@ -17,6 +18,20 @@ export default function ScreenShell({
   safeTop = true,
   header,
 }: ScreenShellProps) {
+  const drift = useSharedValue(0);
+
+  useEffect(() => {
+    drift.value = withRepeat(withTiming(1, { duration: 9000, easing: EASING.premium }), -1, true);
+  }, [drift]);
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(drift.value, [0, 0.5, 1], [0.5, 1, 0.6], Extrapolation.CLAMP),
+    transform: [
+      { translateY: interpolate(drift.value, [0, 1], [-14, 10], Extrapolation.CLAMP) },
+      { scale: interpolate(drift.value, [0, 1], [1, 1.12], Extrapolation.CLAMP) },
+    ],
+  }));
+
   const content = (
     <Animated.View
       entering={FadeIn.duration(600).springify().damping(26).stiffness(200)}
@@ -30,7 +45,7 @@ export default function ScreenShell({
 
   return (
     <View style={styles.container}>
-      <View style={styles.ambientGlow} pointerEvents="none" />
+      <Animated.View style={[styles.ambientGlow, glowStyle]} pointerEvents="none" />
       <View style={styles.goldGlow} pointerEvents="none" />
       {header}
       {scroll ? (
@@ -58,7 +73,7 @@ const styles = StyleSheet.create({
     left: -100,
     right: -100,
     height: 400,
-    backgroundColor: 'rgba(200,162,60,0.015)',
+    backgroundColor: 'rgba(217,180,91,0.018)',
     borderBottomLeftRadius: 200,
     borderBottomRightRadius: 200,
   },
@@ -69,7 +84,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(200,162,60,0.03)',
+    backgroundColor: 'rgba(217,180,91,0.04)',
   },
   scrollContent: {
     flexGrow: 1,

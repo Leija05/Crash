@@ -23,10 +23,12 @@ function signalStrength(rssi?: number): number {
 export default function DevicesScreen() {
   const { t } = useI18n();
   const router = useRouter();
-  const { startDeviceScan, connect, status, statusDetail, disconnect, connected, deviceName: connectedName } = useBluetooth();
+  const { startDeviceScan, connect, status, statusDetail, disconnect, connected, deviceName: connectedName, lastDataAt } = useBluetooth();
   const [devices, setDevices] = useState<ScanDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [customName, setCustomName] = useState('');
+  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const pulseAnim = useSharedValue(0);
   const scanAnim = useSharedValue(0);
@@ -70,9 +72,17 @@ export default function DevicesScreen() {
 
   const handleConnect = async (id: string) => {
     haptics.medium();
+    setConnectingId(id);
+    setConnectionError(null);
     const ok = await connect(id, customName);
-    if (ok) { haptics.success(); router.replace('/(tabs)'); }
-    else haptics.error();
+    setConnectingId(null);
+    if (ok) {
+      haptics.success();
+      router.replace('/(tabs)');
+    } else {
+      haptics.error();
+      setConnectionError(statusDetail || 'No se pudo conectar. Verifica que el casco esté encendido y cerca.');
+    }
   };
 
   const pulseStyle = useAnimatedStyle(() => ({
@@ -120,6 +130,16 @@ export default function DevicesScreen() {
                 ? (connectedName || t('devices.connectedSubtitle'))
                 : t('devices.disconnectedSubtitle')}
             </Text>
+            {connected && lastDataAt > 0 && (
+              <Text style={styles.dataFlowHint}>
+                Datos en tiempo real activos
+              </Text>
+            )}
+            {connected && lastDataAt === 0 && (
+              <Text style={styles.dataFlowWaiting}>
+                Esperando datos del casco...
+              </Text>
+            )}
           </View>
           <Ionicons
             name={connected ? 'checkmark-circle' : 'bluetooth-outline'}
@@ -175,6 +195,19 @@ export default function DevicesScreen() {
         </TouchableOpacity>
       </Animated.View>
 
+      {connectionError && (
+        <Animated.View
+          entering={FadeInUp.duration(300).springify().damping(26).stiffness(200)}
+          style={styles.errorCard}
+        >
+          <Ionicons name="alert-circle" size={18} color="#ef4444" />
+          <Text style={styles.errorText}>{connectionError}</Text>
+          <TouchableOpacity onPress={() => setConnectionError(null)} style={styles.errorDismiss}>
+            <Ionicons name="close" size={16} color="#ef4444" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <Animated.View
         entering={FadeInUp.duration(500).delay(300).springify().damping(26).stiffness(200)}
         style={styles.sectionHeader}
@@ -197,12 +230,17 @@ export default function DevicesScreen() {
             >
               <TouchableOpacity
                 testID={`device-item-${item.id}`}
-                style={[styles.deviceCard, item.isCrashDevice && styles.deviceCardCrash]}
+                style={[styles.deviceCard, item.isCrashDevice && styles.deviceCardCrash, connectingId === item.id && styles.deviceCardConnecting]}
                 onPress={() => handleConnect(item.id)}
                 activeOpacity={0.8}
+                disabled={connectingId !== null}
               >
                 <View style={[styles.deviceIcon, item.isCrashDevice && styles.deviceIconCrash]}>
-                  <Ionicons name={item.isCrashDevice ? 'shield-checkmark' : 'bluetooth'} size={20} color={GOLD} />
+                  {connectingId === item.id ? (
+                    <ActivityIndicator color={GOLD} size="small" />
+                  ) : (
+                    <Ionicons name={item.isCrashDevice ? 'shield-checkmark' : 'bluetooth'} size={20} color={GOLD} />
+                  )}
                 </View>
                 <View style={styles.deviceInfo}>
                   <Text style={styles.deviceName} numberOfLines={1}>{item.name}</Text>
@@ -539,6 +577,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(217,180,91,0.05)',
     ...SHADOWS.glow(GOLD, 0.15, 14),
   },
+  deviceCardConnecting: {
+    borderColor: 'rgba(217,180,91,0.40)',
+    backgroundColor: 'rgba(217,180,91,0.08)',
+    opacity: 0.8,
+  },
   deviceIcon: {
     width: 44,
     height: 44,
@@ -665,5 +708,38 @@ const styles = StyleSheet.create({
     color: COLORS.textDim,
     fontSize: FONT_SIZE.xs,
     textAlign: 'center',
+  },
+  dataFlowHint: {
+    color: COLORS.success,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  dataFlowWaiting: {
+    color: COLORS.warning,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: '600',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderColor: 'rgba(239,68,68,0.25)',
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: 12,
+    marginBottom: SPACING.md,
+  },
+  errorText: {
+    flex: 1,
+    color: '#ef4444',
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+  },
+  errorDismiss: {
+    padding: 4,
   },
 });

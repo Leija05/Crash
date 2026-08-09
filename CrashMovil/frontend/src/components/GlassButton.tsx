@@ -8,14 +8,15 @@ import {
   type TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_LIGHT, GOLD_DARK } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withTiming, interpolate, Extrapolation } from 'react-native-reanimated';
+import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL, FONT } from '../theme';
 import { haptics } from '../utils/haptics';
 
 interface GlassButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'accent' | 'ghost' | 'danger';
+  variant?: 'primary' | 'accent' | 'ghost' | 'danger' | 'outline';
   icon?: keyof typeof Ionicons.glyphMap;
   loading?: boolean;
   disabled?: boolean;
@@ -43,40 +44,39 @@ export default function GlassButton({
   haptic = 'light',
 }: GlassButtonProps) {
   const scale = useSharedValue(1);
+  const shine = useSharedValue(-1);
 
   const handlePress = () => {
     if (haptic !== 'none') haptics[haptic]();
     onPress();
   };
 
+  const isGold = variant === 'primary' || variant === 'accent';
+
   const variantStyles: Record<string, ViewStyle> = {
-    primary: {
-      backgroundColor: GOLD,
-      borderColor: GOLD_LIGHT,
-      borderWidth: 0.5,
-      ...SHADOWS.glow(GOLD),
-    },
-    accent: {
-      backgroundColor: GOLD,
-      borderColor: GOLD_LIGHT,
-      borderWidth: 0.5,
-      ...SHADOWS.glow(GOLD),
+    primary: { ...SHADOWS.glow(GOLD, 0.4, 18) },
+    accent: { ...SHADOWS.glow(GOLD, 0.4, 18) },
+    outline: {
+      backgroundColor: 'rgba(255,255,255,0.02)',
+      borderColor: 'rgba(255,255,255,0.14)',
     },
     ghost: {
       backgroundColor: COLORS.glassBg,
       borderColor: COLORS.glassBorder,
     },
     danger: {
-      backgroundColor: COLORS.primarySoft,
-      borderColor: 'rgba(200,162,60,0.3)',
+      backgroundColor: COLORS.dangerSoft,
+      borderColor: 'rgba(255,77,77,0.35)',
+      ...SHADOWS.redGlow(0.3),
     },
   };
 
   const variantText: Record<string, TextStyle> = {
-    primary: { color: '#000' },
-    accent: { color: '#000' },
+    primary: { color: '#241A05' },
+    accent: { color: '#241A05' },
     ghost: { color: COLORS.text },
-    danger: { color: COLORS.primary },
+    outline: { color: COLORS.text },
+    danger: { color: COLORS.danger },
   };
 
   const sizeStyles: Record<string, { py: number; fontSize: number; iconSize: number }> = {
@@ -91,6 +91,16 @@ export default function GlassButton({
     transform: [{ scale: scale.value }],
   }));
 
+  const shineStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: interpolate(shine.value, [-1, 1], [-220, 320], Extrapolation.CLAMP) }, { rotate: '18deg' }],
+    opacity: interpolate(shine.value, [-1, -0.4, 1], [0, 0.8, 0], Extrapolation.CLAMP),
+  }));
+
+  const fireShine = () => {
+    shine.value = -1;
+    shine.value = withTiming(1, { duration: 900 });
+  };
+
   return (
     <Animated.View
       entering={FadeIn.duration(400).springify().damping(26).stiffness(200)}
@@ -100,28 +110,36 @@ export default function GlassButton({
         onPress={handlePress}
         disabled={disabled || loading}
         activeOpacity={0.85}
-        onPressIn={() => { scale.value = withSpring(0.96, { stiffness: 300, damping: 15 }); }}
-        onPressOut={() => { scale.value = withSpring(1, { stiffness: 300, damping: 15 }); }}
+        onPressIn={() => { scale.value = withSpring(0.955, { stiffness: 380, damping: 17 }); if (isGold) fireShine(); }}
+        onPressOut={() => { scale.value = withSpring(1, { stiffness: 380, damping: 17 }); }}
         style={[
           styles.base,
           variantStyles[variant],
           {
             paddingVertical: s.py,
-            paddingHorizontal: s.py * 1.5,
+            paddingHorizontal: s.py * 1.6,
             opacity: disabled ? 0.4 : 1,
           },
           fullWidth && styles.fullWidth,
           style,
         ]}
       >
-        {(variant === 'primary' || variant === 'accent') && (
-          <View style={styles.sheen} pointerEvents="none" />
+        {isGold ? (
+          <LinearGradient
+            colors={[...GOLD_GRADIENT]}
+            start={GOLD_GRADIENT_DIAGONAL.start}
+            end={GOLD_GRADIENT_DIAGONAL.end}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
+        {isGold && (
+          <>
+            <View style={styles.sheen} pointerEvents="none" />
+            <Animated.View style={[styles.shineSweep, shineStyle]} pointerEvents="none" />
+          </>
         )}
         {loading ? (
-          <ActivityIndicator
-            size="small"
-            color={variant === 'accent' ? '#000' : '#000'}
-          />
+          <ActivityIndicator size="small" color={isGold ? '#241A05' : COLORS.text} />
         ) : (
           <>
             {icon && (
@@ -153,6 +171,7 @@ const styles = StyleSheet.create({
   base: {
     borderRadius: RADIUS.pill,
     borderWidth: 1,
+    borderColor: 'rgba(244,224,168,0.45)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -163,17 +182,25 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: '52%',
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    height: '50%',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     borderTopLeftRadius: RADIUS.pill,
     borderTopRightRadius: RADIUS.pill,
+  },
+  shineSweep: {
+    position: 'absolute',
+    top: -20,
+    bottom: -20,
+    width: 44,
+    backgroundColor: 'rgba(255,255,255,0.35)',
   },
   fullWidth: {
     width: '100%',
   },
   text: {
+    fontFamily: FONT.heading,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
   },
 });

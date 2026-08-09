@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
-import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import * as SplashScreen from 'expo-splash-screen';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts, SpaceGrotesk_400Regular, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
 import { AuthProvider } from '../src/context/AuthContext';
 import { AppSettingsProvider } from '../src/context/AppSettingsContext';
 import { BluetoothProvider } from '../src/context/BluetoothContext';
@@ -12,7 +15,22 @@ import { I18nProvider } from '../src/i18n';
 import UpdateGate from '../src/components/UpdateGate';
 import { COLORS, GOLD } from '../src/theme';
 
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
+  });
+
+  if (!fontsLoaded) return null;
+
+  SplashScreen.hideAsync().catch(() => {});
+
   return (
     <SafeAreaProvider>
       <I18nProvider>
@@ -44,11 +62,7 @@ export default function RootLayout() {
                     animation: 'slide_from_right',
                   }}
                 />
-                <Animated.View
-                  entering={SlideInDown.duration(500).delay(400).springify().damping(26).stiffness(200)}
-                >
-                  <UpdateGate />
-                </Animated.View>
+                <UpdateGate />
               </AlertProvider>
               </LocationProvider>
             </BluetoothProvider>

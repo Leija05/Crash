@@ -59,9 +59,9 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: 'rgba(10,10,10,0.85)',
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(200,162,60,0.10)',
+    borderColor: 'rgba(217,180,91,0.12)',
     padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -78,6 +78,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 9,
+    fontFamily: FONT.heading,
     color: COLORS.textDim,
     textTransform: 'uppercase',
     letterSpacing: 1.5,

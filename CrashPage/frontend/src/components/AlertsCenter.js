@@ -245,7 +245,7 @@ function AlertsCenter({ alerts, setAlerts, lastImpactId, onSelectDriver, onOpenD
   const handleMute = useCallback(() => setMuted((m) => !m), []);
 
   return (
-    <div className={`flex flex-col h-full glass-card rounded-2xl overflow-hidden ${active.length > 0 ? "border-red-500/30 border-glow-red" : ""}`} data-testid="alerts-center">
+    <div className={`hud-frame flex flex-col h-full glass-refined rounded-2xl overflow-hidden ${active.length > 0 ? "border-red-500/30 border-glow-red" : ""}`} data-testid="alerts-center">
       <div className="flex items-center justify-between p-5 pb-3">
         <div>
           <div className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">{t("alertsCenter.title", "Centro de Alertas")}</div>

@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, GOLD, SHADOWS } from '../theme';
-
 interface SectionHeaderProps {
   title: string;
   icon?: string;
@@ -58,7 +57,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FONT_SIZE.xs,
-    fontWeight: '900',
+    fontFamily: FONT.heading,
+    fontWeight: '700',
     color: COLORS.textSec,
     letterSpacing: 2,
     textTransform: 'uppercase',
