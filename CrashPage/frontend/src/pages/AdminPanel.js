@@ -53,17 +53,28 @@ const ACCENT_BAR = {
 };
 
 function StatsCard({ icon: Icon, label, value, accent }) {
+  const cardRef = useCallback((node) => {
+    if (!node) return;
+    const handleMouse = (e) => {
+      const rect = node.getBoundingClientRect();
+      node.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      node.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    };
+    node.addEventListener('mousemove', handleMouse);
+    return () => node.removeEventListener('mousemove', handleMouse);
+  }, []);
+
   return (
-    <div className={`group relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 hover-lift overflow-hidden transition-all hover:border-white/20 ${ACCENT_GLOW[accent] || ""}`}>
-      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/[0.02] blur-2xl group-hover:bg-white/[0.04] transition-all" />
-      <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b to-transparent ${ACCENT_BAR[accent] || ACCENT_BAR.default} opacity-0 group-hover:opacity-100 transition-opacity`} />
+    <div ref={cardRef} className={`admin-stat-card group ${ACCENT_GLOW[accent] || ""}`}>
+      <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/[0.02] blur-2xl group-hover:bg-white/[0.04] transition-all duration-500" />
+      <div className={`absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b to-transparent ${ACCENT_BAR[accent] || ACCENT_BAR.default} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
       <div className="relative flex items-center justify-between mb-3">
-        <div className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-transform group-hover:scale-105 ${ACCENTS[accent] || ACCENTS.default}`}>
+        <div className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg ${ACCENTS[accent] || ACCENTS.default}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
-      <div className="relative text-3xl font-bold tracking-tight tabular-nums">{value}</div>
-      <div className="relative text-[11px] uppercase tracking-[0.15em] text-neutral-500 mt-1">{label}</div>
+      <div className="relative text-3xl font-bold tracking-tight tabular-nums font-mono">{value}</div>
+      <div className="relative text-[10px] uppercase tracking-[0.18em] text-neutral-500 mt-1.5 font-medium">{label}</div>
     </div>
   );
 }
@@ -107,46 +118,46 @@ function CompanyModal({ company, onClose, onSaved }) {
   }, [name, email, phone, planId, cycle, isEdit, company, close, onSaved]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={close}>
-      <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
-        <button onClick={close} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 admin-modal-backdrop" onClick={close}>
+      <div className="admin-modal-content w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
+        <button onClick={close} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/8 transition-all duration-200 active:scale-95"><X className="h-4 w-4" /></button>
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-400" /></div>
-          <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">{isEdit ? t("admin.edit", "Editar") : t("admin.new", "Nueva")} empresa</div><div className="font-bold">{isEdit ? t("admin.edit", "Editar") + " " + company.name : t("admin.registerCompany", "Registrar empresa")}</div></div>
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center"><Building2 className="h-5 w-5 text-emerald-400" /></div>
+          <div><div className="text-[9px] uppercase tracking-[0.3em] text-neutral-500 font-medium">{isEdit ? t("admin.edit", "Editar") : t("admin.new", "Nueva")} empresa</div><div className="font-bold">{isEdit ? t("admin.edit", "Editar") + " " + company.name : t("admin.registerCompany", "Registrar empresa")}</div></div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("admin.name", "Nombre")}</label>
-            <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all" required />
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1.5 block font-medium">{t("admin.name", "Nombre")}</label>
+            <input value={name} onChange={e => setName(e.target.value)} className="admin-input" required />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("admin.email", "Email")}</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all" required />
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1.5 block font-medium">{t("admin.email", "Email")}</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="admin-input" required />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("admin.phone", "Teléfono")}</label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all" />
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1.5 block font-medium">{t("admin.phone", "Teléfono")}</label>
+            <input value={phone} onChange={e => setPhone(e.target.value)} className="admin-input" />
           </div>
           {!isEdit && (
             <>
               <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("admin.planGeneratesTokens", "Plan (genera tokens automáticamente)")}</label>
-            <select value={planId} onChange={e => setPlanId(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1.5 block font-medium">{t("admin.planGeneratesTokens", "Plan (genera tokens automáticamente)")}</label>
+            <select value={planId} onChange={e => setPlanId(e.target.value)} className="admin-input">
               <option value="">{t("admin.noPlanYet", "Sin plan (sin tokens por ahora)")}</option>
               {plans.map(p => <option key={p.id} value={p.id}>{p.name} — ${p.price}{t("admin.perMonth", "/mes")} · {p.max_drivers} {t("admin.driversAbbr", "cond.")} · {p.max_monitors} {t("admin.monitorsAbbr", "mon.")}</option>)}
             </select>
               </div>
               {planId && (
                 <div>
-                  <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">Ciclo de facturación</label>
-                  <select value={cycle} onChange={e => setCycle(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1.5 block font-medium">Ciclo de facturación</label>
+                  <select value={cycle} onChange={e => setCycle(e.target.value)} className="admin-input">
                     {["Semanal", "Mensual", "Bimestral", "Trimestral", "Anual"].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               )}
             </>
           )}
-          <button disabled={busy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+          <button disabled={busy} className="admin-btn-primary w-full flex items-center justify-center gap-2">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {busy ? t("admin.saving", "Guardando...") : isEdit ? t("admin.saveChanges", "Guardar cambios") : t("admin.createCompany", "Crear empresa")}
           </button>
@@ -176,38 +187,38 @@ function TokenRow({ token, onRegenerate, onDeactivate }) {
   const isMonitor = token.role === "monitorista";
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+    <div className="admin-content-card p-4">
       <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full ${isMonitor ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" : "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"}`}>
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <span className={`admin-badge ${isMonitor ? "admin-badge-amber" : "admin-badge-emerald"}`}>
             {isMonitor ? t("admin.monitorist", "Monitorista") : t("admin.company", "Empresa")}
           </span>
-          {!active && <span className="text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-neutral-500/15 text-neutral-400 border border-neutral-500/30">{t("admin.inactive", "Inactivo")}</span>}
-          <span className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{token.cycle || "Mensual"}</span>
+          {!active && <span className="admin-badge admin-badge-neutral">{t("admin.inactive", "Inactivo")}</span>}
+          <span className="text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-medium">{token.cycle || "Mensual"}</span>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button onClick={handleCopy} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all" title={t("admin.copy", "Copiar")}>
+          <button onClick={handleCopy} className="admin-btn-ghost !px-2 !py-1.5" title={t("admin.copy", "Copiar")}>
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-neutral-400" />}
           </button>
           {onRegenerate && (
-            <button onClick={() => setPending({ kind: "regenerate" })} className="h-7 w-7 rounded-lg border border-white/10 hover:bg-white/10 flex items-center justify-center transition-all" title={t("admin.regenerate", "Regenerar")}>
+            <button onClick={() => setPending({ kind: "regenerate" })} className="admin-btn-ghost !px-2 !py-1.5" title={t("admin.regenerate", "Regenerar")}>
               <RefreshCw className="h-3.5 w-3.5 text-amber-400" />
             </button>
           )}
           {onDeactivate && active && (
-            <button onClick={() => setPending({ kind: "deactivate" })} className="h-7 w-7 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title={t("admin.deactivate", "Desactivar")}>
+            <button onClick={() => setPending({ kind: "deactivate" })} className="admin-btn-ghost !px-2 !py-1.5 !border-red-500/20 hover:!bg-red-500/8" title={t("admin.deactivate", "Desactivar")}>
               <X className="h-3.5 w-3.5 text-red-400" />
             </button>
           )}
         </div>
       </div>
-      <code className="block font-mono text-xs text-emerald-300 tracking-wider break-all mb-3">{token.token}</code>
+      <code className="block font-mono text-xs text-emerald-300 tracking-wider break-all mb-3 bg-emerald-500/5 border border-emerald-500/10 rounded-lg px-3 py-2">{token.token}</code>
       <div className="flex items-center justify-between text-[11px] text-neutral-500 mb-1.5">
         <span>{t("admin.uses", "Usos")}</span>
-        <span className="text-white font-medium">{used} / {max}</span>
+        <span className="text-white font-semibold font-mono">{used} / {max}</span>
       </div>
-      <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
-        <div className={`h-full rounded-full ${pct >= 100 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
+      <div className="admin-progress">
+        <div className={`admin-progress-fill ${pct >= 100 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${pct}%` }} />
       </div>
       <ConfirmDialog
         open={!!pending}
@@ -259,29 +270,29 @@ function BuyPackageModal({ company, onClose, onSaved }) {
   }, [planId, cycle, cid, close, onSaved]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={close}>
-      <div className="bg-[#0d0d0f] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
-        <button onClick={close} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"><X className="h-4 w-4" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 admin-modal-backdrop" onClick={close}>
+      <div className="admin-modal-content w-full max-w-md p-6 relative animate-scale-in" onClick={e => e.stopPropagation()}>
+        <button onClick={close} className="absolute top-4 right-4 h-8 w-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/8 transition-all duration-200 active:scale-95"><X className="h-4 w-4" /></button>
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center"><Package className="h-5 w-5 text-emerald-400" /></div>
-          <div><div className="text-[10px] uppercase tracking-[0.3em] text-neutral-500">{t("admin.buyPackage", "Comprar paquete")}</div><div className="font-bold">{company?.name}</div></div>
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center"><Package className="h-5 w-5 text-emerald-400" /></div>
+          <div><div className="text-[9px] uppercase tracking-[0.3em] text-neutral-500 font-medium">{t("admin.buyPackage", "Comprar paquete")}</div><div className="font-bold">{company?.name}</div></div>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("admin.plan", "Plan")}</label>
-            <select value={planId} onChange={e => setPlanId(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1.5 block font-medium">{t("admin.plan", "Plan")}</label>
+            <select value={planId} onChange={e => setPlanId(e.target.value)} className="admin-input">
               <option value="">{t("admin.selectPlan", "Selecciona un plan")}</option>
               {plans.map(p => <option key={p.id} value={p.id}>{p.name} — ${p.price}{t("admin.perMonth", "/mes")} · {p.max_drivers} {t("admin.driversAbbr", "cond.")} · {p.max_monitors} {t("admin.monitorsAbbr", "mon.")}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.25em] text-neutral-500 mb-1.5 block">{t("admin.billingCycle", "Ciclo de facturación")}</label>
-            <select value={cycle} onChange={e => setCycle(e.target.value)} className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-emerald-500/60 rounded-xl px-3 py-2.5 text-sm outline-none transition-all">
+            <label className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-1.5 block font-medium">{t("admin.billingCycle", "Ciclo de facturación")}</label>
+            <select value={cycle} onChange={e => setCycle(e.target.value)} className="admin-input">
               {CYCLE_OPTIONS.map(o => <option key={o.v} value={o.v}>{t("admin." + o.k, o.v)}</option>)}
             </select>
           </div>
           <p className="text-[11px] text-neutral-500">{t("admin.purchaseSimulated", "La compra es simulada: al confirmar se generan los tokens de empresa y monitorista según el plan.")}</p>
-          <button disabled={busy || !planId} onClick={handleBuy} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-3 transition-all flex items-center justify-center gap-2">
+          <button disabled={busy || !planId} onClick={handleBuy} className="admin-btn-primary w-full flex items-center justify-center gap-2">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
             {busy ? t("admin.generatingTokens", "Generando tokens...") : t("admin.buyAndGenerateTokens", "Comprar y generar tokens")}
           </button>
@@ -313,22 +324,22 @@ function SubscriptionPanel({ company, onChanged }) {
 
   return (
     <div className="mt-5">
-      <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">{t("admin.subscription", "Suscripción")}</h4>
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 flex flex-wrap items-center justify-between gap-3">
+      <h4 className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-3 font-semibold">{t("admin.subscription", "Suscripción")}</h4>
+      <div className="admin-content-card p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm">
           <CalendarClock className={`h-4 w-4 ${expired ? "text-red-400" : warn ? "text-amber-400" : "text-emerald-400"}`} />
           {expDate ? (
             <span>
-              Vence: <strong className="text-white">{expDate.toLocaleDateString()}</strong>
+              Vence: <strong className="text-white font-semibold">{expDate.toLocaleDateString()}</strong>
               <span className={`ml-2 text-xs ${expired ? "text-red-400" : warn ? "text-amber-400" : "text-neutral-500"}`}>
                 {expired ? `· ${t("admin.subscriptionExpired", "Expirada")}` : `· ${daysLeft} ${t("admin.dayS", "día(s)")}`}
               </span>
             </span>
           ) : <span className="text-neutral-500">{t("admin.noExpiration", "Sin fecha de expiración")}</span>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {[30, 90, 365].map((d) => (
-            <button key={d} disabled={busy} onClick={() => extend(d)} className="inline-flex items-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-300 rounded-lg px-2.5 py-1.5 text-xs transition-all disabled:opacity-50">
+            <button key={d} disabled={busy} onClick={() => extend(d)} className="admin-btn-ghost inline-flex items-center gap-1.5 !border-emerald-500/25 hover:!bg-emerald-500/8 !text-emerald-300 disabled:opacity-50">
               <CalendarPlus className="h-3.5 w-3.5" /> +{d === 365 ? `1 ${t("admin.year", "año")}` : `${d}${t("admin.daysAbbr", "d")}`}
             </button>
           ))}
@@ -738,13 +749,16 @@ function PlansTab() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">{t("admin.plansTitle", "Planes")} ({plans.length})</h2>
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold tracking-tight">{t("admin.plansTitle", "Planes")} ({plans.length})</h2>
+        <p className="text-sm text-neutral-500 mt-1">Gestiona los planes de suscripción disponibles</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans.map(p => (
-          <div key={p.name} className={`rounded-2xl border p-4 sm:p-5 ${p.popular ? "border-emerald-500/40 bg-emerald-500/[0.04]" : "border-white/10 bg-white/[0.03]"}`}>
-            {p.popular && <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 mb-2">{t("admin.mostPopular", "Más popular")}</div>}
+          <div key={p.name} className={`admin-content-card p-4 sm:p-5 ${p.popular ? "!border-emerald-500/30 !bg-emerald-500/[0.03]" : ""}`}>
+            {p.popular && <div className="admin-badge admin-badge-emerald mb-2">{t("admin.mostPopular", "Más popular")}</div>}
             <div className="text-lg font-bold">{p.name}</div>
-            <div className="text-3xl font-bold mt-2">${p.price}<span className="text-sm text-neutral-500 font-normal">{t("admin.perMonth", "/mes")}</span></div>
+            <div className="text-3xl font-bold mt-2 font-mono tabular-nums">${p.price}<span className="text-sm text-neutral-500 font-normal">{t("admin.perMonth", "/mes")}</span></div>
             <div className="text-sm text-neutral-400 mt-1">{t("admin.upTo", "Hasta")} {p.max_drivers} {t("admin.drivers", "conductores")}</div>
             <ul className="mt-4 space-y-2">
               {(p.features || []).map(f => (
@@ -780,9 +794,9 @@ function TokenAlertsPanel() {
   const total = exhaustion.length + expiring.length + subscriptions.length;
 
   return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+    <div className="mt-6 admin-content-card p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center"><Bell className="h-4 w-4 text-amber-400" /></div>
+        <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center"><Bell className="h-4 w-4 text-amber-400" /></div>
         <div>
           <h3 className="font-bold">{t("admin.tokenSubAlerts", "Alertas de tokens y suscripciones")}</h3>
           <div className="text-xs text-neutral-500">{total === 0 ? t("admin.allGood", "Todo en orden") : `${total} ${t("admin.alertN", "alerta")}${total > 1 ? "s" : ""} ${t("admin.activeN", "activa")}${total > 1 ? "s" : ""}`}</div>
@@ -791,30 +805,30 @@ function TokenAlertsPanel() {
       {total === 0 ? (
         <div className="flex items-center gap-2 text-sm text-emerald-400"><CheckCircle2 className="h-4 w-4" /> {t("admin.noTokensExpiring", "No hay tokens por agotarse ni suscripciones por vencer.")}</div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-4">
             <div>
-              <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">{t("admin.tokensRunningOut", "Tokens por agotarse")}</h4>
+              <h4 className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 font-semibold">{t("admin.tokensRunningOut", "Tokens por agotarse")}</h4>
               {exhaustion.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noAlerts", "Sin alertas.")}</div> : (
                 <div className="space-y-2">
                   {exhaustion.map((a, i) => (
-                    <div key={i} className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3">
+                    <div key={i} className="admin-content-card !bg-amber-500/[0.03] !border-amber-500/15 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium truncate">{a.company_name}</span>
-                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300">{a.role}</span>
+                        <span className="admin-badge admin-badge-amber">{a.role}</span>
                       </div>
-                       <div className="text-xs text-neutral-400 mt-1">{a.use_count}/{a.max_uses} {t("admin.uses", "usos")} · {t("admin.remain", "quedan")} {a.remaining}</div>
+                       <div className="text-xs text-neutral-400 mt-1 font-mono">{a.use_count}/{a.max_uses} {t("admin.uses", "usos")} · {t("admin.remain", "quedan")} {a.remaining}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
             <div>
-              <h4 className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 mb-2">{t("admin.tokensExpiring", "Tokens que expiran")}</h4>
+              <h4 className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-2 font-semibold">{t("admin.tokensExpiring", "Tokens que expiran")}</h4>
               {expiring.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noAlerts", "Sin alertas.")}</div> : (
                 <div className="space-y-2">
                   {expiring.map((a, i) => (
-                    <div key={i} className={`rounded-xl border p-3 ${a.expired ? "border-red-500/25 bg-red-500/[0.05]" : "border-amber-500/20 bg-amber-500/[0.04]"}`}>
+                    <div key={i} className={`admin-content-card p-3 ${a.expired ? "!bg-red-500/[0.04] !border-red-500/20" : "!bg-amber-500/[0.03] !border-amber-500/15"}`}>
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium truncate">{a.company_name}</span>
                         <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${a.expired ? "bg-red-500/15 text-red-300" : "bg-amber-500/15 text-amber-300"}`}>{a.role}</span>
@@ -870,17 +884,20 @@ function OverviewTab() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">{t("admin.controlPanel", "Panel de control")}</h2>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold tracking-tight">{t("admin.controlPanel", "Panel de control")}</h2>
+        <p className="text-sm text-neutral-500 mt-1">Resumen general del sistema en tiempo real</p>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatsCard icon={Users} label={t("admin.totalDrivers", "Conductores totales")} value={stats?.total_drivers || 0} accent="emerald" />
         <StatsCard icon={Activity} label={t("admin.activeDrivers", "Conductores activos")} value={stats?.active_drivers || 0} accent="emerald" />
         <StatsCard icon={AlertCircle} label={t("admin.criticalAlerts", "Alertas críticas")} value={stats?.critical_alerts || 0} accent="red" />
         <StatsCard icon={BarChart3} label={t("admin.totalImpacts", "Impactos totales")} value={stats?.total_impacts || 0} accent="emerald" />
       </div>
-      <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-        <div className="text-sm text-neutral-400">
-          <div className="flex items-center gap-2 mb-2"><Clock className="h-4 w-4" /> {t("admin.last24h", "Últimas 24h")}: <strong className="text-white">{stats?.impacts_last_24h || 0}</strong> {t("admin.impactsN", "impactos")}</div>
-          <div className="flex items-center gap-2"><Shield className="h-4 w-4" /> {t("admin.mode", "Modo")}: <strong className="text-white">{stats?.demo_mode ? t("admin.demo", "Demo") : t("admin.production", "Producción")}</strong></div>
+      <div className="mt-6 admin-content-card p-4 sm:p-5">
+        <div className="text-sm text-neutral-400 space-y-2">
+          <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-neutral-500" /> {t("admin.last24h", "Últimas 24h")}: <strong className="text-white font-semibold">{stats?.impacts_last_24h || 0}</strong> {t("admin.impactsN", "impactos")}</div>
+          <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-neutral-500" /> {t("admin.mode", "Modo")}: <strong className="text-white font-semibold">{stats?.demo_mode ? t("admin.demo", "Demo") : t("admin.production", "Producción")}</strong></div>
         </div>
       </div>
       <TokenAlertsPanel />
@@ -923,18 +940,20 @@ function HeatmapTab() {
   const points = data?.points || [];
   const zones = data?.zones || [];
   const center = points[0] ? [points[0].lat, points[0].lng] : [19.4326, -99.1332];
-  const selCls = "bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none";
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h2 className="text-xl font-bold">{t("admin.impactHeatmap", "Mapa de calor de impactos")}</h2>
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">{t("admin.impactHeatmap", "Mapa de calor de impactos")}</h2>
+          <p className="text-sm text-neutral-500 mt-1">Distribución geográfica de impactos detectados</p>
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className={selCls}>
+          <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="admin-input py-2 text-sm min-w-[140px]">
             <option value="">{t("admin.allCompanies", "Todas las empresas")}</option>
             {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <select value={days} onChange={(e) => setDays(Number(e.target.value))} className={selCls}>
+          <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="admin-input py-2 text-sm min-w-[100px]">
             <option value={7}>{t("admin.d7", "7 días")}</option>
             <option value={30}>{t("admin.d30", "30 días")}</option>
             <option value={90}>{t("admin.d90", "90 días")}</option>
@@ -944,7 +963,7 @@ function HeatmapTab() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 overflow-hidden h-[300px] lg:h-[520px] relative">
+        <div className="lg:col-span-2 admin-content-card overflow-hidden h-[300px] sm:h-[400px] lg:h-[520px] relative">
           {loading && <div className="absolute inset-0 z-[500] flex items-center justify-center bg-black/40"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>}
           <MapContainer key={`heat-${companyId}-${days}`} center={center} zoom={11} scrollWheelZoom className="h-full w-full" style={{ background: "#0a0a0a" }}>
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; carto.com' />
@@ -965,21 +984,21 @@ function HeatmapTab() {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-            <div className="text-3xl font-bold">{data?.total_points || 0}</div>
-            <div className="text-xs text-neutral-500 mt-1">{t("admin.geoImpacts", "impactos geolocalizados")} ({days}d)</div>
+          <div className="admin-content-card p-4 sm:p-5">
+            <div className="text-3xl font-bold font-mono tabular-nums">{data?.total_points || 0}</div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-neutral-500 mt-1.5 font-medium">{t("admin.geoImpacts", "impactos geolocalizados")} ({days}d)</div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-            <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-3">{t("admin.highestRiskZones", "Zonas de mayor riesgo")}</h4>
+          <div className="admin-content-card p-4 sm:p-5">
+            <h4 className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-3 font-semibold">{t("admin.highestRiskZones", "Zonas de mayor riesgo")}</h4>
             {zones.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noDataPeriod", "Sin datos en el periodo.")}</div> : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto">
                 {zones.slice(0, 12).map((z, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2 text-sm">
+                  <div key={i} className="flex items-center justify-between gap-2 text-sm py-1.5 border-b border-white/4 last:border-0">
                     <span className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: SEVERITY_COLORS[z.max_severity] }} />
+                      <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: SEVERITY_COLORS[z.max_severity] }} />
                       <span className="font-mono text-xs text-neutral-400">{z.lat}, {z.lng}</span>
                     </span>
-                     <span className="text-xs"><strong className="text-white">{z.count}</strong> · {t("admin.risk", "riesgo")} {z.risk}</span>
+                     <span className="text-xs flex-shrink-0"><strong className="text-white">{z.count}</strong> · {t("admin.risk", "riesgo")} {z.risk}</span>
                   </div>
                 ))}
               </div>
@@ -1015,14 +1034,14 @@ function TempPasswordModal({ result, onClose }) {
       testId="temp-password-modal"
       footer={
         <div className="flex items-center justify-end">
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/30 text-neutral-300 text-sm transition-all">{t("admin.close", "Cerrar")}</button>
+          <button onClick={onClose} className="admin-btn-ghost">{t("admin.close", "Cerrar")}</button>
         </div>
       }
     >
       <p className="text-sm text-neutral-400 mb-3">{t("admin.deliverTempPw", "Entrega esta contraseña temporal al usuario")} ({result.target_type}). {t("admin.tempPwNote", "No se volverá a mostrar.")}</p>
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+      <div className="flex items-center gap-2 admin-content-card px-4 py-3">
         <code className="flex-1 font-mono text-lg text-emerald-300 tracking-wide">{result.temp_password}</code>
-        <button onClick={copy} className="inline-flex items-center gap-1.5 border border-white/10 hover:bg-white/10 rounded-lg px-3 py-1.5 text-xs transition-all"><Copy className="h-3.5 w-3.5" /> {t("admin.copy", "Copiar")}</button>
+        <button onClick={copy} className="admin-btn-ghost inline-flex items-center gap-1.5"><Copy className="h-3.5 w-3.5" /> {t("admin.copy", "Copiar")}</button>
       </div>
     </PremiumModal>
   );
@@ -1119,35 +1138,35 @@ function SupportTab() {
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => (
-            <div key={r.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+            <div key={r.id} className="admin-content-card p-4 sm:p-5">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <LifeBuoy className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                     <h3 className="font-bold truncate">{r.company_name || t("admin.company", "Empresa")}</h3>
-                    <span className="text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-neutral-300">{t("admin.supportType_" + r.type, SUPPORT_TYPE_LABELS[r.type] || r.type)}</span>
-                    <span className={`text-[10px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border ${statusBadge(r.status)}`}>{r.status}</span>
+                    <span className="admin-badge admin-badge-neutral">{t("admin.supportType_" + r.type, SUPPORT_TYPE_LABELS[r.type] || r.type)}</span>
+                    <span className={`admin-badge ${statusBadge(r.status)}`}>{r.status}</span>
                   </div>
                   {r.requested_by_email && (
-                    <div className="text-[11px] text-neutral-400 mt-1">Solicitado por: <span className="text-neutral-200">{r.requested_by_name || r.requested_by_email}</span> · {r.requested_by_email}</div>
+                    <div className="text-[11px] text-neutral-400 mt-1">Solicitado por: <span className="text-neutral-200 font-medium">{r.requested_by_name || r.requested_by_email}</span> · {r.requested_by_email}</div>
                   )}
                   <p className="text-sm text-neutral-300 mt-2 whitespace-pre-wrap">{r.message || t("admin.noMessage", "(sin mensaje)")}</p>
                   {r.resolution_note && <div className="text-[11px] text-emerald-400/80 mt-2">✓ {r.resolution_note}</div>}
-                  <div className="text-[11px] text-neutral-500 mt-2">{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</div>
+                  <div className="text-[11px] text-neutral-500 mt-2 font-mono">{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</div>
                 </div>
                 <div className="flex flex-row lg:flex-col gap-2 flex-shrink-0 flex-wrap">
                   {r.status !== "resolved" && (
                     <>
-                      <button disabled={busyId === r.id} onClick={() => resetPassword(r)} className="inline-flex items-center justify-center gap-1.5 border border-emerald-500/30 hover:bg-emerald-500/10 disabled:opacity-50 text-emerald-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                      <button disabled={busyId === r.id} onClick={() => resetPassword(r)} className="admin-btn-ghost !border-emerald-500/25 !text-emerald-300 hover:!bg-emerald-500/8 inline-flex items-center gap-1.5 disabled:opacity-50">
                         <Key className="h-3.5 w-3.5" /> {t("admin.resetPassword", "Reiniciar contraseña")}
                       </button>
-                      <button disabled={busyId === r.id} onClick={() => setPendingRevoke({ id: r.id, name: r.company_name })} className="inline-flex items-center justify-center gap-1.5 border border-red-500/30 hover:bg-red-500/10 disabled:opacity-50 text-red-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                      <button disabled={busyId === r.id} onClick={() => setPendingRevoke({ id: r.id, name: r.company_name })} className="admin-btn-ghost !border-red-500/25 !text-red-300 hover:!bg-red-500/8 inline-flex items-center gap-1.5 disabled:opacity-50">
                         <Shield className="h-3.5 w-3.5" /> {t("admin.removeToken", "Quitar token")}
                       </button>
-                      <button disabled={busyId === r.id} onClick={() => forward(r.id)} className="inline-flex items-center justify-center gap-1.5 border border-blue-500/30 hover:bg-blue-500/10 disabled:opacity-50 text-blue-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                      <button disabled={busyId === r.id} onClick={() => forward(r.id)} className="admin-btn-ghost !border-blue-500/25 !text-blue-300 hover:!bg-blue-500/8 inline-flex items-center gap-1.5 disabled:opacity-50">
                         <Send className="h-3.5 w-3.5" /> {t("admin.forward", "Reenviar")}
                       </button>
-                      <button disabled={busyId === r.id} onClick={() => resolve(r.id)} className="inline-flex items-center justify-center gap-1.5 border border-white/10 hover:bg-white/10 disabled:opacity-50 text-neutral-300 rounded-lg px-3 py-1.5 text-xs transition-all">
+                      <button disabled={busyId === r.id} onClick={() => resolve(r.id)} className="admin-btn-ghost inline-flex items-center gap-1.5 disabled:opacity-50">
                         <CheckCircle2 className="h-3.5 w-3.5" /> {t("admin.resolve", "Resolver")}
                       </button>
                     </>
@@ -1244,10 +1263,10 @@ function AnalyticsTab() {
             <StatsCard icon={Globe} label={`${t("admin.uniqueVisitors", "Visitantes únicos")} (${days}d)`} value={data?.unique_visitors || 0} accent="blue" />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+          <div className="mt-6 admin-content-card p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <h3 className="text-sm font-semibold flex items-center gap-2"><LineChartIcon className="h-4 w-4 text-emerald-400" /> {t("admin.viewsPerDay", "Vistas por día")}</h3>
-              <span className="text-xs text-neutral-500 whitespace-nowrap">{t("admin.avg", "Promedio")}: <strong className="text-white">{data?.avg_views_per_day || 0}</strong>{t("admin.perDay", "/día")}</span>
+              <span className="text-xs text-neutral-500 whitespace-nowrap font-mono">{t("admin.avg", "Promedio")}: <strong className="text-white">{data?.avg_views_per_day || 0}</strong>{t("admin.perDay", "/día")}</span>
             </div>
             <div className="h-56 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -1273,33 +1292,33 @@ function AnalyticsTab() {
             </div>
           </div>
 
-          <div className="mt-6 grid lg:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-              <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-4">{t("admin.mostVisitedPages", "Páginas más visitadas")}</h4>
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="admin-content-card p-4 sm:p-5">
+              <h4 className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-4 font-semibold">{t("admin.mostVisitedPages", "Páginas más visitadas")}</h4>
               {topPages.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noDataPeriod", "Sin datos en el periodo.")}</div> : (
                 <div className="space-y-3">
                   {topPages.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 text-sm">
+                    <div key={i} className="flex items-center justify-between gap-3 text-sm py-1 border-b border-white/4 last:border-0">
                       <span className="font-mono text-xs text-neutral-300 truncate">{p.path}</span>
-                       <span className="text-xs whitespace-nowrap"><strong className="text-white">{p.views}</strong> {t("admin.viewsN", "vistas")} · {p.unique} {t("admin.uniquesN", "únicos")}</span>
+                       <span className="text-xs whitespace-nowrap font-mono"><strong className="text-white">{p.views}</strong> {t("admin.viewsN", "vistas")} · {p.unique} {t("admin.uniquesN", "únicos")}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
-              <h4 className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-4">{t("admin.trafficSources", "Orígenes de tráfico")}</h4>
+            <div className="admin-content-card p-4 sm:p-5">
+              <h4 className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mb-4 font-semibold">{t("admin.trafficSources", "Orígenes de tráfico")}</h4>
               {referrers.length === 0 ? <div className="text-xs text-neutral-500">{t("admin.noDataPeriod", "Sin datos en el periodo.")}</div> : (
                 <div className="space-y-3">
                   {referrers.map((r, i) => (
                     <div key={i}>
                       <div className="flex items-center justify-between gap-3 text-sm mb-1">
                         <span className="text-xs text-neutral-300 truncate">{r.source}</span>
-                        <span className="text-xs text-white font-semibold">{r.views}</span>
+                        <span className="text-xs text-white font-semibold font-mono">{r.views}</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500/70" style={{ width: `${Math.round((r.views / maxRef) * 100)}%` }} />
+                      <div className="admin-progress">
+                        <div className="admin-progress-fill bg-emerald-500/70" style={{ width: `${Math.round((r.views / maxRef) * 100)}%` }} />
                       </div>
                     </div>
                   ))}
@@ -1403,38 +1422,38 @@ function GeofencesTab() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-amber-400" /> Geocercas de riesgo</h2>
-        <p className="text-xs text-neutral-500 mt-1">Zonas que activan el <strong>modo Precaución</strong> en la app del conductor y elevan la prioridad de triaje ante un impacto.</p>
+        <h2 className="text-xl font-bold tracking-tight flex items-center gap-2"><ShieldAlert className="h-5 w-5 text-amber-400" /> Geocercas de riesgo</h2>
+        <p className="text-sm text-neutral-500 mt-1">Zonas que activan el <strong>modo Precaución</strong> en la app del conductor y elevan la prioridad de triaje ante un impacto.</p>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>
       ) : (
         <>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <StatsCard icon={ShieldAlert} label="Zonas activas" value={stats?.active_zones || 0} accent="amber" />
             <StatsCard icon={MapPin} label="Entradas (30d)" value={stats?.total_entries || 0} accent="blue" />
             <StatsCard icon={Timer} label="Tiempo total en zonas" value={fmtDuration(stats?.total_seconds)} accent="emerald" />
             <StatsCard icon={Activity} label="Conductores en zona ahora" value={stats?.currently_in_zone || 0} accent="red" />
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <div className="admin-content-card p-4 sm:p-5">
               <h3 className="text-sm font-semibold mb-4">{editingId ? "Editar zona" : "Nueva zona de riesgo"}</h3>
               <div className="space-y-3">
                 <input className={inputCls} placeholder="Nombre (ej. Curva del kilómetro 12)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                <div className="grid sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <select className={inputCls} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
                     {GEOFENCE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                   <input className={inputCls} type="number" min="10" max="5000" placeholder="Radio (m)" value={form.radius_m} onChange={(e) => setForm({ ...form, radius_m: e.target.value })} />
                 </div>
-                <div className="grid sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input className={inputCls} type="number" step="any" placeholder="Latitud" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
                   <input className={inputCls} type="number" step="any" placeholder="Longitud" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
                 </div>
                 <p className="text-[11px] text-neutral-500">Haz clic en el mapa para fijar el centro de la zona.</p>
-                <div className="h-56 rounded-xl overflow-hidden border border-white/10">
+                <div className="h-56 rounded-xl overflow-hidden admin-content-card">
                   <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
                     <MapClickPicker onPick={(lat, lng) => setForm((f) => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6) }))} />
@@ -1448,39 +1467,39 @@ function GeofencesTab() {
                 </div>
                 <textarea className={inputCls} rows={2} placeholder="Nota (opcional)" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
                 <label className="flex items-center gap-2 text-sm text-neutral-300">
-                  <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Activa
+                  <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} className="accent-emerald-500" /> Activa
                 </label>
                 <div className="flex gap-2">
-                  <button onClick={submit} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-semibold px-4 py-2.5 text-sm disabled:opacity-60">
+                  <button onClick={submit} disabled={saving} className="admin-btn-primary inline-flex items-center gap-2">
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} {editingId ? "Guardar" : "Crear zona"}
                   </button>
-                  {editingId && <button onClick={resetForm} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm hover:bg-white/5">Cancelar</button>}
+                  {editingId && <button onClick={resetForm} className="admin-btn-ghost">Cancelar</button>}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+            <div className="admin-content-card p-4 sm:p-5">
               <h3 className="text-sm font-semibold mb-4">Zonas registradas ({zones.length})</h3>
               {zones.length === 0 ? <div className="text-xs text-neutral-500">Aún no hay zonas. Crea la primera.</div> : (
                 <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
                   {zones.map((z) => {
                     const stat = perZone.find((p) => p.geofence_id === z.id);
                     return (
-                      <div key={z.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                      <div key={z.id} className="admin-content-card !bg-white/[0.02] p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium truncate">{z.name}</span>
-                              {!z.active && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-neutral-400">inactiva</span>}
+                              {!z.active && <span className="admin-badge admin-badge-neutral">inactiva</span>}
                             </div>
                             <div className="text-[11px] text-neutral-500 mt-0.5">
                               {GEOFENCE_TYPES.find((t) => t.value === z.type)?.label || z.type} · {z.radius_m}m · riesgo {z.risk_weight}
                             </div>
-                            {stat && <div className="text-[11px] text-amber-400/80 mt-1">{stat.entries} entradas · {stat.unique_drivers} conductores · prom. {fmtDuration(stat.avg_seconds)}</div>}
+                            {stat && <div className="text-[11px] text-amber-400/80 mt-1 font-mono">{stat.entries} entradas · {stat.unique_drivers} conductores · prom. {fmtDuration(stat.avg_seconds)}</div>}
                           </div>
                           <div className="flex gap-1 flex-shrink-0">
-                            <button onClick={() => startEdit(z)} className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white"><Edit3 className="h-4 w-4" /></button>
-                            <button onClick={() => setConfirmId(z.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-neutral-400 hover:text-red-400"><Trash2 className="h-4 w-4" /></button>
+                            <button onClick={() => startEdit(z)} className="admin-btn-ghost !px-1.5 !py-1.5"><Edit3 className="h-4 w-4" /></button>
+                            <button onClick={() => setConfirmId(z.id)} className="admin-btn-ghost !px-1.5 !py-1.5 !border-red-500/25 hover:!bg-red-500/8"><Trash2 className="h-4 w-4 text-red-400" /></button>
                           </div>
                         </div>
                       </div>
@@ -1591,67 +1610,69 @@ function VersionsTab() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-2">Versiones de la App</h2>
-      <p className="text-xs text-neutral-500 mb-6">Sube el archivo APK directamente o pega un enlace de descarga externo. La versión publicada más alta se ofrece en la web y notifica a la app móvil.</p>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold tracking-tight">Versiones de la App</h2>
+        <p className="text-sm text-neutral-500 mt-1">Sube el archivo APK directamente o pega un enlace de descarga externa. La versión publicada más alta se ofrece en la web y notifica a la app móvil.</p>
+      </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 mb-6">
-        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Publicar nueva versión</h3>
+      <div className="admin-content-card p-4 sm:p-6 mb-6">
+        <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-400 mb-4">Publicar nueva versión</h3>
         <form onSubmit={handleCreate} className="grid md:grid-cols-2 gap-3">
-          <input value={form.version} onChange={(e) => setForm(f => ({ ...f, version: e.target.value }))} placeholder="Versión (ej. 2.1.0)" required className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
-          <select value={form.platform} onChange={(e) => setForm(f => ({ ...f, platform: e.target.value }))} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none">
+          <input value={form.version} onChange={(e) => setForm(f => ({ ...f, version: e.target.value }))} placeholder="Versión (ej. 2.1.0)" required className="admin-input" />
+          <select value={form.platform} onChange={(e) => setForm(f => ({ ...f, platform: e.target.value }))} className="admin-input">
             <option value="android">Android</option>
             <option value="ios">iOS</option>
             <option value="all">Todas</option>
           </select>
           <div className="md:col-span-2 space-y-2">
-            <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500">Subir APK</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500">Subir APK</label>
             <input type="file" accept=".apk" onChange={(e) => { setApkFile(e.target.files[0] || null); setForm(f => ({ ...f, size_mb: e.target.files[0] ? Math.round(e.target.files[0].size / (1024 * 1024) * 100) / 100 : null })); }} className="block w-full text-sm text-neutral-300 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-300 hover:file:bg-emerald-500/20 file:cursor-pointer cursor-pointer" />
             {apkFile && <p className="text-xs text-emerald-400">{apkFile.name} ({(apkFile.size / (1024 * 1024)).toFixed(2)} MB)</p>}
           </div>
           <div className="md:col-span-2">
-            <label className="block text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500 mb-1">O enlace externo</label>
-            <input value={form.download_url} onChange={(e) => setForm(f => ({ ...f, download_url: e.target.value }))} placeholder="https://enlace-de-descarga-del-apk" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
+            <label className="block text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500 mb-1">O enlace externo</label>
+            <input value={form.download_url} onChange={(e) => setForm(f => ({ ...f, download_url: e.target.value }))} placeholder="https://enlace-de-descarga-del-apk" className="admin-input" />
           </div>
-          <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Novedades / changelog (opcional)" rows={3} className="md:col-span-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none resize-none" />
+          <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Novedades / changelog (opcional)" rows={3} className="admin-input resize-none md:col-span-2" />
           <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer py-1"><input type="checkbox" checked={form.mandatory} onChange={(e) => setForm(f => ({ ...f, mandatory: e.target.checked }))} className="accent-emerald-500 flex-shrink-0" /> <span>Actualización obligatoria</span></label>
           <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer py-1"><input type="checkbox" checked={form.published} onChange={(e) => setForm(f => ({ ...f, published: e.target.checked }))} className="accent-emerald-500 flex-shrink-0" /> <span>Publicar de inmediato</span></label>
           <div className="md:col-span-2 space-y-3">
-            <button disabled={busy || !form.version || (!apkFile && !form.download_url)} className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? (uploading ? "Subiendo APK..." : "Publicando...") : "Publicar versión"}</button>
+            <button disabled={busy || !form.version || (!apkFile && !form.download_url)} className="admin-btn-primary sm:w-auto">{busy ? (uploading ? "Subiendo APK..." : "Publicando...") : "Publicar versión"}</button>
             {uploading && (
-              <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden">
-                <div className="h-full bg-emerald-400 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+              <div className="admin-progress">
+                <div className="admin-progress-fill bg-emerald-400" style={{ width: `${progress}%` }} />
               </div>
             )}
-            {uploading && <p className="text-xs text-neutral-500 text-right">{progress}%</p>}
+            {uploading && <p className="text-xs text-neutral-500 text-right font-mono">{progress}%</p>}
           </div>
         </form>
-        {error && <div className="mt-3 text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-xl px-3 py-2.5">{error}</div>}
+        {error && <div className="mt-3 text-sm text-red-400 border border-red-500/25 bg-red-500/8 rounded-xl px-3 py-2.5">{error}</div>}
       </div>
 
       <div className="space-y-3">
         {list.length === 0 && <div className="text-sm text-neutral-500 text-center py-8">Aún no hay versiones publicadas.</div>}
         {list.map((v) => (
-          <div key={v.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex-col sm:flex-row flex sm:items-center justify-between gap-3">
+          <div key={v.id} className="admin-content-card p-4 flex-col sm:flex-row flex sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center flex-shrink-0"><Smartphone className="h-4 w-4 text-emerald-400" /></div>
+              <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center flex-shrink-0"><Smartphone className="h-4 w-4 text-emerald-400" /></div>
               <div className="min-w-0 flex-1">
                 <div className="font-bold flex items-center gap-2 flex-wrap">
                   v{v.version}
-                  <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-white/15 text-neutral-400">{v.platform}</span>
+                  <span className="admin-badge admin-badge-neutral">{v.platform}</span>
                   {v.published
-                    ? <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">Publicada</span>
-                    : <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-neutral-500/40 bg-neutral-500/10 text-neutral-400">Borrador</span>}
-                  {v.mandatory && <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300">Obligatoria</span>}
+                    ? <span className="admin-badge admin-badge-emerald">Publicada</span>
+                    : <span className="admin-badge admin-badge-neutral">Borrador</span>}
+                  {v.mandatory && <span className="admin-badge admin-badge-amber">Obligatoria</span>}
                 </div>
                 {v.notes && <div className="text-xs text-neutral-500 truncate max-w-xs sm:max-w-md">{v.notes}</div>}
-                <button onClick={() => window.open(`${api.defaults.baseURL}/versions/${v.id}/download`, '_blank')} className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200"><Download className="h-3 w-3" /> {v.download_url?.startsWith("/uploads/") ? v.download_url.split("/").pop() : "Descargar"}</button>
+                <button onClick={() => window.open(`${api.defaults.baseURL}/versions/${v.id}/download`, '_blank')} className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-emerald-300/90 hover:text-emerald-200 transition-colors"><Download className="h-3 w-3" /> {v.download_url?.startsWith("/uploads/") ? v.download_url.split("/").pop() : "Descargar"}</button>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
-              <button onClick={() => openEdit(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all" title="Editar descripción">{v.published ? "Editar" : "Revisar"}</button>
-              <button onClick={() => toggleMandatory(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all" title="Obligatoria">{v.mandatory ? "Opcional" : "Obligar"}</button>
-              <button onClick={() => togglePublish(v)} className="h-8 px-2.5 rounded-lg border border-white/10 hover:bg-white/5 text-[11px] transition-all">{v.published ? "Ocultar" : "Publicar"}</button>
-              <button onClick={() => setPendingDelete({ id: v.id, version: v.version })} className="h-8 w-8 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
+              <button onClick={() => openEdit(v)} className="admin-btn-ghost" title="Editar descripción">{v.published ? "Editar" : "Revisar"}</button>
+              <button onClick={() => toggleMandatory(v)} className="admin-btn-ghost" title="Obligatoria">{v.mandatory ? "Opcional" : "Obligar"}</button>
+              <button onClick={() => togglePublish(v)} className="admin-btn-ghost">{v.published ? "Ocultar" : "Publicar"}</button>
+              <button onClick={() => setPendingDelete({ id: v.id, version: v.version })} className="admin-btn-ghost !border-red-500/25 hover:!bg-red-500/8" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
             </div>
           </div>
         ))}
@@ -1755,7 +1776,7 @@ function SalesLogisticsTab() {
 
   const NumberField = ({ label, value, onChange, suffix, step = 1 }) => (
     <label className="block">
-      <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500 block mb-1.5">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-neutral-500 block mb-1.5">{label}</span>
       <div className="relative">
         <input
           type="number"
@@ -1763,9 +1784,9 @@ function SalesLogisticsTab() {
           min={0}
           step={step}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full bg-white/[0.03] border border-white/10 focus:border-emerald-400/50 rounded-xl px-3 py-2.5 text-white text-sm outline-none transition-all font-mono"
+          className="admin-input font-mono pr-12"
         />
-        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs pointer-events-none">{suffix}</span>}
+        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs pointer-events-none font-medium">{suffix}</span>}
       </div>
     </label>
   );
@@ -1780,92 +1801,92 @@ function SalesLogisticsTab() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5">
-        <div className="card-premium p-4 sm:p-6 space-y-4" style={{ borderRadius: 20 }}>
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono">Simulador</div>
+      <div className="grid lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="admin-content-card p-4 sm:p-6 space-y-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400 font-mono">Simulador</div>
           <NumberField label="Conductores (repartidores)" value={drivers} onChange={setDrivers} />
           <NumberField label="Precio B2B por repartidor" value={price} onChange={setPrice} suffix="MXN/mes" />
           <NumberField label="Gastos fijos mensuales" value={fixed} onChange={setFixed} suffix="MXN" />
           <NumberField label="Margen objetivo" value={margin} onChange={setMargin} suffix="%" />
         </div>
 
-        <div className="lg:col-span-2 space-y-5">
-          {loading && <div className="card-premium p-6 sm:p-10 flex items-center justify-center text-neutral-500"><Loader2 className="animate-spin" /></div>}
-          {error && <div className="border border-red-500/30 bg-red-500/10 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
+        <div className="lg:col-span-2 space-y-4 sm:space-y-5">
+          {loading && <div className="admin-content-card p-6 sm:p-10 flex items-center justify-center text-neutral-500"><Loader2 className="animate-spin" /></div>}
+          {error && <div className="border border-red-500/25 bg-red-500/8 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
           {!loading && scenario && (
             <>
-              <div className={`card-premium p-4 sm:p-6 relative overflow-hidden ${scenario.meets_target_margin ? "" : "ring-1 ring-amber-500/30"}`} style={{ borderRadius: 20 }}>
+              <div className={`admin-content-card p-4 sm:p-6 relative overflow-hidden ${scenario.meets_target_margin ? "" : "ring-1 ring-amber-500/25"}`}>
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp size={18} className="text-emerald-400" />
-                  <span className="font-bold font-mono">Escenario para {drivers} conductores</span>
+                  <span className="font-bold font-mono text-sm">Escenario para {drivers} conductores</span>
                   {scenario.meets_target_margin ? (
-                    <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">Rentable</span>
+                    <span className="ml-auto admin-badge admin-badge-emerald">Rentable</span>
                   ) : (
-                    <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full">Bajo margen</span>
+                    <span className="ml-auto admin-badge admin-badge-amber">Bajo margen</span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   <div>
-                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">Ingreso/mes</div>
-                    <div className="font-mono font-bold text-lg mt-1">{mxn(scenario.monthly_revenue)}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">Ingreso/mes</div>
+                    <div className="font-mono font-bold text-base sm:text-lg mt-1 tabular-nums">{mxn(scenario.monthly_revenue)}</div>
                   </div>
                   <div>
-                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">Utilidad/mes</div>
-                    <div className="font-mono font-bold text-lg mt-1 text-emerald-400">{mxn(scenario.monthly_profit)}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">Utilidad/mes</div>
+                    <div className="font-mono font-bold text-base sm:text-lg mt-1 text-emerald-400 tabular-nums">{mxn(scenario.monthly_profit)}</div>
                   </div>
                   <div>
-                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">Margen</div>
-                    <div className="font-mono font-bold text-lg mt-1">{scenario.margin_pct}%</div>
+                    <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">Margen</div>
+                    <div className="font-mono font-bold text-base sm:text-lg mt-1 tabular-nums">{scenario.margin_pct}%</div>
                   </div>
                   <div>
-                    <div className="text-[11px] uppercase tracking-wider text-neutral-500">ROI hardware</div>
-                    <div className="font-mono font-bold text-lg mt-1">{scenario.roi_months != null ? `${scenario.roi_months} meses` : "—"}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">ROI hardware</div>
+                    <div className="font-mono font-bold text-base sm:text-lg mt-1 tabular-nums">{scenario.roi_months != null ? `${scenario.roi_months} meses` : "—"}</div>
                   </div>
                 </div>
               </div>
 
-              <div className="card-premium p-4 sm:p-6" style={{ borderRadius: 20 }}>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Capacidad ofrecible a empresas</div>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div className="rounded-xl border border-white/10 p-4">
+              <div className="admin-content-card p-4 sm:p-6">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Capacidad ofrecible a empresas</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="admin-content-card !bg-white/[0.02] p-4">
                     <div className="text-neutral-500 text-xs">Punto de equilibrio</div>
-                    <div className="font-mono font-bold text-xl mt-1">{b2b.breakeven_drivers} <span className="text-sm text-neutral-500 font-normal">conductores</span></div>
+                    <div className="font-mono font-bold text-lg mt-1 tabular-nums">{b2b.breakeven_drivers} <span className="text-sm text-neutral-500 font-normal">conductores</span></div>
                     <div className="text-[11px] text-neutral-500 mt-1">Para cubrir gastos fijos.</div>
                   </div>
-                  <div className="rounded-xl border border-white/10 p-4">
+                  <div className="admin-content-card !bg-white/[0.02] p-4">
                     <div className="text-neutral-500 text-xs">Margen objetivo ({margin}%)</div>
-                    <div className="font-mono font-bold text-xl mt-1">{b2b.min_drivers_for_target_margin} <span className="text-sm text-neutral-500 font-normal">conductores</span></div>
+                    <div className="font-mono font-bold text-lg mt-1 tabular-nums">{b2b.min_drivers_for_target_margin} <span className="text-sm text-neutral-500 font-normal">conductores</span></div>
                     <div className="text-[11px] text-neutral-500 mt-1">Mínimo para tu margen.</div>
                   </div>
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                  <div className="admin-content-card !bg-emerald-500/5 !border-emerald-500/20 p-4">
                     <div className="text-neutral-500 text-xs">Oferta recomendada</div>
-                    <div className="font-mono font-bold text-xl mt-1 text-emerald-400">Desde {b2b.recommended_min_drivers}</div>
+                    <div className="font-mono font-bold text-lg mt-1 text-emerald-400 tabular-nums">Desde {b2b.recommended_min_drivers}</div>
                     <div className="text-[11px] text-neutral-500 mt-1">Conductores a buen precio.</div>
                   </div>
                 </div>
               </div>
 
-              <div className="card-premium p-4 sm:p-6" style={{ borderRadius: 20 }}>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Escenarios de referencia</div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+              <div className="admin-content-card p-4 sm:p-6">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400 font-mono mb-3">Escenarios de referencia</div>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <table className="admin-table w-full text-sm min-w-[500px]">
                     <thead>
-                      <tr className="text-neutral-500 text-left border-b border-white/10">
-                        <th className="py-2 pr-4 font-medium">Conductores</th>
-                        <th className="py-2 pr-4 font-medium">Ingreso/mes</th>
-                        <th className="py-2 pr-4 font-medium">Utilidad/mes</th>
-                        <th className="py-2 pr-4 font-medium">Margen</th>
-                        <th className="py-2 font-medium">ROI</th>
+                      <tr>
+                        <th>Conductores</th>
+                        <th>Ingreso/mes</th>
+                        <th>Utilidad/mes</th>
+                        <th>Margen</th>
+                        <th>ROI</th>
                       </tr>
                     </thead>
                     <tbody>
                       {b2b.scenarios.map((s) => (
-                        <tr key={s.drivers} className="border-b border-white/5">
-                          <td className="py-2 pr-4 font-mono">{s.drivers}</td>
-                          <td className="py-2 pr-4 font-mono">{mxn(s.monthly_revenue)}</td>
-                          <td className="py-2 pr-4 font-mono text-emerald-400">{mxn(s.monthly_profit)}</td>
-                          <td className="py-2 pr-4 font-mono">{s.margin_pct}%</td>
-                          <td className="py-2 font-mono">{s.roi_months != null ? `${s.roi_months} m` : "—"}</td>
+                        <tr key={s.drivers}>
+                          <td className="font-mono tabular-nums">{s.drivers}</td>
+                          <td className="font-mono tabular-nums">{mxn(s.monthly_revenue)}</td>
+                          <td className="font-mono text-emerald-400 tabular-nums">{mxn(s.monthly_profit)}</td>
+                          <td className="font-mono tabular-nums">{s.margin_pct}%</td>
+                          <td className="font-mono tabular-nums">{s.roi_months != null ? `${s.roi_months}m` : "—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1874,15 +1895,15 @@ function SalesLogisticsTab() {
               </div>
 
               {b2c && (
-                <div className="card-premium p-4 sm:p-6" style={{ borderRadius: 20 }}>
+                <div className="admin-content-card p-4 sm:p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Users size={16} className="text-emerald-400" />
-                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 font-mono">Lado B2C (usuario final)</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400 font-mono">Lado B2C (usuario final)</span>
                   </div>
-                  <div className="grid sm:grid-cols-3 gap-4 text-sm">
-                    <div><div className="text-neutral-500 text-xs">Suscripción/mes</div><div className="font-mono font-bold mt-1">{mxn(b2c.subscription)}</div></div>
-                    <div><div className="text-neutral-500 text-xs">Dispositivo</div><div className="font-mono font-bold mt-1">{mxn(b2c.device_price)}</div></div>
-                    <div><div className="text-neutral-500 text-xs">Margen dispositivo</div><div className="font-mono font-bold mt-1 text-emerald-400">{b2c.device_margin_pct}%</div></div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                    <div><div className="text-neutral-500 text-xs">Suscripción/mes</div><div className="font-mono font-bold mt-1 tabular-nums">{mxn(b2c.subscription)}</div></div>
+                    <div><div className="text-neutral-500 text-xs">Dispositivo</div><div className="font-mono font-bold mt-1 tabular-nums">{mxn(b2c.device_price)}</div></div>
+                    <div><div className="text-neutral-500 text-xs">Margen dispositivo</div><div className="font-mono font-bold mt-1 text-emerald-400 tabular-nums">{b2c.device_margin_pct}%</div></div>
                   </div>
                   <p className="text-[11px] text-neutral-500 mt-3">El precio B2C es menor porque no incluye instalación ni dashboard corporativo.</p>
                 </div>
@@ -1946,46 +1967,48 @@ function SuperAdminsTab() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-2">SuperAdmins</h2>
-      <p className="text-xs text-neutral-500 mb-6">
-        {isRoot
-          ? "Como cuenta principal (.env), puedes crear y eliminar SuperAdmins. Cada uno recibe un token de acceso propio."
-          : "Solo la cuenta principal (.env) puede crear o eliminar SuperAdmins."}
-      </p>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold tracking-tight">SuperAdmins</h2>
+        <p className="text-sm text-neutral-500 mt-1">
+          {isRoot
+            ? "Como cuenta principal (.env), puedes crear y eliminar SuperAdmins. Cada uno recibe un token de acceso propio."
+            : "Solo la cuenta principal (.env) puede crear o eliminar SuperAdmins."}
+        </p>
+      </div>
 
       {isRoot && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6 mb-6">
-          <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-neutral-400 mb-4">Crear nuevo SuperAdmin</h3>
-          <form onSubmit={handleCreate} className="grid md:grid-cols-4 gap-3">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" required className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
-            <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña (8+ caracteres)" required className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" />
-            <button disabled={busy || !email || !password} className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold rounded-xl px-4 py-2.5 transition-all">{busy ? "Creando..." : "Crear"}</button>
+        <div className="admin-content-card p-4 sm:p-6 mb-6">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-400 mb-4">Crear nuevo SuperAdmin</h3>
+          <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" className="admin-input" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" required className="admin-input" />
+            <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Contraseña (8+ caracteres)" required className="admin-input" />
+            <button disabled={busy || !email || !password} className="admin-btn-primary">{busy ? "Creando..." : "Crear"}</button>
           </form>
-          {error && <div className="mt-3 text-sm text-red-400 border border-red-500/30 bg-red-500/10 rounded-xl px-3 py-2.5">{error}</div>}
+          {error && <div className="mt-3 text-sm text-red-400 border border-red-500/25 bg-red-500/8 rounded-xl px-3 py-2.5">{error}</div>}
         </div>
       )}
 
       <div className="space-y-3">
         {list.map((s) => (
-          <div key={s.id || s.email} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between gap-3">
+          <div key={s.id || s.email} className="admin-content-card p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-9 w-9 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center flex-shrink-0"><Shield className="h-4 w-4 text-red-400" /></div>
+              <div className="h-9 w-9 rounded-xl bg-red-500/10 border border-red-500/25 flex items-center justify-center flex-shrink-0"><Shield className="h-4 w-4 text-red-400" /></div>
               <div className="min-w-0">
                 <div className="font-bold flex items-center gap-2">
                   {s.name}
-                  {s.is_root && <span className="text-[9px] uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-300">Principal</span>}
+                  {s.is_root && <span className="admin-badge admin-badge-amber">Principal</span>}
                 </div>
-                <div className="text-xs text-neutral-500 truncate">{s.email}</div>
+                <div className="text-xs text-neutral-500 truncate font-mono">{s.email}</div>
                 {isRoot && s.site_token && (
-                  <button onClick={() => copyToken(s.site_token)} className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-300/90 hover:text-emerald-200" title="Copiar token de acceso">
+                  <button onClick={() => copyToken(s.site_token)} className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-300/90 hover:text-emerald-200 transition-colors" title="Copiar token de acceso">
                     <Key className="h-3 w-3" /> {s.site_token} <Copy className="h-3 w-3" />
                   </button>
                 )}
               </div>
             </div>
             {isRoot && !s.is_root && (
-              <button onClick={() => setPendingDelete({ id: s.id, name: s.name })} className="h-9 w-9 rounded-lg border border-red-500/30 hover:bg-red-500/10 flex items-center justify-center transition-all flex-shrink-0" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
+              <button onClick={() => setPendingDelete({ id: s.id, name: s.name })} className="admin-btn-ghost !border-red-500/25 hover:!bg-red-500/8 flex-shrink-0" title="Eliminar"><Trash2 className="h-4 w-4 text-red-400" /></button>
             )}
           </div>
         ))}
@@ -2039,19 +2062,22 @@ function AuditTab() {
 
   return (
     <div>
-      <h2 className="text-xl font-bold mb-6">Auditoría de acciones</h2>
+      <div className="mb-6">
+        <h2 className="text-xl font-bold tracking-tight">Auditoría de acciones</h2>
+        <p className="text-sm text-neutral-500 mt-1">Registro de actividades recientes del sistema</p>
+      </div>
       {logs.length === 0 ? (
-        <div className="text-neutral-500 text-sm">Sin acciones registradas todavía.</div>
+        <div className="text-neutral-500 text-sm text-center py-12">Sin acciones registradas todavía.</div>
       ) : (
         <div className="space-y-2">
           {logs.map((l) => (
-            <div key={l.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3 flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center"><Activity className="h-4 w-4 text-emerald-400" /></div>
+            <div key={l.id} className="admin-content-card p-3 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/8 flex items-center justify-center flex-shrink-0"><Activity className="h-4 w-4 text-emerald-400" /></div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium">{l.action}</div>
                 <div className="text-xs text-neutral-500 truncate">{l.detail}{l.actor ? ` · ${l.actor}` : ""}</div>
               </div>
-              <div className="text-[11px] text-neutral-500 whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</div>
+              <div className="text-[11px] text-neutral-500 whitespace-nowrap font-mono">{new Date(l.created_at).toLocaleString()}</div>
             </div>
           ))}
         </div>
@@ -2092,15 +2118,15 @@ function AdminPanel() {
       <div className="pointer-events-none fixed -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/[0.06] blur-[120px]" />
       <div className="pointer-events-none fixed -bottom-40 -right-40 h-96 w-96 rounded-full bg-red-500/[0.05] blur-[120px]" />
 
-      <aside className={`relative z-10 ${collapsed ? "w-[76px]" : "w-64"} border-r border-white/10 bg-black/40 backdrop-blur-xl p-3 flex-col flex-shrink-0 hidden lg:flex sticky top-0 h-screen transition-[width] duration-300 ease-out`}>
+      <aside className={`relative z-10 ${collapsed ? "w-[76px]" : "w-64"} admin-sidebar p-3 flex-col flex-shrink-0 hidden lg:flex sticky top-0 h-screen transition-[width] duration-300 ease-out`}>
         <button onClick={() => navigate("/")} className={`flex items-center gap-3 mb-5 px-1 w-full text-left ${collapsed ? "justify-center" : ""}`}>
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500/25 to-red-500/5 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)] flex-shrink-0">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500/25 to-red-500/5 border border-red-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.2)] flex-shrink-0 transition-transform duration-300 hover:scale-105">
             <Shield className="h-5 w-5 text-red-400" />
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.35em] text-neutral-500 leading-tight">SuperAdmin</div>
-              <div className="text-base font-bold leading-tight tracking-tight">C.R.A.S.H.</div>
+              <div className="text-[9px] uppercase tracking-[0.35em] text-neutral-500 leading-tight">SuperAdmin</div>
+              <div className="text-base font-bold leading-tight tracking-tight bg-gradient-to-r from-white to-neutral-300 bg-clip-text text-transparent">C.R.A.S.H.</div>
             </div>
           )}
         </button>
@@ -2108,27 +2134,26 @@ function AdminPanel() {
         <button
           onClick={toggleSidebar}
           title={collapsed ? "Expandir menú" : "Ocultar menú"}
-          className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-neutral-400 hover:text-white hover:bg-white/5 border border-white/10 transition-all ${collapsed ? "justify-center" : ""}`}
+          className={`mb-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs text-neutral-400 hover:text-white hover:bg-white/5 border border-white/8 transition-all duration-200 ${collapsed ? "justify-center" : ""}`}
         >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> Ocultar menú</>}
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> <span className="opacity-70">Ocultar menú</span></>}
         </button>
 
-        <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-0.5">
           {TABS.map(tab => {
             const active = activeTab === tab.id;
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} title={collapsed ? tab.label : undefined} className={`group relative w-full flex items-center gap-3 rounded-xl text-sm transition-all ${collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"} ${active ? "bg-emerald-500/10 text-emerald-300" : "text-neutral-400 hover:text-white hover:bg-white/5"}`}>
-                <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-emerald-400 transition-all ${active ? "opacity-100" : "opacity-0 group-hover:opacity-40"}`} />
-                <tab.icon className={`h-4 w-4 flex-shrink-0 transition-transform ${active ? "" : "group-hover:scale-110"}`} />
-                {!collapsed && <span className="truncate">{tab.label}</span>}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} title={collapsed ? tab.label : undefined} className={`admin-nav-item ${active ? "active" : ""} w-full flex items-center gap-3 rounded-xl text-sm ${collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"}`}>
+                <tab.icon className={`h-4 w-4 flex-shrink-0 transition-transform duration-200 ${active ? "" : "group-hover:scale-110"}`} />
+                {!collapsed && <span className="truncate font-medium">{tab.label}</span>}
               </button>
             );
           })}
         </nav>
 
-        <div className="border-t border-white/10 pt-3 mt-2 space-y-2 flex-shrink-0">
-          {!collapsed && <div className="text-xs text-neutral-500 px-3 truncate">{user?.email}</div>}
-          <button onClick={handleLogout} title={collapsed ? "Cerrar sesión" : undefined} className={`w-full flex items-center gap-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all ${collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"}`}>
+        <div className="border-t border-white/6 pt-3 mt-2 space-y-2 flex-shrink-0">
+          {!collapsed && <div className="text-[11px] text-neutral-500 px-3 truncate font-mono">{user?.email}</div>}
+          <button onClick={handleLogout} title={collapsed ? "Cerrar sesión" : undefined} className={`w-full flex items-center gap-3 rounded-xl text-sm text-red-400 hover:bg-red-500/8 border border-transparent hover:border-red-500/20 transition-all duration-200 ${collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"}`}>
             <LogOut className="h-4 w-4 flex-shrink-0" />
             {!collapsed && "Cerrar sesión"}
           </button>
@@ -2137,39 +2162,48 @@ function AdminPanel() {
 
       <main className="relative z-10 flex-1 min-w-0 overflow-y-auto">
         {/* Mobile header + horizontal tabs */}
-        <div className="lg:hidden sticky top-0 z-20 bg-black/60 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center justify-between px-4 py-3">
-            <button onClick={() => navigate("/")} className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-red-500/15 border border-red-500/40 flex items-center justify-center"><Shield className="h-4 w-4 text-red-400" /></div>
-              <div><div className="text-[9px] uppercase tracking-[0.3em] text-neutral-500 leading-none">SuperAdmin</div><div className="font-bold text-sm leading-tight">{activeLabel}</div></div>
-            </button>
-            <button onClick={handleLogout} className="h-9 w-9 rounded-lg border border-red-500/30 flex items-center justify-center hover:bg-red-500/10 transition-all"><LogOut className="h-4 w-4 text-red-400" /></button>
+        <div className="lg:hidden sticky top-0 z-20">
+          <div className="bg-black/70 backdrop-blur-2xl border-b border-white/6">
+            <div className="flex items-center justify-between px-4 py-3">
+              <button onClick={() => navigate("/")} className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-500/20 to-red-500/5 border border-red-500/30 flex items-center justify-center shadow-[0_0_12px_rgba(239,68,68,0.15)]">
+                  <Shield className="h-4 w-4 text-red-400" />
+                </div>
+                <div>
+                  <div className="text-[8px] uppercase tracking-[0.3em] text-neutral-500 leading-none font-medium">SuperAdmin</div>
+                  <div className="font-bold text-sm leading-tight bg-gradient-to-r from-white to-neutral-300 bg-clip-text text-transparent">{activeLabel}</div>
+                </div>
+              </button>
+              <button onClick={handleLogout} className="h-9 w-9 rounded-xl border border-red-500/20 flex items-center justify-center hover:bg-red-500/8 transition-all duration-200 active:scale-95">
+                <LogOut className="h-4 w-4 text-red-400" />
+              </button>
+            </div>
           </div>
-          <div className="relative">
-            <div className="flex gap-1.5 overflow-x-auto px-4 pb-3 no-scrollbar">
+          <div className="relative bg-black/50 backdrop-blur-xl border-b border-white/6">
+            <div className="flex gap-1.5 overflow-x-auto px-3 py-2.5 no-scrollbar scroll-smooth">
               {TABS.map(t => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs whitespace-nowrap transition-all ${activeTab === t.id ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]" : "text-neutral-400 border border-white/10 hover:bg-white/5"}`}>
+                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`admin-mobile-pill ${activeTab === t.id ? "active" : ""} flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-medium whitespace-nowrap`}>
                   <t.icon className="h-3.5 w-3.5" /> {t.label}
                 </button>
               ))}
             </div>
-            <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-8 bg-gradient-to-l from-black/60 to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-black/60 to-transparent" />
           </div>
         </div>
         {/* Desktop section header */}
-        <div className="hidden lg:flex items-center justify-between sticky top-0 z-20 bg-black/50 backdrop-blur-xl border-b border-white/10 px-8 py-4">
-          <div className="flex items-center gap-3">
-            {(() => { const T = TABS.find(t => t.id === activeTab); const I = T?.icon; return I ? <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-300"><I className="h-4.5 w-4.5" /></div> : null; })()}
+        <div className="hidden lg:flex items-center justify-between sticky top-0 z-20 bg-black/40 backdrop-blur-2xl border-b border-white/6 px-8 py-4">
+          <div className="admin-section-header">
+            {(() => { const T = TABS.find(t => t.id === activeTab); const I = T?.icon; return I ? <div className="admin-section-icon"><I className="h-4.5 w-4.5" /></div> : null; })()}
             <div>
-              <div className="text-[10px] uppercase tracking-[0.35em] text-neutral-500 leading-none">Panel de control</div>
+              <div className="text-[9px] uppercase tracking-[0.35em] text-neutral-500 leading-none font-medium">Panel de control</div>
               <div className="text-lg font-bold leading-tight tracking-tight mt-1">{activeLabel}</div>
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-neutral-500">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]" /> Sistema operativo
+            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse-soft" /> Sistema operativo
           </div>
         </div>
-        <div key={activeTab} className="p-4 sm:p-6 lg:p-8 page-enter">
+        <div key={activeTab} className="p-4 sm:p-6 lg:p-8 page-enter admin-stagger">
           <ActiveComponent />
         </div>
       </main>
