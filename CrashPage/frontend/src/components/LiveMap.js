@@ -97,7 +97,43 @@ function DriverMarkers({ positioned, onSelect }) {
   });
 }
 
-const MemoDriverMarkers = memo(DriverMarkers);
+const routeKey = (d) => (d.recent_path || d.route || [])
+  .map((p) => `${p.lat ?? ""},${p.lng ?? ""}`)
+  .join("|");
+
+// Solo re-renderiza cuando el conductor realmente cambió (lat/lng/status/datos
+// visibles), no en cada batch del websocket (200ms).
+const MemoDriverMarkers = memo(DriverMarkers, (prev, next) => {
+  if (prev.positioned === next.positioned) return true;
+  if (prev.positioned.length !== next.positioned.length) return false;
+  for (let i = 0; i < prev.positioned.length; i += 1) {
+    const a = prev.positioned[i];
+    const b = next.positioned[i];
+    if (a === b) continue;
+    if (!a || !b || a.id !== b.id || a.lat !== b.lat || a.lng !== b.lng ||
+        a.status !== b.status || a.speed !== b.speed || a.gforce !== b.gforce ||
+        a.name !== b.name || routeKey(a) !== routeKey(b)) return false;
+  }
+  return true;
+});
+
+function RouteLine({ d }) {
+  const recentPath = (d.recent_path || d.route || [])
+    .map((p) => [p.lat, p.lng])
+    .filter(([lat, lng]) => typeof lat === "number" && typeof lng === "number");
+  if (recentPath.length <= 1) return null;
+  return (
+    <Polyline
+      positions={recentPath}
+      pathOptions={{ color: d.status === "critical" ? "#ef4444" : "#10b981", weight: 2, opacity: 0.5 }}
+    />
+  );
+}
+
+const MemoRouteLine = memo(RouteLine, (prev, next) =>
+  prev.d === next.d ||
+  (prev.d?.status === next.d?.status && routeKey(prev.d) === routeKey(next.d))
+);
 
 const HEAT_SEVERITY = { low: "#10b981", medium: "#f59e0b", high: "#f97316", critical: "#ef4444" };
 
@@ -154,14 +190,15 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
 
   return (
     <div className="relative h-full w-full" data-testid="live-map">
-      <MapContainer key={`live-map-${theme}`}
-        center={center}
-        zoom={13}
-        scrollWheelZoom
-        zoomControl={true}
-        className="h-full w-full"
-        style={{ background: theme === "light" ? "#dbe7f3" : "#0a0a0a" }}
-      >
+        <MapContainer key={`live-map-${theme}`}
+          center={center}
+          zoom={13}
+          scrollWheelZoom
+          zoomControl={true}
+          preferCanvas
+          className="h-full w-full"
+          style={{ background: theme === "light" ? "#dbe7f3" : "#0a0a0a" }}
+        >
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">carto.com</a>'
           url={theme === "light"
@@ -195,18 +232,9 @@ function LiveMap({ drivers, alerts, selectedId, onSelect, heatPoints }) {
 
         <HeatLayer points={heatPoints} />
 
-        {positioned.map((d) => {
-          const recentPath = (d.recent_path || d.route || [])
-            .map((p) => [p.lat, p.lng])
-            .filter(([lat, lng]) => typeof lat === "number" && typeof lng === "number");
-          return recentPath.length > 1 ? (
-            <Polyline
-              key={`route-${d.id}`}
-              positions={recentPath}
-              pathOptions={{ color: d.status === "critical" ? "#ef4444" : "#10b981", weight: 2, opacity: 0.5 }}
-            />
-          ) : null;
-        })}
+        {positioned.map((d) => (
+          <MemoRouteLine key={`route-${d.id}`} d={d} />
+        ))}
 
         <MemoDriverMarkers positioned={positioned} onSelect={handleSelect} />
       </MapContainer>

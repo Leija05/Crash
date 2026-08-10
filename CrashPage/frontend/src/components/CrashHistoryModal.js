@@ -199,7 +199,7 @@ function CrashHistoryModal({ open, onClose }) {
         <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-5">
           <div className="lg:col-span-3 border-b lg:border-b-0 lg:border-r border-white/10 relative h-[45vh] min-h-[280px] lg:h-auto lg:min-h-0">
             {withGps.length > 0 ? (
-              <MapContainer key={`history-map-${theme}`} center={selected ? [selected.lat, selected.lng] : center} zoom={selected ? 15 : 12} className="h-full w-full" style={{ background: "#0a0a0a", height: "100%" }}>
+              <MapContainer key={`history-map-${theme}`} center={selected ? [selected.lat, selected.lng] : center} zoom={selected ? 15 : 12} preferCanvas className="h-full w-full" style={{ background: "#0a0a0a", height: "100%" }}>
                 <TileLayer attribution="&copy; carto.com" url={theme === "light" ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"} />
                 {selected && selected.lat && selected.lng ? (
                   <CircleMarker key={`halo-${selected.id}`} center={[selected.lat, selected.lng]} radius={22}

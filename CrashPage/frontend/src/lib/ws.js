@@ -18,7 +18,16 @@ export function useCrashSocket() {
   const flush = useCallback(() => {
     if (pendingDriversRef.current) {
       setDrivers((prev) => {
-        const merged = { ...prev, ...pendingDriversRef.current };
+        const next = pendingDriversRef.current;
+        let changed = false;
+        for (const k in next) {
+          if (prev[k] !== next[k]) { changed = true; break; }
+        }
+        if (!changed) {
+          pendingDriversRef.current = null;
+          return prev;
+        }
+        const merged = { ...prev, ...next };
         pendingDriversRef.current = null;
         return merged;
       });
@@ -99,8 +108,12 @@ export function useCrashSocket() {
   useEffect(() => {
     mountedRef.current = true;
     connect();
+    // Pestaña oculta: los batches se acumulan en pending y se aplican al volver.
+    const onVisibility = () => { if (!document.hidden) flush(); };
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       mountedRef.current = false;
+      document.removeEventListener("visibilitychange", onVisibility);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
@@ -116,7 +129,7 @@ export function useCrashSocket() {
         }
       } catch {}
     };
-  }, [connect]);
+  }, [connect, flush]);
 
   return { drivers, alerts, setAlerts, status, lastImpactId };
 }

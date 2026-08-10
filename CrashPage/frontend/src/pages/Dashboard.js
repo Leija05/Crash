@@ -160,7 +160,7 @@ function Dashboard() {
         .catch(() => { if (!cancelled) setRoster([]); });
     };
     load();
-    const id = setInterval(load, 8000);
+    const id = setInterval(() => { if (!document.hidden) load(); }, 8000);
     return () => { cancelled = true; clearInterval(id); };
   }, [user?.company_id]);
 

@@ -196,7 +196,7 @@ function History() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
         <div data-testid="history-map" className="lg:col-span-2 rounded-2xl border border-white/10 overflow-hidden h-[50vh] min-h-[360px] lg:h-auto lg:min-h-0 relative">
           {hasMapContent ? (
-            <MapContainer center={center} zoom={selectedEvent ? 16 : 13} className="h-full w-full" style={{ background: "#0a0a0a", height: "100%" }}>
+            <MapContainer center={center} zoom={selectedEvent ? 16 : 13} preferCanvas className="h-full w-full" style={{ background: "#0a0a0a", height: "100%" }}>
               <TileLayer attribution="&copy; carto.com" url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
               {path.length > 1 ? <Polyline positions={path} pathOptions={{ color: "#10b981", weight: 3, opacity: 0.85 }} /> : null}
               {selectedEvent && selectedEvent.lat && selectedEvent.lng ? (

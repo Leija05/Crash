@@ -65,7 +65,7 @@ const CtaFooter = ({ brand, onPlansClick, onBookCall, onBrandClick }) => {
   const words = heading.split(" ");
 
   return (
-    <section className="relative bg-black py-32 px-6 md:px-16 lg:px-24 text-center overflow-hidden">
+    <section className="relative cta-dark bg-black py-32 px-6 md:px-16 lg:px-24 text-center overflow-hidden">
       <video
         ref={videoRef}
         autoPlay

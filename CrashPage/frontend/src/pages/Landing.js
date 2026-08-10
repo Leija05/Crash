@@ -10,10 +10,11 @@ import {
   MessagesSquare, Database, ShoppingCart, X, MessageCircle, Mail,
   Check, ArrowRight, MapPin, History, Signal, Users, Building2,
   Gauge, Brain, ShieldAlert, Zap, Activity, Radar, ChevronDown, Download,
-  Crosshair, Radio, Network, LocateFixed,
+  Crosshair, Radio, Network, LocateFixed, Sun, Moon,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useI18n } from "../i18n";
+import { useSettings } from "../context/SettingsContext";
 import CtaFooter from "../components/CtaFooter";
 import PlansModal from "../components/PlansModal";
 import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
@@ -229,15 +230,20 @@ function ParticleBackground() {
     let animId;
     let w, h;
 
+    // Móvil: menos partículas y DPR limitado para no pintar 2-3x píxeles
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const dpr = isMobile ? Math.min(1.5, window.devicePixelRatio || 1) : (window.devicePixelRatio || 1);
+    const PARTICLE_COUNT = isMobile ? 22 : 55;
+    const LINK_DIST = isMobile ? 110 : 150;
+
     const resize = () => {
-      w = canvas.width = canvas.offsetWidth * devicePixelRatio;
-      h = canvas.height = canvas.offsetHeight * devicePixelRatio;
-      ctx.scale(devicePixelRatio, devicePixelRatio);
+      w = canvas.width = canvas.offsetWidth * dpr;
+      h = canvas.height = canvas.offsetHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
 
-    const PARTICLE_COUNT = 55;
     const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
       x: Math.random() * canvas.offsetWidth,
       y: Math.random() * canvas.offsetHeight,
@@ -269,11 +275,11 @@ function ParticleBackground() {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 150) {
+          if (dist < LINK_DIST) {
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(239,68,68,${0.08 * (1 - dist / 150)})`;
+            ctx.strokeStyle = `rgba(239,68,68,${0.08 * (1 - dist / LINK_DIST)})`;
             ctx.stroke();
           }
         }
@@ -283,9 +289,17 @@ function ParticleBackground() {
     };
     draw();
 
+    // Pausa el canvas cuando la pestaña no es visible (ahorra CPU/batería)
+    const onVisibility = () => {
+      if (document.hidden) { cancelAnimationFrame(animId); animId = null; }
+      else if (!animId) draw();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
-      cancelAnimationFrame(animId);
+      if (animId) cancelAnimationFrame(animId);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 
@@ -726,7 +740,7 @@ function CockpitSection({ t }) {
 
   if (reduce) {
     return (
-      <section id="cockpit" className="max-w-6xl mx-auto px-4 py-20 sm:py-28">
+      <section id="cockpit" className="cockpit-dark max-w-6xl mx-auto px-4 py-20 sm:py-28">
         <div className="mb-14">{header}</div>
         <div className="space-y-20">
           {steps.map((s, i) => (
@@ -756,7 +770,7 @@ function CockpitSection({ t }) {
   }
 
   return (
-    <section id="cockpit" ref={ref} className="relative h-[480vh]">
+    <section id="cockpit" ref={ref} className="relative h-[480vh] cockpit-dark">
       <div className="sticky top-0 h-[100dvh] flex flex-col justify-center overflow-hidden">
         <div className="pointer-events-none absolute inset-0 opacity-30 scanlines" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.05),transparent_65%)]" />
@@ -818,8 +832,8 @@ function ImpactSimulator() {
       className="hud-frame card-premium p-6 sm:p-8 lg:p-10 relative overflow-hidden"
       style={{ borderRadius: 22 }}
     >
-      <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-red-500/10 blur-[110px] pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-red-500/5 blur-[110px] pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-[radial-gradient(circle,rgba(239,68,68,0.11),rgba(239,68,68,0.04)_45%,transparent_72%)] pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-[radial-gradient(circle,rgba(239,68,68,0.055),rgba(239,68,68,0.02)_45%,transparent_72%)] pointer-events-none" />
       <div className="relative grid lg:grid-cols-2 gap-8 items-center">
         <div>
           <motion.div
@@ -864,10 +878,9 @@ function ImpactSimulator() {
 
           <div className="h-2.5 rounded-full bg-white/10 overflow-hidden mb-6">
             <motion.div
-              className="h-full rounded-full"
-              layout
+              className="h-full w-full rounded-full origin-left"
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              style={{ width: `${pct}%`, background: tier.hex, boxShadow: `0 0 16px ${tier.hex}66` }}
+              style={{ scaleX: pct / 100, background: tier.hex, boxShadow: `0 0 16px ${tier.hex}66` }}
             />
           </div>
 
@@ -925,6 +938,8 @@ function Landing() {
   const [cartExiting, setCartExiting] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
   const { t } = useI18n();
+  const { theme, setTheme } = useSettings();
+  const isLight = theme === "light";
 
   useEffect(() => {
     (async () => {
@@ -1067,17 +1082,17 @@ function Landing() {
   }, []);
 
   return (
-    <div className="page-enter bg-[#050505] text-white min-h-screen relative">
+    <div className="page-enter landing-root bg-[#050505] text-white min-h-screen relative">
       <ScrollProgress />
       <CursorSpotlight />
       <Grain />
       <ParticleBackground />
 
       <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.03] grid-pan" style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-red-500/10 blur-[120px] orb-float" />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-red-500/10 blur-[120px] orb-float-2" />
-        <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] rounded-full bg-red-500/5 blur-[100px] orb-float-3" />
+        <div className="absolute left-0 top-0 w-[calc(100%+44px)] h-[calc(100%+44px)] opacity-[0.03] grid-pan" style={{ backgroundImage: "linear-gradient(var(--grid-line) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line) 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle,rgba(239,68,68,0.11),rgba(239,68,68,0.04)_45%,transparent_72%)] orb-float" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(239,68,68,0.11),rgba(239,68,68,0.04)_45%,transparent_72%)] orb-float-2" />
+        <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(239,68,68,0.055),rgba(239,68,68,0.02)_45%,transparent_72%)] orb-float-3" />
       </div>
 
       <div className="relative z-10">
@@ -1086,7 +1101,7 @@ function Landing() {
           initial={{ y: -24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.55, delay: 0.1, ease: HEADER_EASE }}
-          className="sticky top-0 z-50"
+          className={`sticky top-0 z-50 landing-header${scrolled ? " is-scrolled" : ""}`}
         >
           <motion.div
             animate={{
@@ -1101,9 +1116,9 @@ function Landing() {
               animate={{
                 maxWidth: scrolled ? "64rem" : "100%",
                 borderRadius: scrolled ? 9999 : 0,
-                backgroundColor: scrolled ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0)",
-                borderColor: scrolled ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0)",
-                boxShadow: scrolled ? "0 10px 50px rgba(0,0,0,0.5)" : "0 0 0 rgba(0,0,0,0)",
+                backgroundColor: scrolled ? (isLight ? "rgba(252,251,247,0.86)" : "rgba(0,0,0,0.6)") : "rgba(0,0,0,0)",
+                borderColor: scrolled ? (isLight ? "rgba(22,26,35,0.1)" : "rgba(255,255,255,0.1)") : "rgba(255,255,255,0)",
+                boxShadow: scrolled ? (isLight ? "0 10px 40px rgba(35,30,20,0.12)" : "0 10px 50px rgba(0,0,0,0.5)") : "0 0 0 rgba(0,0,0,0)",
                 backdropFilter: scrolled ? "blur(24px)" : "blur(0px)",
                 WebkitBackdropFilter: scrolled ? "blur(24px)" : "blur(0px)",
               }}
@@ -1137,6 +1152,26 @@ function Landing() {
                 ))}
               </nav>
               <div className="flex items-center gap-2 sm:gap-3">
+                <motion.button
+                  onClick={() => setTheme(isLight ? "dark" : "light")}
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.94 }}
+                  className="relative p-2 text-zinc-300 hover:text-white transition-colors"
+                  aria-label={t("landing.themeToggle", "Cambiar tema")}
+                >
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={theme}
+                      initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
+                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                      exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="block"
+                    >
+                      {isLight ? <Sun size={19} /> : <Moon size={19} />}
+                    </motion.span>
+                  </AnimatePresence>
+                </motion.button>
                 <motion.button
                   onClick={() => setCartOpen(true)}
                   whileHover={{ scale: 1.06 }}
@@ -1172,11 +1207,11 @@ function Landing() {
         </motion.header>
 
         {/* ── HERO ──────────────────────────────────────────────────── */}
-        <section className="relative -mt-14 overflow-hidden">
+        <section className="relative -mt-14 overflow-hidden hero-dark">
           <motion.div className="absolute inset-0" style={{ scale: heroScale }}>
             <img src={HERO} alt={t("landing.heroAlt", "Motociclista de noche")} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/85" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 40%,#050505)" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,transparent 40%,var(--hero-fade))" }} />
           </motion.div>
           <div className="absolute inset-0 opacity-40 scanlines pointer-events-none" />
 
@@ -1483,7 +1518,7 @@ function Landing() {
           <ScrollReveal delay={1}>
             <motion.div
               whileHover={{ scale: 1.008 }}
-              className="hud-frame relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video card-premium"
+              className="hud-frame media-island relative rounded-2xl overflow-hidden border border-white/10 bg-black aspect-video card-premium"
               style={{ borderRadius: 20 }}
             >
               <video

@@ -18,8 +18,9 @@ import {
   UserPlus, ScrollText, LifeBuoy, Map as MapIcon, Bell, Webhook,
   CalendarClock, Send, CheckCircle2, CalendarPlus, Slack,
   PanelLeftClose, PanelLeftOpen, LineChart as LineChartIcon, Globe,
-  ShieldAlert, MapPin, Timer, Download, Smartphone,
+  ShieldAlert, MapPin, Timer, Download, Smartphone, Sun, Moon,
 } from "lucide-react";
+import { useSettings } from "../context/SettingsContext";
 
 const err = (e) => toast.error(formatApiError(e));
 const ok = (m) => toast.success(m);
@@ -494,7 +495,7 @@ function CompaniesTab() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); const _i = setInterval(load, 10000); return () => clearInterval(_i); }, [load]);
+  useEffect(() => { load(); const _i = setInterval(() => { if (!document.hidden) load(); }, 10000); return () => clearInterval(_i); }, [load]);
 
   const [tokens, setTokens] = useState({});
   const [buyOpen, setBuyOpen] = useState(null);
@@ -536,6 +537,7 @@ function CompaniesTab() {
     const ids = Object.keys(expanded).filter((id) => expanded[id]);
     if (ids.length === 0) return;
     const id = setInterval(() => {
+      if (document.hidden) return;
       ids.forEach((cid) => { loadDrivers(cid); loadMonitors(cid); });
     }, 8000);
     return () => clearInterval(id);
@@ -783,7 +785,7 @@ function TokenAlertsPanel() {
       setLoading(false);
     };
     run();
-    const _i = setInterval(run, 10000);
+    const _i = setInterval(() => { if (!document.hidden) run(); }, 10000);
     return () => clearInterval(_i);
   }, []);
 
@@ -876,7 +878,7 @@ function OverviewTab() {
       setLoading(false);
     };
     run();
-    const _i = setInterval(run, 10000);
+    const _i = setInterval(() => { if (!document.hidden) run(); }, 10000);
     return () => clearInterval(_i);
   }, []);
 
@@ -933,7 +935,7 @@ function HeatmapTab() {
         .finally(() => { if (!cancelled && initial) setLoading(false); });
     };
     run(true);
-    const _i = setInterval(() => run(false), 10000);
+    const _i = setInterval(() => { if (!document.hidden) run(false); }, 10000);
     return () => { cancelled = true; clearInterval(_i); };
   }, [companyId, days]);
 
@@ -965,7 +967,7 @@ function HeatmapTab() {
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 admin-content-card overflow-hidden h-[300px] sm:h-[400px] lg:h-[520px] relative">
           {loading && <div className="absolute inset-0 z-[500] flex items-center justify-center bg-black/40"><Loader2 className="h-6 w-6 animate-spin text-neutral-400" /></div>}
-          <MapContainer key={`heat-${companyId}-${days}`} center={center} zoom={11} scrollWheelZoom className="h-full w-full" style={{ background: "#0a0a0a" }}>
+          <MapContainer key={`heat-${companyId}-${days}`} center={center} zoom={11} scrollWheelZoom preferCanvas className="h-full w-full" style={{ background: "#0a0a0a" }}>
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; carto.com' />
             {points.map((p, i) => (
               <CircleMarker key={i} center={[p.lat, p.lng]} radius={Math.min(20, 6 + (p.weight || 1) * 3)}
@@ -1062,7 +1064,7 @@ function SupportTab() {
     try { const { data } = await adminAPI.supportList(); setReqs(data || []); } catch (e) { err(e); }
     setLoading(false);
   }, []);
-  useEffect(() => { load(); const _i = setInterval(load, 10000); return () => clearInterval(_i); }, [load]);
+  useEffect(() => { load(); const _i = setInterval(() => { if (!document.hidden) load(); }, 10000); return () => clearInterval(_i); }, [load]);
 
   const forward = useCallback(async (id) => {
      try { await adminAPI.supportForward(id); ok(t("admin.forwardedToSupport", "Reenviado a soporte")); load(); } catch (e) { err(e); }
@@ -1220,7 +1222,7 @@ function AnalyticsTab() {
         .finally(() => { if (!cancelled && initial) setLoading(false); });
     };
     run(true);
-    const _i = setInterval(() => run(false), 10000);
+    const _i = setInterval(() => { if (!document.hidden) run(false); }, 10000);
     return () => { cancelled = true; clearInterval(_i); };
   }, [days]);
 
@@ -1376,7 +1378,7 @@ function GeofencesTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(); const _i = setInterval(load, 10000); return () => clearInterval(_i); }, [load]);
+  useEffect(() => { load(); const _i = setInterval(() => { if (!document.hidden) load(); }, 10000); return () => clearInterval(_i); }, [load]);
 
   const resetForm = () => { setForm(EMPTY_ZONE); setEditingId(null); };
 
@@ -1454,7 +1456,7 @@ function GeofencesTab() {
                 </div>
                 <p className="text-[11px] text-neutral-500">Haz clic en el mapa para fijar el centro de la zona.</p>
                 <div className="h-56 rounded-xl overflow-hidden admin-content-card">
-                  <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
+                  <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }} scrollWheelZoom preferCanvas>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
                     <MapClickPicker onPick={(lat, lng) => setForm((f) => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6) }))} />
                     {zones.map((z) => (
@@ -1547,7 +1549,7 @@ function VersionsTab() {
   }, []);
   useEffect(() => {
     load();
-    const id = setInterval(load, 10000);
+    const id = setInterval(() => { if (!document.hidden) load(); }, 10000);
     return () => clearInterval(id);
   }, [load]);
 
@@ -1936,7 +1938,7 @@ function SuperAdminsTab() {
   }, []);
   useEffect(() => {
     load();
-    const id = setInterval(load, 10000);
+    const id = setInterval(() => { if (!document.hidden) load(); }, 10000);
     return () => clearInterval(id);
   }, [load]);
 
@@ -2054,7 +2056,7 @@ function AuditTab() {
       setLoading(false);
     };
     run();
-    const _i = setInterval(run, 10000);
+    const _i = setInterval(() => { if (!document.hidden) run(); }, 10000);
     return () => clearInterval(_i);
   }, []);
 
@@ -2089,6 +2091,7 @@ function AuditTab() {
 function AdminPanel() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { theme, setTheme } = useSettings();
   const [activeTab, setActiveTab] = useState("overview");
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("crash_admin_sidebar") === "1");
 
@@ -2113,7 +2116,7 @@ function AdminPanel() {
   const activeLabel = useMemo(() => TABS.find(t => t.id === activeTab)?.label || "", [activeTab]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex relative">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex relative admin-root">
       <div className="pointer-events-none fixed inset-0 grid-bg opacity-[0.35]" />
       <div className="pointer-events-none fixed -top-40 -left-40 h-96 w-96 rounded-full bg-emerald-500/[0.06] blur-[120px]" />
       <div className="pointer-events-none fixed -bottom-40 -right-40 h-96 w-96 rounded-full bg-red-500/[0.05] blur-[120px]" />
@@ -2174,9 +2177,19 @@ function AdminPanel() {
                   <div className="font-bold text-sm leading-tight bg-gradient-to-r from-white to-neutral-300 bg-clip-text text-transparent">{activeLabel}</div>
                 </div>
               </button>
-              <button onClick={handleLogout} className="h-9 w-9 rounded-xl border border-red-500/20 flex items-center justify-center hover:bg-red-500/8 transition-all duration-200 active:scale-95">
-                <LogOut className="h-4 w-4 text-red-400" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                  className="h-9 w-9 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-all duration-200 active:scale-95"
+                  aria-label="Cambiar tema"
+                  title="Cambiar tema"
+                >
+                  {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
+                <button onClick={handleLogout} className="h-9 w-9 rounded-xl border border-red-500/20 flex items-center justify-center hover:bg-red-500/8 transition-all duration-200 active:scale-95">
+                  <LogOut className="h-4 w-4 text-red-400" />
+                </button>
+              </div>
             </div>
           </div>
           <div className="relative bg-black/50 backdrop-blur-xl border-b border-white/6">
@@ -2199,8 +2212,18 @@ function AdminPanel() {
               <div className="text-lg font-bold leading-tight tracking-tight mt-1">{activeLabel}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse-soft" /> Sistema operativo
+          <div className="flex items-center gap-3 text-xs text-neutral-500">
+            <button
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              className="h-9 w-9 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 hover:text-white transition-all duration-200 active:scale-95"
+              aria-label="Cambiar tema"
+              title="Cambiar tema"
+            >
+              {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse-soft" /> Sistema operativo
+            </span>
           </div>
         </div>
         <div key={activeTab} className="p-4 sm:p-6 lg:p-8 page-enter admin-stagger">

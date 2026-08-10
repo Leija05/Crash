@@ -50,7 +50,7 @@ function CrashStatsWidget() {
   useEffect(() => {
     if (!open) return;
     fetchImpacts();
-    const intervalId = setInterval(() => fetchImpacts({ silent: true }), 10000);
+    const intervalId = setInterval(() => { if (!document.hidden) fetchImpacts({ silent: true }); }, 10000);
     return () => clearInterval(intervalId);
   }, [open, fetchImpacts]);
 
@@ -187,7 +187,7 @@ function CrashStatsWidget() {
                       </div>
                     </div>
                     <div className="h-72 rounded-xl border border-white/10 overflow-hidden">
-                      <MapContainer center={mapCenter} zoom={11} className="h-full w-full">
+                      <MapContainer center={mapCenter} zoom={11} preferCanvas className="h-full w-full">
                         <TileLayer attribution='&copy; <a href="https://carto.com/">carto.com</a>' url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
                         {impactsWithGps.map((i) => {
                           const active = i.id === activeImpactId;
