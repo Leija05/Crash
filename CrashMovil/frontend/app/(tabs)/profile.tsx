@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import Animated, { FadeInUp, FadeInDown, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, Easing, FadeIn } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, RED, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
@@ -98,7 +98,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={RED} /></View>
       </SafeAreaView>
     );
   }
@@ -106,11 +106,11 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Animated.ScrollView
           contentContainerStyle={styles.scroll}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={GOLD} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(); }} tintColor={RED} />}
           keyboardShouldPersistTaps="handled"
           onScroll={onTabScroll}
           scrollEventThrottle={16}
@@ -122,7 +122,7 @@ export default function ProfileScreen() {
 
           <Animated.View entering={FadeInUp.duration(500).delay(100).springify().damping(26).stiffness(200)} style={styles.userCard}>
             <View style={styles.userAvatar}>
-              <Ionicons name="person" size={26} color={GOLD} />
+              <Ionicons name="person" size={26} color={RED} />
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{user?.name}</Text>
@@ -169,9 +169,9 @@ export default function ProfileScreen() {
           </Animated.View>
 
           <TouchableOpacity testID="save-profile-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveProfile} disabled={saving}>
-            {saving ? <ActivityIndicator color="#000" /> : (
+            {saving ? <ActivityIndicator color="#FFFFFF" /> : (
               <>
-                <Ionicons name="save" size={16} color="#000" />
+                <Ionicons name="save" size={16} color="#FFFFFF" />
                 <Text style={styles.saveBtnText}>{t('profile.saveBtn')}</Text>
               </>
             )}
@@ -201,17 +201,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(255,215,0,0.008)',
+    backgroundColor: 'rgba(239,68,68,0.008)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -40,
     alignSelf: 'center',
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(239,68,68,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 110 },
   emergencyBar: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md, borderWidth: 1, borderColor: COLORS.glassBorder,
     marginBottom: SPACING.md,
   },
-  userAvatar: { width: 48, height: 48, borderRadius: RADIUS.md, backgroundColor: 'rgba(255,215,0,0.10)', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
+  userAvatar: { width: 48, height: 48, borderRadius: RADIUS.md, backgroundColor: 'rgba(239,68,68,0.10)', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)' },
   userInfo: { flex: 1 },
   userName: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.text },
   userEmail: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },
@@ -270,14 +270,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.md,
     backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.glassBorder,
   },
-  bloodBtnActive: { backgroundColor: 'rgba(255,215,0,0.10)', borderColor: GOLD },
+  bloodBtnActive: { backgroundColor: 'rgba(239,68,68,0.10)', borderColor: RED },
   bloodText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textSec },
-  bloodTextActive: { color: GOLD },
+  bloodTextActive: { color: RED },
   saveBtn: {
-    flexDirection: 'row', gap: 8, backgroundColor: GOLD,
+    flexDirection: 'row', gap: 8, backgroundColor: RED,
     borderRadius: RADIUS.pill, height: 50, alignItems: 'center', justifyContent: 'center',
     marginTop: 4,
-    ...SHADOWS.glow(GOLD),
+    ...SHADOWS.glow(RED),
   },
   saveBtnText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
 });

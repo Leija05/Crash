@@ -13,7 +13,7 @@ import { AlertProvider } from '../src/context/AlertContext';
 import { LocationProvider } from '../src/context/LocationContext';
 import { I18nProvider } from '../src/i18n';
 import UpdateGate from '../src/components/UpdateGate';
-import { COLORS, GOLD } from '../src/theme';
+import { COLORS, RED } from '../src/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -52,7 +52,7 @@ export default function RootLayout() {
                 />
                 <Animated.View
                   entering={FadeIn.duration(1200).delay(400).springify().damping(26).stiffness(200)}
-                  style={styles.goldGlow}
+                  style={styles.brandGlow}
                   pointerEvents="none"
                 />
                 <Stack
@@ -76,23 +76,23 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   topGoldLine: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
     zIndex: 100,
   },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-    backgroundColor: 'rgba(255,215,0,0.015)',
+    backgroundColor: 'rgba(239,68,68,0.015)',
     borderBottomLeftRadius: 150, borderBottomRightRadius: 150,
     zIndex: 0,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -80,
     alignSelf: 'center',
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(239,68,68,0.03)',
     zIndex: 0,
   },
 });

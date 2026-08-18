@@ -1,7 +1,7 @@
 import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_SOFT, GOLD_HAIRLINE } from '../theme';
+import { COLORS, RADIUS, SHADOWS, RED, RED_SOFT, RED_HAIRLINE } from '../theme';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -13,8 +13,8 @@ interface GlassCardProps {
   bezel?: boolean;
   /** Blur real detrás del glass (solo si es necesario, consume GPU) */
   blur?: boolean;
-  /** Borde superior con gradiente dorado metálico */
-  goldEdge?: boolean;
+  /** Borde superior con gradiente rojo marca */
+  redEdge?: boolean;
 }
 
 const BEZEL_PAD = 1.5;
@@ -27,12 +27,12 @@ export default function GlassCard({
   delay = 0,
   bezel = true,
   blur = false,
-  goldEdge = true,
+  redEdge = true,
 }: GlassCardProps) {
   const variantStyles: Record<string, ViewStyle> = {
     default: { backgroundColor: COLORS.glassBg, borderColor: COLORS.glassBorder },
     elevated: { backgroundColor: COLORS.surfaceAlt, borderColor: COLORS.borderStrong, ...SHADOWS.lg },
-    accent: { backgroundColor: GOLD_SOFT, borderColor: GOLD_HAIRLINE, ...SHADOWS.glow(GOLD, 0.28, 20) },
+    accent: { backgroundColor: RED_SOFT, borderColor: RED_HAIRLINE, ...SHADOWS.glow(RED, 0.28, 20) },
     danger: { backgroundColor: COLORS.dangerSoft, borderColor: 'rgba(255,77,77,0.30)', ...SHADOWS.redGlow(0.3) },
     premium: { backgroundColor: 'rgba(16,14,9,0.92)', borderColor: COLORS.glassBorderStrong, ...SHADOWS.md },
   };
@@ -46,7 +46,7 @@ export default function GlassCard({
         { padding },
       ]}
     >
-      {goldEdge && <View style={styles.topHighlight} pointerEvents="none" />}
+      {redEdge && <View style={styles.topHighlight} pointerEvents="none" />}
       {children}
     </View>
   );
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     right: 14,
     height: 1,
     borderRadius: 1,
-    backgroundColor: GOLD_HAIRLINE,
+    backgroundColor: RED_HAIRLINE,
     opacity: 0.85,
   },
 });

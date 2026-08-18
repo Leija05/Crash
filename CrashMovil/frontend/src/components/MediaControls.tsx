@@ -12,7 +12,7 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, GOLD } from '../theme';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, RED } from '../theme';
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -141,7 +141,7 @@ export function MediaControls({
 
       <View style={styles.controlsRow}>
         <TouchableOpacity onPress={onPrevious} activeOpacity={0.7} style={styles.controlBtn}>
-          <Ionicons name="play-skip-back" size={28} color={GOLD} />
+          <Ionicons name="play-skip-back" size={28} color={RED} />
         </TouchableOpacity>
 
         <AnimatedTouchableOpacity
@@ -149,11 +149,11 @@ export function MediaControls({
           onPress={handlePlayPress}
           activeOpacity={0.85}
         >
-          <Ionicons name={playIcon} size={32} color={playing ? GOLD : '#0A0A0A'} />
+          <Ionicons name={playIcon} size={32} color={playing ? RED : '#0A0A0A'} />
         </AnimatedTouchableOpacity>
 
         <TouchableOpacity onPress={onNext} activeOpacity={0.7} style={styles.controlBtn}>
-          <Ionicons name="play-skip-forward" size={28} color={GOLD} />
+          <Ionicons name="play-skip-forward" size={28} color={RED} />
         </TouchableOpacity>
 
         {showSpeed && (
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     backgroundColor: 'rgba(10,10,10,0.9)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(200,162,60,0.1)',
+    borderTopColor: 'rgba(239,68,68,0.1)',
     ...SHADOWS.lg,
   },
   progressContainer: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     top: 8,
     left: 0,
     bottom: 8,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
     borderRadius: 2,
     borderTopRightRadius: 0,
     borderBottomRightRadius: 0,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOWS.md,
@@ -290,16 +290,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(200,162,60,0.1)',
+    borderColor: 'rgba(239,68,68,0.1)',
   },
   playBtn: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.glow(GOLD),
+    ...SHADOWS.glow(RED),
   },
   speedContainer: {
     position: 'relative',
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(10,10,10,0.85)',
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: 'rgba(200,162,60,0.1)',
+    borderColor: 'rgba(239,68,68,0.1)',
   },
   speedText: {
     color: COLORS.text,
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(200,162,60,0.1)',
+    borderColor: 'rgba(239,68,68,0.1)',
     padding: SPACING.xs,
     gap: 2,
     ...SHADOWS.lg,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
   },
   speedOptionActive: {
-    backgroundColor: 'rgba(200,162,60,0.15)',
+    backgroundColor: 'rgba(239,68,68,0.15)',
   },
   speedOptionText: {
     color: COLORS.textSec,
@@ -348,6 +348,6 @@ const styles = StyleSheet.create({
     fontFamily: FONT.mono,
   },
   speedOptionTextActive: {
-    color: GOLD,
+    color: RED,
   },
 });

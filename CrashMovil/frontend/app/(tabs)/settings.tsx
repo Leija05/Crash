@@ -8,7 +8,7 @@ import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp, withSpring, withTiming, Easing, useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, GOLD_HAIRLINE, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, RED, RED_HAIRLINE, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
@@ -192,7 +192,7 @@ export default function SettingsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={RED} /></View>
       </SafeAreaView>
     );
   }
@@ -200,7 +200,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Animated.ScrollView
           contentContainerStyle={styles.scroll}
@@ -328,9 +328,9 @@ export default function SettingsScreen() {
                 />
 
                 <TouchableOpacity testID="save-settings-btn" style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={saveServer} disabled={saving}>
-                  {saving ? <ActivityIndicator color="#000" /> : (
+                  {saving ? <ActivityIndicator color="#FFFFFF" /> : (
                     <>
-                      <Ionicons name="save" size={16} color="#000" />
+                      <Ionicons name="save" size={16} color="#FFFFFF" />
                       <Text style={styles.saveBtnText}>{t('settings.saveAlerts')}</Text>
                     </>
                   )}
@@ -384,7 +384,7 @@ export default function SettingsScreen() {
                           autoCapitalize="characters"
                         />
                         <TouchableOpacity onPress={linkCompany} disabled={linking} style={[styles.saveInlineBtn, linking && { opacity: 0.6 }]} testID="company-link-btn">
-                          {linking ? <ActivityIndicator color="#000" /> : <Text style={styles.saveInlineBtnText}>{t('settings.link')}</Text>}
+                          {linking ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.saveInlineBtnText}>{t('settings.link')}</Text>}
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -427,7 +427,7 @@ export default function SettingsScreen() {
                   </View>
                   <View style={{ flex: 1, alignItems: 'flex-end' }}>
                     <Text style={styles.updateLabel}>{t('settings.updateLatest')}</Text>
-                    <Text style={[styles.updateValue, { color: updateStatus === 'available' ? GOLD : COLORS.text }]}>
+                    <Text style={[styles.updateValue, { color: updateStatus === 'available' ? RED : COLORS.text }]}>
                       {latestVersion ? `v${latestVersion}` : updateStatus === 'checking' ? '...' : '—'}
                     </Text>
                   </View>
@@ -440,9 +440,9 @@ export default function SettingsScreen() {
                   </View>
                 )}
                 {updateStatus === 'available' && (
-                  <View style={[styles.updateStatusBox, { borderColor: GOLD_HAIRLINE, backgroundColor: 'rgba(200,162,60,0.08)' }]}>
-                    <Ionicons name="arrow-up-circle" size={16} color={GOLD} />
-                    <Text style={[styles.updateStatusText, { color: GOLD }]}>{t('settings.updateAvailable')}</Text>
+                  <View style={[styles.updateStatusBox, { borderColor: RED_HAIRLINE, backgroundColor: 'rgba(239,68,68,0.08)' }]}>
+                    <Ionicons name="arrow-up-circle" size={16} color={RED} />
+                    <Text style={[styles.updateStatusText, { color: RED }]}>{t('settings.updateAvailable')}</Text>
                   </View>
                 )}
                 {updateStatus === 'error' && (
@@ -487,7 +487,7 @@ export default function SettingsScreen() {
             <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
             <Text style={styles.logoutText}>{t('settings.logout')}</Text>
           </TouchableOpacity>
-          <Text style={styles.version}>C.R.A.S.H. v3.0 · Gold Edition</Text>
+          <Text style={styles.version}>C.R.A.S.H. v3.0 · Tactical Edition</Text>
         </Animated.ScrollView>
 
         <PremiumModal
@@ -495,7 +495,7 @@ export default function SettingsScreen() {
           onClose={() => setLogoutOpen(false)}
           title={t('settings.logoutConfirmTitle')}
           eyebrow="C.R.A.S.H. · Cuenta"
-          accent={GOLD}
+          accent={RED}
           closeOnBackdrop={false}
         >
           <Text style={{ color: COLORS.textSec, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
@@ -525,17 +525,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(255,215,0,0.010)',
+    backgroundColor: 'rgba(239,68,68,0.010)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -40,
     alignSelf: 'center',
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(239,68,68,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 60 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -543,22 +543,22 @@ const styles = StyleSheet.create({
   title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 3 },
   subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 4 },
   group: { marginBottom: SPACING.lg },
-  groupLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: GOLD, letterSpacing: 2.5, marginBottom: 10, paddingLeft: 2, textTransform: 'uppercase' },
-  deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(217,180,91,0.10)', marginBottom: SPACING.md },
+  groupLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: RED, letterSpacing: 2.5, marginBottom: 10, paddingLeft: 2, textTransform: 'uppercase' },
+  deviceStatus: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(239,68,68,0.10)', marginBottom: SPACING.md },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   statusLabel: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 1.5 },
   statusDevice: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },
   inlineBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, borderWidth: 1, borderColor: COLORS.glassBorder },
-  inlineBtnAccent: { backgroundColor: GOLD, borderColor: GOLD },
+  inlineBtnAccent: { backgroundColor: RED, borderColor: RED },
   inlineBtnText: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.text, letterSpacing: 1 },
   inputGroup: { marginBottom: SPACING.md },
   label: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: COLORS.textSec, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
   helper: { fontSize: FONT_SIZE.sm, color: COLORS.textDim, marginBottom: 8, lineHeight: 16 },
   input: { backgroundColor: COLORS.bg, borderRadius: RADIUS.md, paddingHorizontal: 14, minHeight: 48, color: COLORS.text, fontSize: FONT_SIZE.md, borderWidth: 1, borderColor: COLORS.border },
   inputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  saveInlineBtn: { backgroundColor: GOLD, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 12 },
+  saveInlineBtn: { backgroundColor: RED, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 12 },
   saveInlineBtnText: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: '#000', letterSpacing: 1 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)' },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(239,68,68,0.10)' },
   toggleLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   toggleLabel: { fontSize: FONT_SIZE.sm, color: COLORS.text },
   warnBox: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', backgroundColor: 'rgba(96,165,250,0.06)', borderWidth: 1, borderColor: 'rgba(96,165,250,0.15)', padding: 10, borderRadius: RADIUS.md, marginTop: 4 },
@@ -569,21 +569,21 @@ const styles = StyleSheet.create({
   threshBtn: { flex: 1, paddingVertical: 8, borderRadius: RADIUS.md, borderWidth: 1, alignItems: 'center', backgroundColor: COLORS.glassBg },
   threshText: { fontSize: FONT_SIZE.xs, fontWeight: '800', letterSpacing: 1 },
   threshVal: { fontSize: FONT_SIZE.md, fontWeight: '900', marginTop: 2 },
-  saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 8, ...SHADOWS.glow(GOLD) },
+  saveBtn: { flexDirection: 'row', gap: 8, backgroundColor: RED, borderRadius: RADIUS.pill, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 8, ...SHADOWS.glow(RED) },
   saveBtnText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
   langBtn: { flex: 1, paddingVertical: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, alignItems: 'center', backgroundColor: COLORS.glassBg },
-  langBtnActive: { borderColor: GOLD, backgroundColor: 'rgba(255,215,0,0.10)' },
+  langBtnActive: { borderColor: RED, backgroundColor: 'rgba(239,68,68,0.10)' },
   langBtnText: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.textSec },
-  langBtnTextActive: { color: GOLD },
+  langBtnTextActive: { color: RED },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, backgroundColor: 'rgba(255,59,48,0.10)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)', marginTop: 8 },
   logoutText: { fontSize: FONT_SIZE.md, color: COLORS.danger, fontWeight: '700' },
   version: { textAlign: 'center', color: COLORS.textDim, fontSize: FONT_SIZE.xs, marginTop: 12 },
-  updateRow: { flexDirection: 'row', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(200,162,60,0.10)', marginBottom: SPACING.md },
+  updateRow: { flexDirection: 'row', gap: 12, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: 'rgba(239,68,68,0.10)', marginBottom: SPACING.md },
   updateLabel: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: COLORS.textSec, letterSpacing: 2, marginBottom: 4, textTransform: 'uppercase' },
   updateValue: { fontSize: FONT_SIZE.lg, fontWeight: '900', color: COLORS.text, letterSpacing: 1 },
   updateStatusBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 12, borderRadius: RADIUS.md, borderWidth: 1, marginTop: 12 },
   updateStatusText: { fontSize: FONT_SIZE.sm, fontWeight: '800', letterSpacing: 0.5, flex: 1 },
   updateNotesBox: { marginTop: 12, padding: 12, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder, backgroundColor: COLORS.glassBg },
-  updateNotesLabel: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
+  updateNotesLabel: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: RED, letterSpacing: 2, marginBottom: 6, textTransform: 'uppercase' },
   updateNotesText: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, lineHeight: 18 },
 });

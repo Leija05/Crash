@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withTiming, withSequence, Easing, interpolate, Extrapolate, withDelay } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, FONT, FONT_SIZE, GOLD, ANIMATION } from '../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, FONT, FONT_SIZE, RED, ANIMATION } from '../src/theme';
 import { useBluetooth } from '../src/context/BluetoothContext';
 import { useI18n } from '../src/i18n';
 import GlassCard from '../src/components/GlassCard';
@@ -97,7 +97,7 @@ export default function DevicesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
 
       <Animated.View
         entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)}
@@ -109,9 +109,9 @@ export default function DevicesScreen() {
         </View>
         <TouchableOpacity onPress={() => { haptics.light(); scan(); }} disabled={scanning} style={styles.refreshBtn} activeOpacity={0.7}>
           {scanning ? (
-            <ActivityIndicator color={GOLD} size="small" />
+            <ActivityIndicator color={RED} size="small" />
           ) : (
-            <AnimatedIonicons name="refresh" size={20} color={GOLD} style={scanIconStyle} />
+            <AnimatedIonicons name="refresh" size={20} color={RED} style={scanIconStyle} />
           )}
         </TouchableOpacity>
       </Animated.View>
@@ -177,7 +177,7 @@ export default function DevicesScreen() {
             <Animated.View style={[styles.pulseRing, pulseStyle]} pointerEvents="none" />
             <Animated.View style={[styles.pulseRingWide, pulseStyle]} pointerEvents="none" />
             <View style={styles.bluetoothIcon}>
-              <AnimatedIonicons name="bluetooth" size={34} color={GOLD} style={scanIconStyle} />
+              <AnimatedIonicons name="bluetooth" size={34} color={RED} style={scanIconStyle} />
             </View>
           </View>
           <Text style={styles.scannerText}>
@@ -188,7 +188,7 @@ export default function DevicesScreen() {
           </Text>
           {scanning && (
             <View style={styles.scanningPill}>
-              <ActivityIndicator color={GOLD} size="small" />
+              <ActivityIndicator color={RED} size="small" />
               <Text style={styles.scanningPillText}>{t('devices.searchingDevices')}</Text>
             </View>
           )}
@@ -237,9 +237,9 @@ export default function DevicesScreen() {
               >
                 <View style={[styles.deviceIcon, item.isCrashDevice && styles.deviceIconCrash]}>
                   {connectingId === item.id ? (
-                    <ActivityIndicator color={GOLD} size="small" />
+                    <ActivityIndicator color={RED} size="small" />
                   ) : (
-                    <Ionicons name={item.isCrashDevice ? 'shield-checkmark' : 'bluetooth'} size={20} color={GOLD} />
+                    <Ionicons name={item.isCrashDevice ? 'shield-checkmark' : 'bluetooth'} size={20} color={RED} />
                   )}
                 </View>
                 <View style={styles.deviceInfo}>
@@ -261,14 +261,14 @@ export default function DevicesScreen() {
                     <Text style={styles.deviceRssi}>{item.rssi ?? '--'} dBm</Text>
                     {item.isCrashDevice && (
                       <View style={styles.crashBadge}>
-                        <Ionicons name="shield-checkmark" size={10} color={GOLD} />
+                        <Ionicons name="shield-checkmark" size={10} color={RED} />
                         <Text style={styles.crashBadgeText}>{t('devices.crashHelmet')}</Text>
                       </View>
                     )}
                   </View>
                 </View>
                 <View style={styles.connectChip}>
-                  <Ionicons name="chevron-forward" size={16} color={GOLD} />
+                  <Ionicons name="chevron-forward" size={16} color={RED} />
                 </View>
               </TouchableOpacity>
             </Animated.View>
@@ -316,18 +316,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 220,
-    backgroundColor: 'rgba(217,180,91,0.012)',
+    backgroundColor: 'rgba(239,68,68,0.012)',
     borderBottomLeftRadius: 140,
     borderBottomRightRadius: 140,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -40,
     alignSelf: 'center',
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: 'rgba(217,180,91,0.035)',
+    backgroundColor: 'rgba(239,68,68,0.035)',
   },
   header: {
     flexDirection: 'row',
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eyebrow: {
-    color: GOLD,
+    color: RED,
     fontSize: FONT_SIZE.xs,
     fontWeight: '800',
     letterSpacing: 3,
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 55,
     borderWidth: 2,
-    borderColor: GOLD,
+    borderColor: RED,
     opacity: 0,
   },
   pulseRingWide: {
@@ -472,20 +472,20 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 1,
-    borderColor: GOLD,
+    borderColor: RED,
     opacity: 0,
   },
   bluetoothIcon: {
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: 'rgba(217,180,91,0.12)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.24)',
+    borderColor: 'rgba(239,68,68,0.24)',
     zIndex: 1,
-    ...SHADOWS.glow(GOLD, 0.25, 22),
+    ...SHADOWS.glow(RED, 0.25, 22),
   },
   scannerText: {
     color: COLORS.text,
@@ -507,12 +507,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(217,180,91,0.10)',
+    backgroundColor: 'rgba(239,68,68,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.20)',
+    borderColor: 'rgba(239,68,68,0.20)',
   },
   scanningPillText: {
-    color: GOLD,
+    color: RED,
     fontSize: FONT_SIZE.xs,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -538,13 +538,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(217,180,91,0.10)',
+    backgroundColor: 'rgba(239,68,68,0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.18)',
+    borderColor: 'rgba(239,68,68,0.18)',
   },
   sectionCount: {
     fontSize: FONT_SIZE.md,
-    color: GOLD,
+    color: RED,
     fontWeight: '900',
   },
   countLabel: {
@@ -573,28 +573,28 @@ const styles = StyleSheet.create({
     borderColor: COLORS.glassBorder,
   },
   deviceCardCrash: {
-    borderColor: 'rgba(217,180,91,0.30)',
-    backgroundColor: 'rgba(217,180,91,0.05)',
-    ...SHADOWS.glow(GOLD, 0.15, 14),
+    borderColor: 'rgba(239,68,68,0.30)',
+    backgroundColor: 'rgba(239,68,68,0.05)',
+    ...SHADOWS.glow(RED, 0.15, 14),
   },
   deviceCardConnecting: {
-    borderColor: 'rgba(217,180,91,0.40)',
-    backgroundColor: 'rgba(217,180,91,0.08)',
+    borderColor: 'rgba(239,68,68,0.40)',
+    backgroundColor: 'rgba(239,68,68,0.08)',
     opacity: 0.8,
   },
   deviceIcon: {
     width: 44,
     height: 44,
     borderRadius: RADIUS.md,
-    backgroundColor: 'rgba(217,180,91,0.12)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.18)',
+    borderColor: 'rgba(239,68,68,0.18)',
   },
   deviceIconCrash: {
-    backgroundColor: 'rgba(217,180,91,0.20)',
-    borderColor: 'rgba(217,180,91,0.35)',
+    backgroundColor: 'rgba(239,68,68,0.20)',
+    borderColor: 'rgba(239,68,68,0.35)',
   },
   deviceInfo: {
     flex: 1,
@@ -627,10 +627,10 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
   signalBarOn: {
-    backgroundColor: GOLD,
+    backgroundColor: RED,
   },
   signalBarOff: {
-    backgroundColor: 'rgba(217,180,91,0.20)',
+    backgroundColor: 'rgba(239,68,68,0.20)',
   },
   deviceRssi: {
     color: COLORS.textDim,
@@ -644,12 +644,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.sm,
-    backgroundColor: 'rgba(217,180,91,0.12)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.2)',
+    borderColor: 'rgba(239,68,68,0.2)',
   },
   crashBadgeText: {
-    color: GOLD,
+    color: RED,
     fontSize: 8,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -658,11 +658,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(217,180,91,0.10)',
+    backgroundColor: 'rgba(239,68,68,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.18)',
+    borderColor: 'rgba(239,68,68,0.18)',
   },
   empty: {
     alignItems: 'center',
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
   },
   footerText: {
     color: COLORS.textDim,

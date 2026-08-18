@@ -3,7 +3,7 @@ import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Svg, { Circle, G, Defs, LinearGradient as SvgLinearGradient, RadialGradient, Stop, Circle as SvgCircle } from 'react-native-svg';
 import Animated, { FadeIn, useAnimatedReaction, useAnimatedStyle, useSharedValue, withSpring, withTiming, withRepeat, interpolate, Extrapolation, runOnJS } from 'react-native-reanimated';
 import AnimatedNumber from './AnimatedNumber';
-import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, severityColor, severityLabel, SEVERITY_COLORS, IMPACT_SEGMENTS, MAX_G_RING, ANIMATION, EASING, SHADOWS, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL } from '../theme';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, severityColor, severityLabel, SEVERITY_COLORS, IMPACT_SEGMENTS, MAX_G_RING, ANIMATION, EASING, SHADOWS, RED, RED_GRADIENT, RED_GRADIENT_DIAGONAL } from '../theme';
 
 interface GForceRingProps {
   gForce: number;
@@ -123,10 +123,10 @@ export default function GForceRing({
 
         <Svg width={size} height={size} style={styles.svg}>
           <Defs>
-            <SvgLinearGradient id="goldEdge" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor={GOLD_GRADIENT[1]} />
-              <Stop offset="50%" stopColor={GOLD_GRADIENT[3]} />
-              <Stop offset="100%" stopColor={GOLD_GRADIENT[5]} />
+            <SvgLinearGradient id="redEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor={RED_GRADIENT[1]} />
+              <Stop offset="50%" stopColor={RED_GRADIENT[3]} />
+              <Stop offset="100%" stopColor={RED_GRADIENT[5]} />
             </SvgLinearGradient>
             <RadialGradient id="innerGlow" cx="50%" cy="42%" r="60%">
               <Stop offset="0%" stopColor={liveData ? `${sevColor}26` : 'rgba(255,255,255,0.02)'} />
@@ -184,7 +184,7 @@ export default function GForceRing({
             cx={center}
             cy={center}
             r={radius * 0.72}
-            stroke="url(#goldEdge)"
+            stroke="url(#redEdge)"
             strokeWidth={1.2}
             fill="none"
             opacity={0.9}

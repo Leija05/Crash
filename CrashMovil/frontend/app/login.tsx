@@ -10,7 +10,7 @@ import { useAuth } from '../src/context/AuthContext';
 import { useI18n } from '../src/i18n';
 import { CrashLogoMark } from '../src/components/CrashLogo';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, SHADOWS, FONT, GOLD } from '../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, FONT, RED } from '../src/theme';
 import { haptics } from '../src/utils/haptics';
 
 export default function LoginScreen() {
@@ -41,7 +41,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
       <View style={styles.topGoldLine} pointerEvents="none" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -112,11 +112,11 @@ export default function LoginScreen() {
                 activeOpacity={0.85}
               >
                 {loading ? (
-                  <ActivityIndicator color="#000" />
+                  <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <>
                     <Text style={styles.buttonText}>{t('login.submit')}</Text>
-                    <Ionicons name="arrow-forward" size={16} color="#000" style={{ marginLeft: 8 }} />
+                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={{ marginLeft: 8 }} />
                   </>
                 )}
               </TouchableOpacity>
@@ -131,7 +131,7 @@ export default function LoginScreen() {
             </Animated.View>
           </Animated.View>
 
-          <Animated.Text entering={FadeInUp.duration(400).delay(400)} style={styles.footer}>C.R.A.S.H. v3.0 · Gold Edition</Animated.Text>
+          <Animated.Text entering={FadeInUp.duration(400).delay(400)} style={styles.footer}>C.R.A.S.H. v3.0 · Tactical Edition</Animated.Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -142,42 +142,42 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   topGoldLine: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
     zIndex: 10,
   },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 400,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(239,68,68,0.03)',
     borderBottomLeftRadius: 180, borderBottomRightRadius: 180,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -60,
     alignSelf: 'center',
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255,215,0,0.04)',
+    backgroundColor: 'rgba(239,68,68,0.04)',
   },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: SPACING.lg },
   header: { alignItems: 'center', marginBottom: 36, gap: 12 },
   appName: { fontSize: 24, fontWeight: '900', color: COLORS.text, letterSpacing: 5 },
-  appSub: { fontSize: 9, color: GOLD, fontWeight: '700', letterSpacing: 2 },
+  appSub: { fontSize: 9, color: RED, fontWeight: '700', letterSpacing: 2 },
   card: {
     backgroundColor: 'rgba(10,10,10,0.85)',
     borderRadius: RADIUS.xl,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.10)',
+    borderColor: 'rgba(239,68,68,0.10)',
     ...SHADOWS.md,
   },
   cardHeader: { marginBottom: 20, alignItems: 'center' },
   badge: {
-    fontSize: 9, color: GOLD, letterSpacing: 4,
+    fontSize: 9, color: RED, letterSpacing: 4,
     marginBottom: 8, fontWeight: '800',
   },
   cardTitle: { fontSize: 28, fontFamily: FONT.headingBold, fontWeight: '900', color: COLORS.text, letterSpacing: 0.5, textTransform: 'uppercase' },
-  titleAccent: { width: 40, height: 3, borderRadius: 2, backgroundColor: GOLD, marginTop: 10 },
+  titleAccent: { width: 40, height: 3, borderRadius: 2, backgroundColor: RED, marginTop: 10 },
   cardDesc: { fontSize: 12, color: COLORS.textSec, marginTop: 12, letterSpacing: 0.3 },
   errorBox: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -199,15 +199,15 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: COLORS.text, fontSize: 15, height: '100%' },
   button: {
-    backgroundColor: GOLD, borderRadius: RADIUS.pill,
+    backgroundColor: RED, borderRadius: RADIUS.pill,
     height: 52, alignItems: 'center', justifyContent: 'center',
     marginTop: 6, flexDirection: 'row',
-    ...SHADOWS.glow(GOLD),
+    ...SHADOWS.glow(RED),
   },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: '#000', fontSize: 14, fontFamily: FONT.headingBold, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
   linkBtn: { alignItems: 'center', marginTop: SPACING.md, paddingVertical: 4 },
   linkText: { color: COLORS.textDim, fontSize: 13 },
-  linkAccent: { color: GOLD, fontWeight: '700' },
+  linkAccent: { color: RED, fontWeight: '700' },
   footer: { textAlign: 'center', color: COLORS.textDim, fontSize: 10, marginTop: SPACING.lg, letterSpacing: 1 },
 });

@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, SHADOWS, FONT, GOLD } from '../theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, FONT, RED } from '../theme';
 
 export type AlertKind = 'alert' | 'confirm' | 'prompt';
 
@@ -33,15 +33,15 @@ export type AlertConfig = {
 
 type Props = AlertConfig;
 
-export function BrandMark({ size = 52, color = GOLD }: { size?: number; color?: string }) {
+export function BrandMark({ size = 52, color = RED }: { size?: number; color?: string }) {
   return (
     <View
       style={[
         styles.brandBadge,
-        { width: size, height: size, borderRadius: size * 0.3, borderColor: 'rgba(200,162,60,0.4)' },
+        { width: size, height: size, borderRadius: size * 0.3, borderColor: 'rgba(239,68,68,0.4)' },
       ]}
     >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(200,162,60,0.14)' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(239,68,68,0.14)' }]} />
       <Ionicons name="shield-checkmark" size={size * 0.5} color={color} />
     </View>
   );
@@ -52,7 +52,7 @@ export default function FullScreenAlert({
   title,
   message,
   eyebrow = 'C.R.A.S.H.',
-  accent = GOLD,
+  accent = RED,
   confirmText = 'Aceptar',
   cancelText = 'Cancelar',
   destructive = false,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnPrimary: { backgroundColor: GOLD },
+  btnPrimary: { backgroundColor: RED },
   btnDanger: { backgroundColor: COLORS.danger },
   btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.borderStrong },
   btnText: { fontSize: 16, fontWeight: '800' },

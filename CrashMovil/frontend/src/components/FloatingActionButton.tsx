@@ -3,7 +3,7 @@ import { useSharedValue, useAnimatedStyle, withTiming, withSpring, Easing } from
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, interpolate, Extrapolate } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, GOLD } from '../theme';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, RED } from '../theme';
 
 const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);

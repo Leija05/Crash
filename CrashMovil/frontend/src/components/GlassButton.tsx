@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withTiming, interpolate, Extrapolation } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL, FONT } from '../theme';
+import { COLORS, RADIUS, SHADOWS, RED, RED_GRADIENT, RED_GRADIENT_DIAGONAL, FONT } from '../theme';
 import { haptics } from '../utils/haptics';
 
 interface GlassButtonProps {
@@ -51,11 +51,11 @@ export default function GlassButton({
     onPress();
   };
 
-  const isGold = variant === 'primary' || variant === 'accent';
+  const isFilled = variant === 'primary' || variant === 'accent';
 
   const variantStyles: Record<string, ViewStyle> = {
-    primary: { ...SHADOWS.glow(GOLD, 0.4, 18) },
-    accent: { ...SHADOWS.glow(GOLD, 0.4, 18) },
+    primary: { ...SHADOWS.glow(RED, 0.4, 18) },
+    accent: { ...SHADOWS.glow(RED, 0.4, 18) },
     outline: {
       backgroundColor: 'rgba(255,255,255,0.02)',
       borderColor: 'rgba(255,255,255,0.14)',
@@ -72,8 +72,8 @@ export default function GlassButton({
   };
 
   const variantText: Record<string, TextStyle> = {
-    primary: { color: '#241A05' },
-    accent: { color: '#241A05' },
+    primary: { color: '#FFFFFF' },
+    accent: { color: '#FFFFFF' },
     ghost: { color: COLORS.text },
     outline: { color: COLORS.text },
     danger: { color: COLORS.danger },
@@ -110,7 +110,7 @@ export default function GlassButton({
         onPress={handlePress}
         disabled={disabled || loading}
         activeOpacity={0.85}
-        onPressIn={() => { scale.value = withSpring(0.955, { stiffness: 380, damping: 17 }); if (isGold) fireShine(); }}
+        onPressIn={() => { scale.value = withSpring(0.955, { stiffness: 380, damping: 17 }); if (isFilled) fireShine(); }}
         onPressOut={() => { scale.value = withSpring(1, { stiffness: 380, damping: 17 }); }}
         style={[
           styles.base,
@@ -124,22 +124,22 @@ export default function GlassButton({
           style,
         ]}
       >
-        {isGold ? (
+        {isFilled ? (
           <LinearGradient
-            colors={[...GOLD_GRADIENT]}
-            start={GOLD_GRADIENT_DIAGONAL.start}
-            end={GOLD_GRADIENT_DIAGONAL.end}
+            colors={[...RED_GRADIENT]}
+            start={RED_GRADIENT_DIAGONAL.start}
+            end={RED_GRADIENT_DIAGONAL.end}
             style={StyleSheet.absoluteFill}
           />
         ) : null}
-        {isGold && (
+        {isFilled && (
           <>
             <View style={styles.sheen} pointerEvents="none" />
             <Animated.View style={[styles.shineSweep, shineStyle]} pointerEvents="none" />
           </>
         )}
         {loading ? (
-          <ActivityIndicator size="small" color={isGold ? '#241A05' : COLORS.text} />
+          <ActivityIndicator size="small" color={isFilled ? '#FFFFFF' : COLORS.text} />
         ) : (
           <>
             {icon && (
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   base: {
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: 'rgba(244,224,168,0.45)',
+    borderColor: 'rgba(248,113,113,0.45)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

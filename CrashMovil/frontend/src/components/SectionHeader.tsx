@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, GOLD, SHADOWS } from '../theme';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, RED, SHADOWS } from '../theme';
 interface SectionHeaderProps {
   title: string;
   icon?: string;
@@ -16,7 +16,7 @@ export default function SectionHeader({ title, icon, accent = false, action, sub
       <View style={styles.left}>
         {icon && (
           <View style={[styles.iconBox, accent && styles.iconBoxAccent]}>
-            <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={16} color={accent ? GOLD : COLORS.textSec} />
+            <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={16} color={accent ? RED : COLORS.textSec} />
           </View>
         )}
         <View>
@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconBoxAccent: {
-    backgroundColor: 'rgba(200,162,60,0.12)',
-    borderColor: 'rgba(200,162,60,0.2)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    borderColor: 'rgba(239,68,68,0.2)',
   },
   title: {
     fontSize: FONT_SIZE.xs,
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   titleAccent: {
-    color: GOLD,
+    color: RED,
   },
   subtitle: {
     fontSize: FONT_SIZE.xs,

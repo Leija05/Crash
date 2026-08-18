@@ -103,9 +103,11 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
 
   const startDeviceScan = useCallback(async (onFound: (d: ScanDevice) => void) => {
     await bluetoothService.startDeviceScan((dev) => {
+      const label = dev.name || dev.localName || 'Desconocido';
       onFound({
-        id: dev.id, address: dev.id, name: dev.name || dev.localName || 'Desconocido',
+        id: dev.id, address: dev.id, name: label,
         isCompatible: true, moduleType: 'HC-05 BLE', connected: false,
+        isCrashDevice: label.toUpperCase().includes('CRASH'),
       });
     });
   }, []);

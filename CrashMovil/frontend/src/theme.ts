@@ -2,27 +2,27 @@ import { Platform } from 'react-native';
 import { Easing } from 'react-native-reanimated';
 
 /* ============================================================
-   C.R.A.S.H. — Design System v2 (Premium Instrument Edition)
-   Dark luxury: negro profundo + oro. Tipografía Space Grotesk
-   + JetBrains Mono. Materialidad: glass refinado, double-bezel,
-   glows controlados.
+   C.R.A.S.H. — Design System v3 (Tactical Telemetry Edition)
+   Fiel al logo de marca: rojo aviación/hazard (#EF4444) sobre
+   negro profundo. Tipografía Space Grotesk + JetBrains Mono.
+   Materialidad: glass refinado, doble bezel, glows controlados.
    ============================================================ */
 
-/* ---------- Paleta Oro (acento único) ---------- */
-export const GOLD = '#D9B45B';
-export const GOLD_LIGHT = '#F4E0A8';
-export const GOLD_BRIGHT = '#FFE9B3';
-export const GOLD_DARK = '#A87E2E';
-export const GOLD_DEEP = '#6E5214';
-export const GOLD_SOFT = 'rgba(217,180,91,0.10)';
-export const GOLD_STRONG = 'rgba(217,180,91,0.20)';
-export const GOLD_GLASS = 'rgba(217,180,91,0.06)';
-export const GOLD_HAIRLINE = 'rgba(244,224,168,0.22)';
-export const GOLD_HAIRLINE_STRONG = 'rgba(244,224,168,0.40)';
-export const GOLD_GRADIENT = ['#FFF3D1', '#F3DEA6', '#E0BE6E', '#C29A3E', '#8C6824', '#5E4414'] as const;
-export const GOLD_GRADIENT_SOFT = ['rgba(240,216,154,0.55)', 'rgba(200,154,62,0.30)', 'rgba(140,104,36,0.18)'] as const;
-export const GOLD_GRADIENT_VERTICAL = { start: { x: 0, y: 0 }, end: { x: 0, y: 1 } };
-export const GOLD_GRADIENT_DIAGONAL = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } };
+/* ---------- Paleta Rojo Marca (acento único, del logo) ---------- */
+export const RED = '#EF4444';
+export const RED_LIGHT = '#F87171';
+export const RED_BRIGHT = '#FCA5A5';
+export const RED_DARK = '#DC2626';
+export const RED_DEEP = '#991B1B';
+export const RED_SOFT = 'rgba(239,68,68,0.10)';
+export const RED_STRONG = 'rgba(239,68,68,0.20)';
+export const RED_GLASS = 'rgba(239,68,68,0.06)';
+export const RED_HAIRLINE = 'rgba(248,113,113,0.22)';
+export const RED_HAIRLINE_STRONG = 'rgba(248,113,113,0.40)';
+export const RED_GRADIENT = ['#FCA5A5', '#F87171', '#EF4444', '#DC2626', '#991B1B', '#450A0A'] as const;
+export const RED_GRADIENT_SOFT = ['rgba(248,113,113,0.55)', 'rgba(239,68,68,0.30)', 'rgba(153,27,27,0.18)'] as const;
+export const RED_GRADIENT_VERTICAL = { start: { x: 0, y: 0 }, end: { x: 0, y: 1 } };
+export const RED_GRADIENT_DIAGONAL = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } };
 
 /* ---------- Escala de neutros ---------- */
 export const NEUTRALS = {
@@ -47,39 +47,39 @@ export const COLORS = {
   surface: NEUTRALS.surface,
   surfaceAlt: NEUTRALS.surfaceAlt,
   elevated: NEUTRALS.elevated,
-  border: 'rgba(217,180,91,0.14)',
-  borderStrong: 'rgba(217,180,91,0.26)',
-  hairline: 'rgba(244,224,168,0.24)',
+  border: 'rgba(239,68,68,0.14)',
+  borderStrong: 'rgba(239,68,68,0.26)',
+  hairline: 'rgba(248,113,113,0.24)',
   text: NEUTRALS.text,
   textSec: NEUTRALS.textSec,
   textDim: NEUTRALS.textDim,
   textFaint: NEUTRALS.textFaint,
-  primary: GOLD,
-  primaryHover: GOLD_LIGHT,
-  primaryDark: GOLD_DARK,
-  primarySoft: GOLD_SOFT,
-  primaryStrong: GOLD_STRONG,
-  accent: GOLD,
-  accentSoft: GOLD_SOFT,
-  accentStrong: GOLD_STRONG,
-  success: '#4ADE80',
-  successSoft: 'rgba(74,222,128,0.10)',
-  warning: '#FBBF24',
-  warningSoft: 'rgba(251,191,36,0.10)',
+  primary: RED,
+  primaryHover: RED_LIGHT,
+  primaryDark: RED_DARK,
+  primarySoft: RED_SOFT,
+  primaryStrong: RED_STRONG,
+  accent: RED,
+  accentSoft: RED_SOFT,
+  accentStrong: RED_STRONG,
+  success: '#10B981',
+  successSoft: 'rgba(16,185,129,0.10)',
+  warning: '#F59E0B',
+  warningSoft: 'rgba(245,158,11,0.10)',
   info: '#7DD3FC',
   infoSoft: 'rgba(125,211,252,0.10)',
-  danger: '#FF4D4D',
-  dangerSoft: 'rgba(255,77,77,0.10)',
+  danger: '#FF3B30',
+  dangerSoft: 'rgba(255,59,48,0.10)',
   cardBg: NEUTRALS.surface,
   overlay: 'rgba(0,0,0,0.85)',
   glassBg: 'rgba(10,10,9,0.78)',
-  glassBorder: 'rgba(217,180,91,0.12)',
+  glassBorder: 'rgba(239,68,68,0.12)',
   glassBgStrong: 'rgba(16,14,9,0.96)',
-  glassBorderStrong: 'rgba(217,180,91,0.22)',
-  sevGreen: '#4ADE80',
-  sevYellow: '#FDE047',
+  glassBorderStrong: 'rgba(239,68,68,0.22)',
+  sevGreen: '#10B981',
+  sevYellow: '#F59E0B',
   sevOrange: '#FB923C',
-  sevRed: '#FF4D4D',
+  sevRed: '#FF3B30',
 };
 
 /* ---------- Severidad por fuerza G ---------- */
@@ -202,15 +202,15 @@ export const SHADOWS = {
   md: shadow('#000', 4, 0.35, 10, 4),
   lg: shadow('#000', 10, 0.5, 24, 8),
   xl: shadow('#000', 20, 0.65, 40, 14),
-  innerTop: { shadowColor: GOLD_LIGHT, shadowOffset: { width: 0, height: -1 }, shadowOpacity: 0.08, shadowRadius: 0, elevation: 0 },
-  glow: (color: string = GOLD, intensity: number = 0.35, radius: number = 16) => ({
+  innerTop: { shadowColor: RED_LIGHT, shadowOffset: { width: 0, height: -1 }, shadowOpacity: 0.08, shadowRadius: 0, elevation: 0 },
+  glow: (color: string = RED, intensity: number = 0.35, radius: number = 16) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: intensity,
     shadowRadius: radius,
     elevation: 5,
   }),
-  glowStrong: (color: string = GOLD) => ({
+  glowStrong: (color: string = RED) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.55,
@@ -224,8 +224,8 @@ export const SHADOWS = {
     shadowRadius: 24,
     elevation: 8,
   }),
-  goldGlow: (intensity: number = 0.35) => ({
-    shadowColor: GOLD,
+  brandGlow: (intensity: number = 0.35) => ({
+    shadowColor: RED,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: intensity,
     shadowRadius: 22,

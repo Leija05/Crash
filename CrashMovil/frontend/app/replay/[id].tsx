@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { impactsAPI, telemetryAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, FONT, FONT_SIZE } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, RED, FONT, FONT_SIZE } from '../../src/theme';
 import { MediaControls } from '../../src/components/MediaControls';
 import { LineChart } from '../../src/components/Charts';
 import GPSMap from '../../src/components/GPSMap';
@@ -117,7 +117,7 @@ export default function ReplayScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={GOLD} />
+          <ActivityIndicator size="large" color={RED} />
           <Text style={styles.loadingText}>Cargando datos del accidente...</Text>
         </View>
       </SafeAreaView>
@@ -143,7 +143,7 @@ export default function ReplayScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtnSmall}>
-            <Ionicons name="arrow-back" size={22} color={GOLD} />
+            <Ionicons name="arrow-back" size={22} color={RED} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>REPLAY</Text>
           <View style={{ width: 40 }} />
@@ -175,7 +175,7 @@ export default function ReplayScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtnSmall}>
-          <Ionicons name="arrow-back" size={22} color={GOLD} />
+          <Ionicons name="arrow-back" size={22} color={RED} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>REPLAY DEL ACCIDENTE</Text>
         <View style={{ width: 40 }} />
@@ -230,7 +230,7 @@ export default function ReplayScreen() {
             </View>
             <View style={styles.metaItem}>
               <Text style={styles.metaLabel}>FUERZA G</Text>
-              <Text style={[styles.metaValue, current?.__impact && { color: GOLD }]}>
+              <Text style={[styles.metaValue, current?.__impact && { color: RED }]}>
                 {gForce.toFixed(2)}
                 <Text style={styles.metaUnit}> G</Text>
               </Text>
@@ -242,7 +242,7 @@ export default function ReplayScreen() {
               <View style={[styles.impactDot, { left: `${impactMarkerPercent}%` }]} />
               {currentIndex === impactIndex && (
                 <View style={styles.impactBadge}>
-                  <Ionicons name="warning" size={14} color={GOLD} />
+                  <Ionicons name="warning" size={14} color={RED} />
                   <Text style={styles.impactBadgeText}>Momento del impacto</Text>
                 </View>
               )}
@@ -278,8 +278,8 @@ export default function ReplayScreen() {
               data={chartData}
               width={CHART_INNER}
               height={140}
-              color={GOLD}
-              gradientColors={[GOLD, GOLD + '00']}
+              color={RED}
+              gradientColors={[RED, RED + '00']}
               showArea
               strokeWidth={2}
             />
@@ -340,7 +340,7 @@ export default function ReplayScreen() {
           )}
           {impact?.alerts_sent && (
             <View style={styles.alertsBadge}>
-              <Ionicons name="notifications" size={14} color={GOLD} />
+              <Ionicons name="notifications" size={14} color={RED} />
               <Text style={styles.alertsBadgeText}>Alertas enviadas a contactos de emergencia</Text>
             </View>
           )}
@@ -375,13 +375,13 @@ const styles = StyleSheet.create({
   errorText: { color: COLORS.textSec, fontSize: FONT_SIZE.lg, textAlign: 'center' },
   noDataText: { color: COLORS.textSec, fontSize: FONT_SIZE.md, lineHeight: 22, textAlign: 'center' },
   backBtn: { marginTop: 12, paddingHorizontal: 24, paddingVertical: 12, backgroundColor: COLORS.glassBg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.glassBorder },
-  backBtnText: { color: GOLD, fontWeight: '700' },
+  backBtnText: { color: RED, fontWeight: '700' },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm,
   },
   backBtnSmall: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
-  headerTitle: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD, letterSpacing: 2 },
+  headerTitle: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: RED, letterSpacing: 2 },
 
   replayCard: {
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
@@ -400,8 +400,8 @@ const styles = StyleSheet.create({
     position: 'relative', overflow: 'hidden',
   },
   trackFill: {
-    height: '100%', backgroundColor: GOLD, borderRadius: 3,
-    ...SHADOWS.glow(GOLD),
+    height: '100%', backgroundColor: RED, borderRadius: 3,
+    ...SHADOWS.glow(RED),
   },
   impactMarker: {
     position: 'absolute', top: -4, width: 3, height: 14,
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   thumb: {
     position: 'absolute', top: 12, width: 20, height: 20,
-    borderRadius: 10, backgroundColor: GOLD,
+    borderRadius: 10, backgroundColor: RED,
     marginLeft: -10, ...SHADOWS.md,
   },
   trackTouchArea: { height: 40, justifyContent: 'center' },
@@ -433,11 +433,11 @@ const styles = StyleSheet.create({
   },
   impactBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: RADIUS.sm,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.2)',
+    backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: RADIUS.sm,
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)',
     paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start',
   },
-  impactBadgeText: { fontSize: FONT_SIZE.xs, color: GOLD, fontWeight: '700' },
+  impactBadgeText: { fontSize: FONT_SIZE.xs, color: RED, fontWeight: '700' },
 
   chartCard: {
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,
@@ -460,17 +460,17 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   infoTitle: { fontSize: FONT_SIZE.xs, fontWeight: '900', color: COLORS.textSec, letterSpacing: 2, marginBottom: SPACING.sm },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,215,0,0.10)' },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(239,68,68,0.10)' },
   infoLabel: { fontSize: FONT_SIZE.md, color: COLORS.textSec },
   infoValue: { fontSize: FONT_SIZE.md, fontWeight: '700', color: COLORS.text },
   infoValueMono: { fontSize: FONT_SIZE.sm, color: COLORS.text, fontFamily: FONT.mono },
   alertsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 10, backgroundColor: 'rgba(255,215,0,0.10)',
+    marginTop: 10, backgroundColor: 'rgba(239,68,68,0.10)',
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: RADIUS.sm,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)',
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)',
   },
-  alertsBadgeText: { fontSize: FONT_SIZE.xs, color: GOLD, fontWeight: '700' },
+  alertsBadgeText: { fontSize: FONT_SIZE.xs, color: RED, fontWeight: '700' },
 
   mapCard: {
     backgroundColor: COLORS.glassBg, borderRadius: RADIUS.lg,

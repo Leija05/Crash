@@ -6,7 +6,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence, interpolate, Extrapolation } from 'react-native-reanimated';
-import { COLORS, RADIUS, SHADOWS, FONT, FONT_SIZE, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL, EASING } from '../../src/theme';
+import { COLORS, RADIUS, SHADOWS, FONT, FONT_SIZE, RED, RED_GRADIENT, RED_GRADIENT_DIAGONAL, EASING } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
 import { haptics } from '../../src/utils/haptics';
@@ -41,16 +41,16 @@ function AnimatedTabIcon({ name, color, size, focused, highlight }: { name: any;
       >
         {focused && (
           <LinearGradient
-            colors={GOLD_GRADIENT}
-            start={GOLD_GRADIENT_DIAGONAL.start}
-            end={GOLD_GRADIENT_DIAGONAL.end}
+            colors={RED_GRADIENT}
+            start={RED_GRADIENT_DIAGONAL.start}
+            end={RED_GRADIENT_DIAGONAL.end}
             style={StyleSheet.absoluteFill}
           />
         )}
         <AnimatedIonicon
           name={name}
           size={size - 2}
-          color={focused ? '#241A05' : color}
+          color={focused ? '#FFFFFF' : color}
         />
       </Animated.View>
       <View style={[styles.iconDot, focused && styles.iconDotActive]} />
@@ -82,13 +82,13 @@ function HomeIcon({ color, size, focused }: { color: string; size: number; focus
       >
         {focused && (
           <LinearGradient
-            colors={GOLD_GRADIENT}
-            start={GOLD_GRADIENT_DIAGONAL.start}
-            end={GOLD_GRADIENT_DIAGONAL.end}
+            colors={RED_GRADIENT}
+            start={RED_GRADIENT_DIAGONAL.start}
+            end={RED_GRADIENT_DIAGONAL.end}
             style={StyleSheet.absoluteFill}
           />
         )}
-        <AnimatedIonicon name="flash" size={size - 2} color={focused ? '#241A05' : color} />
+        <AnimatedIonicon name="flash" size={size - 2} color={focused ? '#FFFFFF' : color} />
       </Animated.View>
       <View style={[styles.iconDot, focused && styles.iconDotActive]} />
     </View>
@@ -101,9 +101,9 @@ function TabBarBackground() {
   return (
     <View style={styles.bgWrap} pointerEvents="none">
       <LinearGradient
-        colors={['rgba(240,216,154,0.55)', 'rgba(200,154,62,0.30)', 'rgba(140,104,36,0.18)']}
-        start={GOLD_GRADIENT_DIAGONAL.start}
-        end={GOLD_GRADIENT_DIAGONAL.end}
+        colors={['rgba(248,113,113,0.55)', 'rgba(239,68,68,0.30)', 'rgba(153,27,27,0.18)']}
+        start={RED_GRADIENT_DIAGONAL.start}
+        end={RED_GRADIENT_DIAGONAL.end}
         style={StyleSheet.absoluteFill}
       />
       <View style={styles.bgInner}>
@@ -114,7 +114,7 @@ function TabBarBackground() {
         />
         <View style={styles.bgTint} />
         <LinearGradient
-          colors={['rgba(240,216,154,0.30)', 'rgba(240,216,154,0)']}
+          colors={['rgba(248,113,113,0.30)', 'rgba(248,113,113,0)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.bgHighlight}
@@ -160,7 +160,7 @@ function AppTabBar({ state, descriptors, navigation }: any) {
               onPress={() => navigation.navigate(route.name)}
               style={styles.tabItem}
             >
-              {Icon ? Icon({ color: focused ? GOLD : COLORS.textDim, size: 26, focused }) : null}
+              {Icon ? Icon({ color: focused ? RED : COLORS.textDim, size: 26, focused }) : null}
               <Animated.Text style={[styles.tabLabel, labelStyle]}>{label}</Animated.Text>
             </TouchableOpacity>
           );
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.xxl,
     overflow: 'visible',
     borderWidth: 1,
-    borderColor: 'rgba(240,216,154,0.18)',
+    borderColor: 'rgba(248,113,113,0.18)',
     ...SHADOWS.xl,
   },
   floatRow: {
@@ -281,8 +281,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   iconDotActive: {
-    backgroundColor: GOLD,
-    ...SHADOWS.glow(GOLD, 0.45, 8),
+    backgroundColor: RED,
+    ...SHADOWS.glow(RED, 0.45, 8),
   },
   iconWrap: {
     width: 48,
@@ -293,11 +293,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   iconPillActive: {
-    ...SHADOWS.glow(GOLD, 0.5, 16),
+    ...SHADOWS.glow(RED, 0.5, 16),
   },
   iconWrapHighlight: {
-    backgroundColor: 'rgba(217,180,91,0.12)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(240,216,154,0.28)',
+    borderColor: 'rgba(248,113,113,0.28)',
   },
 });

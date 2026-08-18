@@ -8,7 +8,7 @@ import GlassButton from './GlassButton';
 import { installApk } from '../native/ApkInstaller';
 import { API_BASE, versionsAPI } from '../services/api';
 import { useI18n } from '../i18n';
-import { COLORS, RADIUS, SHADOWS, FONT, GOLD } from '../theme';
+import { COLORS, RADIUS, SHADOWS, FONT, RED } from '../theme';
 
 export type UpdateInfo = {
   version?: string;
@@ -121,7 +121,7 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
       footer={
         phase === 'downloading' || phase === 'verifying' || phase === 'installing' ? (
           <View style={styles.statusBar}>
-            <Animated.View style={[styles.statusDot, { backgroundColor: GOLD }]} />
+            <Animated.View style={[styles.statusDot, { backgroundColor: RED }]} />
             <Text style={styles.statusText}>
               {phase === 'downloading' && t('update.downloading', 'Descargando…')}
               {phase === 'verifying' && t('update.verifying', 'Verificando…')}
@@ -160,11 +160,11 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
             <Text style={[styles.versionPillValue, { color: COLORS.textSec }]}>v{localVersion}</Text>
           </View>
           <View style={styles.versionArrow}>
-            <Animated.Text style={{ color: GOLD, fontSize: 18, fontWeight: '900' }}>→</Animated.Text>
+            <Animated.Text style={{ color: RED, fontSize: 18, fontWeight: '900' }}>→</Animated.Text>
           </View>
           <View style={[styles.versionPill, styles.versionPillNew]}>
             <Text style={styles.versionPillLabel}>{t('update.new', 'Nueva')}</Text>
-            <Text style={[styles.versionPillValue, { color: GOLD }]}>v{info?.version}</Text>
+            <Text style={[styles.versionPillValue, { color: RED }]}>v{info?.version}</Text>
           </View>
         </View>
 
@@ -179,7 +179,7 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
                   <Stop offset="1" stopColor="#C29A3E" />
                 </LinearGradient>
               </Defs>
-              <Circle cx={RING / 2} cy={RING / 2} r={RADIUS_RING} stroke="rgba(217,180,91,0.12)" strokeWidth={STROKE} fill="none" />
+              <Circle cx={RING / 2} cy={RING / 2} r={RADIUS_RING} stroke="rgba(239,68,68,0.12)" strokeWidth={STROKE} fill="none" />
               <Circle
                 cx={RING / 2}
                 cy={RING / 2}
@@ -201,7 +201,7 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
               ) : phase === 'downloading' ? (
                 <Text style={styles.percent}>{Math.round(progress * 100)}%</Text>
               ) : (
-                <ActivityIndicator size="small" color={GOLD} />
+                <ActivityIndicator size="small" color={RED} />
               )}
             </Animated.View>
           </View>
@@ -271,9 +271,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
   versionPillNew: {
-    backgroundColor: 'rgba(217,180,91,0.12)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.30)',
+    borderColor: 'rgba(239,68,68,0.30)',
   },
   versionPillLabel: {
     color: COLORS.textDim,
@@ -291,11 +291,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(217,180,91,0.10)',
+    backgroundColor: 'rgba(239,68,68,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.20)',
+    borderColor: 'rgba(239,68,68,0.20)',
   },
   ringWrap: {
     width: RING,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     width: RING * 0.7,
     height: RING * 0.7,
     borderRadius: RING * 0.35,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
     opacity: 0.08,
   },
   ringCenter: {
@@ -318,11 +318,11 @@ const styles = StyleSheet.create({
     borderRadius: (RING - 34) / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(217,180,91,0.06)',
+    backgroundColor: 'rgba(239,68,68,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.16)',
+    borderColor: 'rgba(239,68,68,0.16)',
   },
-  percent: { color: GOLD, fontSize: 28, fontWeight: '900', fontFamily: FONT.mono },
+  percent: { color: RED, fontSize: 28, fontWeight: '900', fontFamily: FONT.mono },
   spinner: {
     width: 30,
     height: 30,

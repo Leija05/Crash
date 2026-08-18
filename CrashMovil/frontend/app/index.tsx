@@ -3,7 +3,7 @@ import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, FadeInUp, SlideInUp } from 'react-native-reanimated';
 import { CrashLogoIcon } from '../src/components/CrashLogo';
-import { COLORS, GOLD, FONT, FONT_SIZE, SPACING, SHADOWS } from '../src/theme';
+import { COLORS, RED, FONT, FONT_SIZE, SPACING, SHADOWS } from '../src/theme';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 
@@ -24,7 +24,7 @@ export default function SplashScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
       <View style={styles.topGoldLine} pointerEvents="none" />
 
       <Animated.View entering={FadeInDown.duration(800).springify().damping(26).stiffness(200)} style={styles.logoWrapper}>
@@ -32,7 +32,7 @@ export default function SplashScreen() {
           entering={FadeIn.duration(1000).delay(200).springify().damping(26).stiffness(200)}
           style={styles.logoContainer}
         >
-          <CrashLogoIcon size={96} color={GOLD} />
+          <CrashLogoIcon size={96} color={RED} />
         </Animated.View>
       </Animated.View>
 
@@ -42,13 +42,13 @@ export default function SplashScreen() {
       </Animated.View>
 
       <Animated.View entering={SlideInUp.duration(600).delay(600).springify().damping(26).stiffness(200)} style={styles.loaderWrap}>
-        <ActivityIndicator size="small" color={GOLD} />
+        <ActivityIndicator size="small" color={RED} />
         <Text style={styles.loadingText}>
           {loading ? 'Inicializando telemetría...' : (token ? 'Iniciando sesión...' : 'Redirigiendo...')}
         </Text>
       </Animated.View>
 
-      <Text style={styles.version}>v3.0 · Gold Edition</Text>
+      <Text style={styles.version}>v3.0 · Tactical Edition</Text>
     </SafeAreaView>
   );
 }
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: GOLD,
+    backgroundColor: RED,
     zIndex: 10,
   },
   ambientGlow: {
@@ -75,18 +75,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 400,
-    backgroundColor: 'rgba(255,215,0,0.02)',
+    backgroundColor: 'rgba(239,68,68,0.02)',
     borderBottomLeftRadius: 200,
     borderBottomRightRadius: 200,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -80,
     alignSelf: 'center',
     width: 280,
     height: 280,
     borderRadius: 140,
-    backgroundColor: 'rgba(255,215,0,0.04)',
+    backgroundColor: 'rgba(239,68,68,0.04)',
   },
   logoWrapper: {
     alignItems: 'center',
@@ -98,10 +98,10 @@ const styles = StyleSheet.create({
     borderRadius: 70,
     backgroundColor: 'rgba(10,10,10,0.9)',
     borderWidth: 2,
-    borderColor: 'rgba(255,215,0,0.3)',
+    borderColor: 'rgba(239,68,68,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...SHADOWS.glow(GOLD, 0.25, 30),
+    ...SHADOWS.glow(RED, 0.25, 30),
   },
   titleGroup: {
     alignItems: 'center',

@@ -9,7 +9,7 @@ import Animated, {
   Easing,
   FadeIn 
 } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, GOLD, SHADOWS } from '../theme';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, RED, SHADOWS } from '../theme';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -148,9 +148,9 @@ export function GPSMap({
       <Svg width={width} height={height}>
         <Defs>
           <RadialGradient id="routeGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-            <Stop offset="0%" stopColor={GOLD} stopOpacity={0.3} />
-            <Stop offset="70%" stopColor={GOLD} stopOpacity={0.05} />
-            <Stop offset="100%" stopColor={GOLD} stopOpacity={0} />
+            <Stop offset="0%" stopColor={RED} stopOpacity={0.3} />
+            <Stop offset="70%" stopColor={RED} stopOpacity={0.05} />
+            <Stop offset="100%" stopColor={RED} stopOpacity={0} />
           </RadialGradient>
           <RadialGradient id="impactGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
             <Stop offset="0%" stopColor={COLORS.danger} stopOpacity={0.5} />
@@ -186,7 +186,7 @@ export function GPSMap({
 
         <AnimatedPath
           d={routePath}
-          stroke={GOLD}
+          stroke={RED}
           strokeWidth={2.5}
           fill="none"
           strokeLinecap="round"
@@ -203,7 +203,7 @@ export function GPSMap({
               cx={point.x}
               cy={point.y}
               r={1.5}
-              fill={GOLD}
+              fill={RED}
               opacity={0.6}
               onPress={() => onPress?.(route[i], i)}
             />
@@ -278,7 +278,7 @@ export function GPSMap({
 
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: GOLD }]} />
+          <View style={[styles.legendDot, { backgroundColor: RED }]} />
           <Text style={styles.legendText}>Ruta</Text>
         </View>
         {showImpactMarker && impactPoint && (

@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import Animated, { FadeIn, FadeInDown, SlideInUp, SlideInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, interpolate, Easing } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel, GOLD, GOLD_GRADIENT, GOLD_GRADIENT_DIAGONAL, FONT, FONT_SIZE, ANIMATION, EASING } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel, RED, RED_GRADIENT, RED_GRADIENT_DIAGONAL, FONT, FONT_SIZE, ANIMATION, EASING } from '../../src/theme';
 import PremiumModal from '../../src/components/PremiumModal';
 import GlassCard from '../../src/components/GlassCard';
 import AnimatedNumber from '../../src/components/AnimatedNumber';
@@ -535,7 +535,7 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
 
       {highImpact && liveData && (
         <StickyNotification
@@ -548,7 +548,7 @@ export default function DashboardScreen() {
       )}
 
       <Animated.ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={RED} />}
         contentContainerStyle={styles.scroll}
         onScroll={onTabScroll}
         scrollEventThrottle={16}
@@ -575,7 +575,7 @@ export default function DashboardScreen() {
                   activeOpacity={0.7}
                   testID="simulate-impact-btn"
                 >
-                  <Ionicons name="flask" size={13} color={GOLD} />
+                  <Ionicons name="flask" size={13} color={RED} />
                   <Text style={styles.simText}>{sending ? t('common.sending') : t('dashboard.simulate')}</Text>
                 </TouchableOpacity>
               )}
@@ -626,6 +626,12 @@ export default function DashboardScreen() {
             {highImpact && (
               <RNAnimated.View pointerEvents="none" style={[styles.criticalPulse, { opacity: pulseAnim }]} />
             )}
+            <View pointerEvents="none" style={styles.hudBrackets}>
+              <View style={[styles.hudCorner, styles.hudTL]} />
+              <View style={[styles.hudCorner, styles.hudTR]} />
+              <View style={[styles.hudCorner, styles.hudBL]} />
+              <View style={[styles.hudCorner, styles.hudBR]} />
+            </View>
             <GForceRing
               gForce={gForce}
               liveData={liveData}
@@ -645,7 +651,7 @@ export default function DashboardScreen() {
 
         <Stagger index={3}>
           <View style={styles.bentoRow}>
-            <GlassCard padding={14} delay={40} style={styles.bentoHalf} goldEdge>
+            <GlassCard padding={14} delay={40} style={styles.bentoHalf} redEdge>
               <Text style={styles.bentoTitle}>{t('dashboard.acceleration')}</Text>
               <View style={styles.coordsGrid}>
                 <CoordItem label="X" value={telemetryForDisplay?.acceleration_x} live={liveData} delay={0} />
@@ -653,17 +659,17 @@ export default function DashboardScreen() {
                 <CoordItem label="Z" value={telemetryForDisplay?.acceleration_z} live={liveData} delay={2} />
               </View>
             </GlassCard>
-            <GlassCard padding={14} delay={70} style={styles.bentoHalf} goldEdge>
+            <GlassCard padding={14} delay={70} style={styles.bentoHalf} redEdge>
               <Text style={styles.bentoTitle}>{t('dashboard.location')}</Text>
               {permissionGranted === false ? (
                 <TouchableOpacity style={styles.locationBtn} onPress={requestPermission} activeOpacity={0.8}>
-                  <Ionicons name="location-outline" size={16} color={GOLD} />
+                  <Ionicons name="location-outline" size={16} color={RED} />
                   <Text style={styles.locationBtnText}>{t('dashboard.enableLocation')}</Text>
                 </TouchableOpacity>
               ) : (
                 <View>
                   <View style={styles.locationPermBadge}>
-                    <Ionicons name="location" size={12} color={GOLD} />
+                    <Ionicons name="location" size={12} color={RED} />
                     <Text style={styles.locationPermText}>{t('dashboard.permissionLocation')}</Text>
                   </View>
                   {grantedLocation ? (
@@ -690,7 +696,7 @@ export default function DashboardScreen() {
 
         <Stagger index={4}>
           <View style={styles.bentoCol}>
-            <GlassCard padding={14} delay={40} goldEdge>
+            <GlassCard padding={14} delay={40} redEdge>
               <Text style={styles.bentoTitle}>{t('dashboard.gyroscope')}</Text>
               <View style={styles.sparklineGrid}>
                 <Sparkline data={gyroXData.map(d => d.y)} width={SPARK_W} height={50} color={COLORS.warning} showArea />
@@ -698,7 +704,7 @@ export default function DashboardScreen() {
                 <Sparkline data={gyroZData.map(d => d.y)} width={SPARK_W} height={50} color="#FB923C" showArea />
               </View>
             </GlassCard>
-            <GlassCard padding={14} delay={70} goldEdge>
+            <GlassCard padding={14} delay={70} redEdge>
               <Text style={styles.bentoTitle}>{t('dashboard.gps')}</Text>
               <GPSMap
                 route={gpsRoute}
@@ -726,7 +732,7 @@ export default function DashboardScreen() {
         </Stagger>
 
         <Stagger index={6}>
-          <GlassCard padding={16} delay={40} goldEdge>
+          <GlassCard padding={16} delay={40} redEdge>
             <Text style={styles.chartTitle}>{t('dashboard.accelChart')}</Text>
             <MultiLineChart
               datasets={[
@@ -743,14 +749,14 @@ export default function DashboardScreen() {
         </Stagger>
 
         <Stagger index={7}>
-          <GlassCard padding={16} delay={40} goldEdge>
+          <GlassCard padding={16} delay={40} redEdge>
             <Text style={styles.chartTitle}>{t('dashboard.gForceChart')}</Text>
             <LineChart
               data={gForceChartData}
               width={CHART_INNER}
               height={140}
-              color={GOLD}
-              gradientColors={[GOLD, GOLD + '00']}
+              color={RED}
+              gradientColors={[RED, RED + '00']}
               showArea
               showPoints={false}
               strokeWidth={2}
@@ -760,10 +766,10 @@ export default function DashboardScreen() {
 
         <Stagger index={8}>
           <View style={styles.grid}>
-            <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="rad/s" color={COLORS.warning} live={liveData} delay={0} />
-            <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="rad/s" color={COLORS.warning} live={liveData} delay={1} />
-            <MetricCard label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="rad/s" color="#FB923C" live={liveData} delay={2} />
-            <MetricCard label={t('dashboard.gForce')} value={telemetryForDisplay?.g_force} unit="g" color={GOLD} live={liveData} delay={3} />
+            <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="°/s" color={COLORS.warning} live={liveData} delay={0} />
+            <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="°/s" color={COLORS.warning} live={liveData} delay={1} />
+            <MetricCard label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="°/s" color="#FB923C" live={liveData} delay={2} />
+            <MetricCard label={t('dashboard.gForce')} value={telemetryForDisplay?.g_force} unit="g" color={RED} live={liveData} delay={3} />
           </View>
         </Stagger>
 
@@ -786,13 +792,13 @@ export default function DashboardScreen() {
               testID="connect-btn"
             >
               <LinearGradient
-                colors={[...GOLD_GRADIENT]}
-                start={GOLD_GRADIENT_DIAGONAL.start}
-                end={GOLD_GRADIENT_DIAGONAL.end}
+                colors={[...RED_GRADIENT]}
+                start={RED_GRADIENT_DIAGONAL.start}
+                end={RED_GRADIENT_DIAGONAL.end}
                 style={StyleSheet.absoluteFill}
               />
               <View style={styles.primaryBtnSheen} pointerEvents="none" />
-              <Ionicons name="bluetooth" size={18} color="#241A05" />
+              <Ionicons name="bluetooth" size={18} color="#FFFFFF" />
               <Text style={styles.primaryBtnText}>{t('dashboard.connectHelmet')}</Text>
             </TouchableOpacity>
           )}
@@ -838,7 +844,7 @@ export default function DashboardScreen() {
         onClose={() => setCountdown(null)}
         title={t('dashboard.impactDetected')}
         eyebrow={t('dashboard.alertEyebrow')}
-        accent={GOLD}
+        accent={RED}
         closeOnBackdrop={false}
       >
         <Text style={styles.dialogText}>{t('dashboard.alertMessage')}</Text>
@@ -867,13 +873,13 @@ export default function DashboardScreen() {
             onPress={() => { haptics.heavy(); setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
           >
             <LinearGradient
-              colors={[...GOLD_GRADIENT]}
-              start={GOLD_GRADIENT_DIAGONAL.start}
-              end={GOLD_GRADIENT_DIAGONAL.end}
+              colors={[...RED_GRADIENT]}
+              start={RED_GRADIENT_DIAGONAL.start}
+              end={RED_GRADIENT_DIAGONAL.end}
               style={StyleSheet.absoluteFill}
             />
             {sending ? (
-              <ActivityIndicator color="#241A05" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.cancelText}>{t('dashboard.sendNow')}</Text>
             )}
@@ -886,7 +892,7 @@ export default function DashboardScreen() {
         onClose={() => setAlertResult(null)}
         title={alertResult?.alerts_sent ? t('dashboard.sentTitle') : t('dashboard.notSentTitle')}
         eyebrow={t('dashboard.reportEyebrow')}
-        accent={alertResult?.alerts_sent ? COLORS.success : GOLD}
+        accent={alertResult?.alerts_sent ? COLORS.success : RED}
         closeOnBackdrop={false}
       >
         <Text style={styles.dialogText}>
@@ -900,9 +906,9 @@ export default function DashboardScreen() {
         <View style={styles.dialogActions}>
           <TouchableOpacity style={styles.okBtnWide} onPress={() => { haptics.light(); setAlertResult(null); }}>
             <LinearGradient
-              colors={[...GOLD_GRADIENT]}
-              start={GOLD_GRADIENT_DIAGONAL.start}
-              end={GOLD_GRADIENT_DIAGONAL.end}
+              colors={[...RED_GRADIENT]}
+              start={RED_GRADIENT_DIAGONAL.start}
+              end={RED_GRADIENT_DIAGONAL.end}
               style={StyleSheet.absoluteFill}
             />
             <Text style={styles.okBtnText}>{t('common.accept')}</Text>
@@ -959,17 +965,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 280,
-    backgroundColor: 'rgba(255,215,0,0.02)',
+    backgroundColor: 'rgba(239,68,68,0.02)',
     borderBottomLeftRadius: 100, borderBottomRightRadius: 100,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -60,
     alignSelf: 'center',
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(239,68,68,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: SPACING.xl + 90 },
 
@@ -982,11 +988,11 @@ const styles = StyleSheet.create({
   simBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 7, borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(217,180,91,0.10)',
-    borderWidth: 1, borderColor: 'rgba(240,216,154,0.35)',
-    ...SHADOWS.glow(GOLD, 0.25, 12),
+    backgroundColor: 'rgba(239,68,68,0.10)',
+    borderWidth: 1, borderColor: 'rgba(248,113,113,0.35)',
+    ...SHADOWS.glow(RED, 0.25, 12),
   },
-  simText: { fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 1, color: GOLD },
+  simText: { fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 1, color: RED },
   greeting: { fontSize: FONT_SIZE.sm, fontFamily: FONT.body, color: COLORS.textSec },
   appName: { fontSize: FONT_SIZE.xl, fontFamily: FONT.display, fontWeight: '700', color: COLORS.text, letterSpacing: 4, marginTop: 1 },
   modePill: {
@@ -1006,7 +1012,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   statusBarCardConnected: {
-    borderColor: 'rgba(217,180,91,0.30)',
+    borderColor: 'rgba(239,68,68,0.30)',
   },
   statusBarInner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -1031,9 +1037,21 @@ const styles = StyleSheet.create({
   },
   criticalPulse: {
     position: 'absolute', top: -60, left: -60, right: -60, bottom: -60,
-    backgroundColor: 'rgba(255,77,77,0.22)',
+    backgroundColor: 'rgba(255,59,48,0.22)',
     borderRadius: 999,
   },
+  hudBrackets: {
+    position: 'absolute', top: 10, left: 10, right: 10, bottom: 10,
+    opacity: 0.65,
+  },
+  hudCorner: {
+    position: 'absolute', width: 16, height: 16,
+    borderColor: 'rgba(248,113,113,0.60)',
+  },
+  hudTL: { top: 0, left: 0, borderTopWidth: 1.5, borderLeftWidth: 1.5 },
+  hudTR: { top: 0, right: 0, borderTopWidth: 1.5, borderRightWidth: 1.5 },
+  hudBL: { bottom: 0, left: 0, borderBottomWidth: 1.5, borderLeftWidth: 1.5 },
+  hudBR: { bottom: 0, right: 0, borderBottomWidth: 1.5, borderRightWidth: 1.5 },
   ringEmptyHint: {
     flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4,
   },
@@ -1055,14 +1073,14 @@ const styles = StyleSheet.create({
   locationBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     marginTop: 10, paddingVertical: 10, borderRadius: RADIUS.sm,
-    backgroundColor: 'rgba(217,180,91,0.10)', borderWidth: 1, borderColor: 'rgba(217,180,91,0.20)',
+    backgroundColor: 'rgba(239,68,68,0.10)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.20)',
   },
-  locationBtnText: { color: GOLD, fontFamily: FONT.heading, fontWeight: '600', fontSize: FONT_SIZE.sm, letterSpacing: 0.5 },
+  locationBtnText: { color: RED, fontFamily: FONT.heading, fontWeight: '600', fontSize: FONT_SIZE.sm, letterSpacing: 0.5 },
   locationPermBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     marginTop: 4, marginBottom: 6,
   },
-  locationPermText: { color: GOLD, fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '600', letterSpacing: 1 },
+  locationPermText: { color: RED, fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '600', letterSpacing: 1 },
   coordsGeo: { color: COLORS.textDim, fontSize: FONT_SIZE.sm, fontFamily: FONT.monoMedium, letterSpacing: 0.5, lineHeight: 18 },
   coordsGeoDim: { color: COLORS.textDim, fontSize: FONT_SIZE.sm, fontFamily: FONT.body },
   liveTrackingBadge: {
@@ -1097,7 +1115,7 @@ const styles = StyleSheet.create({
   metric: {
     width: '48%', flexGrow: 1,
     backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 14,
-    borderWidth: 1, borderColor: 'rgba(217,180,91,0.12)',
+    borderWidth: 1, borderColor: 'rgba(239,68,68,0.12)',
     ...SHADOWS.xs,
   },
   metricTop: {
@@ -1113,9 +1131,9 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 54,
+    backgroundColor: RED, borderRadius: RADIUS.pill, height: 54,
     marginBottom: SPACING.md, overflow: 'hidden',
-    ...SHADOWS.glow(GOLD, 0.4, 18),
+    ...SHADOWS.glow(RED, 0.4, 18),
   },
   primaryBtnDanger: {
     backgroundColor: COLORS.danger,
@@ -1126,7 +1144,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.22)',
     borderTopLeftRadius: RADIUS.pill, borderTopRightRadius: RADIUS.pill,
   },
-  primaryBtnText: { color: '#241A05', fontSize: FONT_SIZE.sm, fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 2 },
+  primaryBtnText: { color: '#FFFFFF', fontSize: FONT_SIZE.sm, fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 2 },
   primaryBtnTextDanger: { color: '#fff' },
 
   infoRow: {
@@ -1148,20 +1166,20 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: 'rgba(217,180,91,0.18)',
-    backgroundColor: 'rgba(217,180,91,0.05)',
-    ...SHADOWS.glow(GOLD, 0.15, 20),
+    borderColor: 'rgba(239,68,68,0.18)',
+    backgroundColor: 'rgba(239,68,68,0.05)',
+    ...SHADOWS.glow(RED, 0.15, 20),
   },
   countdownLabel: { color: COLORS.textDim, fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 2, textTransform: 'uppercase' },
-  countdownValue: { color: GOLD, fontSize: FONT_SIZE.display, fontFamily: FONT.mono, fontWeight: '700', marginTop: 2, includeFontPadding: false },
+  countdownValue: { color: RED, fontSize: FONT_SIZE.display, fontFamily: FONT.mono, fontWeight: '700', marginTop: 2, includeFontPadding: false },
   countdownTickRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
   countdownTick: {
     width: 5, height: 5, borderRadius: 2.5,
     backgroundColor: 'rgba(255,255,255,0.12)',
   },
   countdownTickActive: {
-    backgroundColor: GOLD,
-    ...SHADOWS.glow(GOLD, 0.5, 6),
+    backgroundColor: RED,
+    ...SHADOWS.glow(RED, 0.5, 6),
   },
   dialogActions: { flexDirection: 'row', gap: 10, width: '100%' },
   cancelBtnSoft: {
@@ -1171,14 +1189,14 @@ const styles = StyleSheet.create({
   },
   cancelSoftText: { color: COLORS.text, fontFamily: FONT.heading, fontWeight: '600', letterSpacing: 0.7 },
   cancelBtn: {
-    flex: 1, backgroundColor: GOLD, borderRadius: RADIUS.pill,
+    flex: 1, backgroundColor: RED, borderRadius: RADIUS.pill,
     paddingVertical: 14, alignItems: 'center', overflow: 'hidden',
   },
-  cancelText: { color: '#241A05', fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 1 },
+  cancelText: { color: '#FFFFFF', fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 1 },
   okBtnWide: {
-    backgroundColor: GOLD, borderRadius: RADIUS.pill,
+    backgroundColor: RED, borderRadius: RADIUS.pill,
     paddingVertical: 14, marginTop: 14, width: '100%', alignItems: 'center', overflow: 'hidden',
   },
-  okBtnText: { color: '#241A05', fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 1, fontSize: FONT_SIZE.md },
+  okBtnText: { color: '#FFFFFF', fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 1, fontSize: FONT_SIZE.md },
   contactSent: { color: COLORS.textSec, fontSize: FONT_SIZE.md, fontFamily: FONT.body, marginBottom: 4, textAlign: 'center' },
 });

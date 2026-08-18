@@ -3,17 +3,17 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet, Platform } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import Animated, { ZoomIn } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, GOLD_HAIRLINE } from '../theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, RED, RED_HAIRLINE } from '../theme';
 
-export function BrandLogo({ size = 46, color = GOLD }: { size?: number; color?: string }) {
+export function BrandLogo({ size = 46, color = RED }: { size?: number; color?: string }) {
   return (
     <View
       style={[
         styles.brandBadge,
-        { width: size, height: size, borderRadius: size * 0.28, borderColor: 'rgba(200,162,60,0.35)' },
+        { width: size, height: size, borderRadius: size * 0.28, borderColor: 'rgba(239,68,68,0.35)' },
       ]}
     >
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(200,162,60,0.12)' }]} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(239,68,68,0.12)' }]} />
       <Ionicons name="shield-checkmark" size={size * 0.5} color={color} />
     </View>
   );
@@ -35,7 +35,7 @@ export default function PremiumModal({
   onClose,
   title,
   eyebrow,
-  accent = GOLD,
+  accent = RED,
   children,
   footer,
   closeOnBackdrop = false,
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     maxWidth: 360,
     backgroundColor: 'rgba(18,16,10,0.97)',
     borderWidth: 1,
-    borderColor: GOLD_HAIRLINE,
+    borderColor: RED_HAIRLINE,
     borderRadius: RADIUS.xl,
     padding: 24,
     alignItems: 'center',
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: GOLD_HAIRLINE,
+    backgroundColor: RED_HAIRLINE,
     opacity: 0.8,
   },
   glow: {

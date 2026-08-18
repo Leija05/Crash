@@ -11,7 +11,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
 import { useI18n } from '../../src/i18n';
 import { contactsAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, RED, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import GlassCard from '../../src/components/GlassCard';
 import { haptics } from '../../src/utils/haptics';
 import { useTabBarScroll } from '../../src/context/TabBarContext';
@@ -115,8 +115,8 @@ export default function ContactsScreen() {
   const renderContact = ({ item }: { item: any }) => (
     <Animated.View entering={FadeInUp.duration(300).springify().damping(26).stiffness(200)} style={styles.card}>
       <View style={styles.cardRow}>
-        <View style={[styles.avatar, { backgroundColor: item.verified ? 'rgba(255,215,0,0.12)' : 'rgba(255,255,255,0.03)' }]}>
-          <Ionicons name="person" size={18} color={item.verified ? GOLD : COLORS.textDim} />
+        <View style={[styles.avatar, { backgroundColor: item.verified ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.03)' }]}>
+          <Ionicons name="person" size={18} color={item.verified ? RED : COLORS.textDim} />
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.cardName}>{item.name}</Text>
@@ -136,7 +136,7 @@ export default function ContactsScreen() {
               onPress={() => verifyContact(item)}
               activeOpacity={0.8}
             >
-              <Ionicons name="logo-whatsapp" size={14} color={GOLD} />
+              <Ionicons name="logo-whatsapp" size={14} color={RED} />
               <Text style={styles.verifyText}>{t('contacts.verify')}</Text>
             </TouchableOpacity>
           )}
@@ -155,7 +155,7 @@ export default function ContactsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
       
       <Animated.View entering={FadeInDown.duration(500).springify().damping(26).stiffness(200)} style={styles.headerSection}>
         <View>
@@ -163,7 +163,7 @@ export default function ContactsScreen() {
           <Text style={styles.subtitle}>{filteredContacts.length} {t('contacts.count')}</Text>
         </View>
         <TouchableOpacity testID="add-contact-btn" style={styles.addBtn} onPress={() => { haptics.light(); setShowAdd(true); }}>
-          <Ionicons name="add" size={24} color="#000" />
+          <Ionicons name="add" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </Animated.View>
 
@@ -186,14 +186,14 @@ export default function ContactsScreen() {
       </Animated.View>
 
       {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={RED} /></View>
       ) : (
         <Animated.FlatList
           data={filteredContacts}
           keyExtractor={(item) => item.id}
           renderItem={renderContact}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchContacts(); }} tintColor={GOLD} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchContacts(); }} tintColor={RED} />}
           onScroll={onTabScroll}
           scrollEventThrottle={16}
           ListEmptyComponent={
@@ -231,7 +231,7 @@ export default function ContactsScreen() {
               <TextInput testID="contact-relationship-input" style={styles.input} value={relationship} onChangeText={setRelationship} placeholder={t('contacts.relationshipPlaceholder')} placeholderTextColor={COLORS.textDim} />
             </View>
             <TouchableOpacity testID="submit-contact-btn" style={[styles.submitBtn, submitting && { opacity: 0.6 }]} onPress={addContact} disabled={submitting}>
-              {submitting ? <ActivityIndicator color="#000" /> : <Text style={styles.submitText}>{t('contacts.submit')}</Text>}
+              {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.submitText}>{t('contacts.submit')}</Text>}
             </TouchableOpacity>
           </Animated.View>
         </KeyboardAvoidingView>
@@ -245,22 +245,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-    backgroundColor: 'rgba(255,215,0,0.010)',
+    backgroundColor: 'rgba(239,68,68,0.010)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -40,
     alignSelf: 'center',
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(239,68,68,0.03)',
   },
   headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: 12 },
   title: { fontSize: FONT_SIZE.xl, fontWeight: '900', color: COLORS.text, letterSpacing: 2 },
   subtitle: { fontSize: FONT_SIZE.sm, color: COLORS.textSec, marginTop: 2 },
-  addBtn: { backgroundColor: GOLD, width: 44, height: 44, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', ...SHADOWS.glow(GOLD) },
+  addBtn: { backgroundColor: RED, width: 44, height: 44, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center', ...SHADOWS.glow(RED) },
   searchCard: {
     marginHorizontal: SPACING.md,
     marginBottom: SPACING.md,
@@ -291,10 +291,10 @@ const styles = StyleSheet.create({
   verifyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.pill,
-    backgroundColor: 'rgba(217,180,91,0.10)',
-    borderWidth: 1, borderColor: 'rgba(240,216,154,0.30)',
+    backgroundColor: 'rgba(239,68,68,0.10)',
+    borderWidth: 1, borderColor: 'rgba(248,113,113,0.30)',
   },
-  verifyText: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD, letterSpacing: 0.5 },
+  verifyText: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: RED, letterSpacing: 0.5 },
   deleteBtn: { padding: 6 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { alignItems: 'center', paddingTop: 60 },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,20,28,0.96)',
     borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
     padding: SPACING.lg, paddingBottom: 40,
-    borderTopWidth: 1, borderColor: 'rgba(255,215,0,0.10)',
+    borderTopWidth: 1, borderColor: 'rgba(239,68,68,0.10)',
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: FONT_SIZE.lg, fontWeight: '700', color: COLORS.text },
@@ -324,9 +324,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.border,
   },
   submitBtn: {
-    backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 50,
+    backgroundColor: RED, borderRadius: RADIUS.pill, height: 50,
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
-    ...SHADOWS.glow(GOLD),
+    ...SHADOWS.glow(RED),
   },
   submitText: { color: '#000', fontSize: FONT_SIZE.sm, fontWeight: '900', letterSpacing: 2 },
 });

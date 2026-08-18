@@ -8,14 +8,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { FadeIn, SlideInRight, useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 import { useAuth } from '../../src/context/AuthContext';
 import { impactsAPI } from '../../src/services/api';
-import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, GOLD, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
+import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, RED, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import SeverityBadge from '../../src/components/SeverityBadge';
 import { LineChart, MultiLineChart } from '../../src/components/Charts';
 import GPSMap from '../../src/components/GPSMap';
 
 function sevColor(s: string) {
   if (s === 'low') return COLORS.success;
-  if (s === 'medium') return GOLD;
+  if (s === 'medium') return RED;
   if (s === 'high') return '#FB923C';
   return COLORS.danger;
 }
@@ -69,7 +69,7 @@ export default function ImpactDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.center}><ActivityIndicator size="large" color={GOLD} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={RED} /></View>
       </SafeAreaView>
     );
   }
@@ -97,14 +97,14 @@ export default function ImpactDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
       <ScrollView contentContainerStyle={styles.scroll}>
         <Animated.View
           entering={FadeIn.duration(450).springify().damping(26).stiffness(200)}
           style={styles.header}
         >
           <TouchableOpacity testID="impact-detail-back-btn" onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={20} color={GOLD} />
+            <Ionicons name="arrow-back" size={20} color={RED} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>DETALLE DEL IMPACTO</Text>
           <View style={{ width: 40 }} />
@@ -128,7 +128,7 @@ export default function ImpactDetailScreen() {
             <Text style={styles.dateText}>{date}</Text>
             {impact.alerts_sent && (
               <View style={styles.alertSentBadge}>
-                <Ionicons name="notifications" size={10} color={GOLD} />
+                <Ionicons name="notifications" size={10} color={RED} />
                 <Text style={styles.alertSentText}>Alertas enviadas</Text>
               </View>
             )}
@@ -227,7 +227,7 @@ export default function ImpactDetailScreen() {
                   animateRoute={true}
                 />
                 <View style={styles.locRow}>
-                  <Ionicons name="location" size={16} color={GOLD} />
+                  <Ionicons name="location" size={16} color={RED} />
                   <Text style={styles.locText}>
                     {impact.location.latitude?.toFixed(5)}, {impact.location.longitude?.toFixed(5)}
                   </Text>
@@ -253,7 +253,7 @@ export default function ImpactDetailScreen() {
               <>
                 <View style={styles.section}>
                   <View style={styles.aiHeader}>
-                    <Ionicons name="sparkles" size={16} color={GOLD} />
+                    <Ionicons name="sparkles" size={16} color={RED} />
                     <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>DIAGNÓSTICO IA</Text>
                   </View>
                   <View style={styles.diagDivider} />
@@ -271,9 +271,9 @@ export default function ImpactDetailScreen() {
                       <Text style={[styles.metricValue, { color }]}>{toText(d.priority_level).toUpperCase() || 'MEDIO'}</Text>
                     </View>
                     {toText(d.estimated_injury_probability) ? (
-                      <View style={[styles.metricBox, { borderColor: 'rgba(255,215,0,0.25)' }]}>
+                      <View style={[styles.metricBox, { borderColor: 'rgba(239,68,68,0.25)' }]}>
                         <Text style={styles.metricLabel}>PROB. DE LESIÓN</Text>
-                        <Text style={[styles.metricValue, { color: GOLD }]}>{toText(d.estimated_injury_probability)}</Text>
+                        <Text style={[styles.metricValue, { color: RED }]}>{toText(d.estimated_injury_probability)}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -336,7 +336,7 @@ export default function ImpactDetailScreen() {
                       <Text style={styles.diagLabel}>RECOMENDACIONES</Text>
                       {toItems(d.emergency_recommendations).map((item: string, i: number) => (
                         <View key={i} style={styles.listItem}>
-                          <Ionicons name="medkit" size={14} color={GOLD} />
+                          <Ionicons name="medkit" size={14} color={RED} />
                           <Text style={styles.listText}>{item}</Text>
                         </View>
                       ))}
@@ -366,7 +366,7 @@ export default function ImpactDetailScreen() {
         )}
 
         <TouchableOpacity style={styles.replayBtn} onPress={() => router.push(`/replay/${id}`)} activeOpacity={0.8}>
-          <Ionicons name="play-circle" size={20} color="#000" />
+          <Ionicons name="play-circle" size={20} color="#FFFFFF" />
           <Text style={styles.replayBtnText}>REPRODUCIR ACCIDENTE</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -378,29 +378,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   ambientGlow: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 280,
-    backgroundColor: 'rgba(255,215,0,0.02)',
+    backgroundColor: 'rgba(239,68,68,0.02)',
     borderBottomLeftRadius: 120, borderBottomRightRadius: 120,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -60,
     alignSelf: 'center',
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255,215,0,0.03)',
+    backgroundColor: 'rgba(239,68,68,0.03)',
   },
   scroll: { padding: SPACING.md, paddingBottom: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   errorText: { color: COLORS.textDim, fontSize: 16 },
   backLink: { padding: 12 },
-  backLinkText: { color: GOLD, fontSize: 14, fontWeight: '700' },
+  backLinkText: { color: RED, fontSize: 14, fontWeight: '700' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: SPACING.md,
   },
   backBtn: { width: 38, height: 38, borderRadius: RADIUS.md, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
-  headerTitle: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD, letterSpacing: 2 },
+  headerTitle: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: RED, letterSpacing: 2 },
   sevBanner: {
     borderRadius: RADIUS.lg, padding: SPACING.lg, borderWidth: 1,
     marginBottom: SPACING.md, ...SHADOWS.md,
@@ -413,8 +413,8 @@ const styles = StyleSheet.create({
   gUnit: { fontSize: 18, fontWeight: '700', color: COLORS.textDim, marginBottom: 6, marginLeft: 2 },
   sevMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   dateText: { fontSize: FONT_SIZE.xs, color: COLORS.textSec, flex: 1 },
-  alertSentBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(255,215,0,0.10)' },
-  alertSentText: { fontSize: FONT_SIZE.xs, color: GOLD, fontWeight: '800' },
+  alertSentBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: 'rgba(239,68,68,0.10)' },
+  alertSentText: { fontSize: FONT_SIZE.xs, color: RED, fontWeight: '800' },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
@@ -438,8 +438,8 @@ const styles = StyleSheet.create({
     top: 4,
     bottom: 4,
     borderRadius: RADIUS.sm,
-    backgroundColor: GOLD,
-    ...SHADOWS.glow(GOLD, 0.3, 8),
+    backgroundColor: RED,
+    ...SHADOWS.glow(RED, 0.3, 8),
   },
   tabIndicatorTelemetry: { left: 0, width: '33.33%' },
   tabIndicatorLocation: { left: '33.33%', width: '33.33%' },
@@ -479,14 +479,14 @@ const styles = StyleSheet.create({
   locText: { fontSize: FONT_SIZE.sm, color: COLORS.text, fontFamily: FONT.mono, letterSpacing: 0.5 },
   replayBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: GOLD, borderRadius: RADIUS.pill, height: 50,
-    marginBottom: SPACING.md, ...SHADOWS.glow(GOLD),
+    backgroundColor: RED, borderRadius: RADIUS.pill, height: 50,
+    marginBottom: SPACING.md, ...SHADOWS.glow(RED),
   },
   replayBtnText: { color: '#000', fontSize: FONT_SIZE.md, fontWeight: '900', letterSpacing: 2 },
   aiHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  diagDivider: { height: 1, backgroundColor: 'rgba(255,215,0,0.10)', marginVertical: 12 },
+  diagDivider: { height: 1, backgroundColor: 'rgba(239,68,68,0.10)', marginVertical: 12 },
   diagBlock: { marginBottom: 20 },
-  diagLabel: { fontSize: FONT_SIZE.xs, fontWeight: '700', color: GOLD, letterSpacing: 2, marginBottom: 8 },
+  diagLabel: { fontSize: FONT_SIZE.xs, fontWeight: '700', color: RED, letterSpacing: 2, marginBottom: 8 },
   diagValue: { fontSize: FONT_SIZE.md, color: COLORS.text, lineHeight: 20 },
   priorityBadge: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   priorityText: { fontSize: FONT_SIZE.md, fontWeight: '800', letterSpacing: 1 },
@@ -499,10 +499,10 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: FONT_SIZE.lg, fontWeight: '900', letterSpacing: 1, textAlign: 'center' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
-    backgroundColor: 'rgba(255,215,0,0.10)', borderRadius: RADIUS.pill,
-    paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(255,215,0,0.18)',
+    backgroundColor: 'rgba(239,68,68,0.10)', borderRadius: RADIUS.pill,
+    paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(239,68,68,0.18)',
   },
-  chipText: { fontSize: FONT_SIZE.xs, fontWeight: '700', color: GOLD },
+  chipText: { fontSize: FONT_SIZE.xs, fontWeight: '700', color: RED },
   warnBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
     borderRadius: RADIUS.sm, borderWidth: 1, padding: 10, marginTop: 4,
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
   listText: { fontSize: FONT_SIZE.md, color: COLORS.text, flex: 1, lineHeight: 20 },
   stepNum: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.glassBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.glassBorder },
-  stepNumText: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: GOLD },
+  stepNumText: { fontSize: FONT_SIZE.xs, fontWeight: '800', color: RED },
   noDiag: { alignItems: 'center', paddingVertical: 16, gap: 8 },
   noDiagText: { fontSize: FONT_SIZE.md, color: COLORS.textDim },
 });

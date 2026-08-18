@@ -430,7 +430,10 @@ class BluetoothTelemetryService {
         const battery = n.length >= 8 && !Number.isNaN(n[7]) ? Math.max(0, Math.min(100, Math.round(n[7]))) : this.batteryLevel;
         this.batteryLevel = battery ?? null;
         const g = n[6];
-        const critical = raw.toUpperCase().startsWith('CRASH') || g >= 5;
+        // Solo se marca crítico por G reales. Antes cualquier línea con prefijo
+        // "CRASH" se trataba como crítica y el circuito lo envía siempre, lo que
+        // saltaba el throttling (flush inmediato a 20 Hz) y crasheaba la app.
+        const critical = g >= 5;
 
         // Campos opcionales del circuito real (hardware con GPS a bordo):
         // ...gForce, battery, latitude, longitude, speed_kmh

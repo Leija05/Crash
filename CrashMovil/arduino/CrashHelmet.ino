@@ -18,9 +18,25 @@ int impactSampleCount = 0;
 
 // ─── Timing ───
 unsigned long lastSendMs     = 0;
-const unsigned long SEND_INTERVAL_MS = 50; // ~20 Hz
+// 100ms = 10 Hz: suficiente para la gráfica fluida y evita saturar el
+// canal BLE (a 20 Hz el módulo HM-10 no da abasto y la app se crasheaba).
+const unsigned long SEND_INTERVAL_MS = 100;
 unsigned long lastBlinkMs    = 0;
 bool ledState = false;
+
+// ─── Medición de batería ───
+// Cableado del divisor de voltaje:
+//   Vbat --[R1]-- A0 --[R2]-- GND
+// Con R1 = R2 = 10k, una LiPo a 4.2V entrega ~2.1V en A0 (seguro con ref. 5V).
+// Ajusta R1/R2 y los voltajes según tu batería.
+const int BATTERY_PIN = A0;
+const float BATTERY_R1 = 10000.0;  // ohms
+const float BATTERY_R2 = 10000.0;  // ohms
+const float BATTERY_FULL_V  = 4.2; // LiPo cargada al 100%
+const float BATTERY_EMPTY_V = 3.3; // LiPo prácticamente descargada (0%)
+const unsigned long BATTERY_READ_INTERVAL_MS = 1000; // 1 lectura por segundo
+float batteryPercent = 100.0;
+unsigned long lastBatteryMs = 0;
 
 // ─── Identificador del dispositivo ───
 // La app usa este prefijo para identificar cascos C.R.A.S.H. durante el escaneo.
@@ -51,6 +67,16 @@ void loop() {
     return;
   }
   lastSendMs = now;
+
+  // Lectura de batería 1 vez por segundo con suavizado (promedio exponencial)
+  if (now - lastBatteryMs >= BATTERY_READ_INTERVAL_MS) {
+    lastBatteryMs = now;
+    int raw = analogRead(BATTERY_PIN);
+    float vPin = raw * (5.0 / 1023.0);
+    float vBat = vPin * ((BATTERY_R1 + BATTERY_R2) / BATTERY_R2);
+    float pct = constrain((vBat - BATTERY_EMPTY_V) / (BATTERY_FULL_V - BATTERY_EMPTY_V) * 100.0, 0.0, 100.0);
+    batteryPercent = batteryPercent * 0.9 + pct * 0.1;
+  }
 
   int16_t ax, ay, az, gx, gy, gz;
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -93,8 +119,9 @@ void loop() {
   }
 
   // ─── ENVÍO DE TELEMETRÍA ───
-  // Formato: CRASH:ax,ay,az,gx,gy,gz,gForce[,battery]
+  // Formato: CRASH:ax,ay,az,gx,gy,gz,gForce,battery
   // El prefijo "CRASH:" permite que la app identifique el dispositivo.
+  // La batería va en % (0-100) como 8º campo; la app la muestra en el dashboard.
   // El delimitador '\n' al final permite separar paquetes.
   Serial.print(DEVICE_ID);
   Serial.print(':');
@@ -111,6 +138,8 @@ void loop() {
   Serial.print(gzR, 4);
   Serial.print(',');
   Serial.print(magnitudG, 4);
+  Serial.print(',');
+  Serial.print(batteryPercent, 1);
   Serial.println();
 }
 

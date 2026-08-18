@@ -11,7 +11,7 @@ import Animated, {
   FadeIn,
   useDerivedValue,
 } from 'react-native-reanimated';
-import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, GOLD } from '../theme';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION, RED } from '../theme';
 import { haptics } from '../utils/haptics';
 
 interface DarkSwitchProps {
@@ -35,9 +35,9 @@ export function DarkSwitch({
   icon, 
   disabled = false, 
   size = 'md', 
-  trackColor = GOLD,
+  trackColor = RED,
   offTrackColor = '#2A2A34',
-  thumbColor = GOLD,
+  thumbColor = RED,
 }: DarkSwitchProps) {
   const thumbX = useSharedValue(value ? 1 : 0);
   const trackBg = useSharedValue(value ? trackColor : offTrackColor);
@@ -63,7 +63,7 @@ export function DarkSwitch({
   const animatedThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: thumbTranslateX.value }],
     backgroundColor: thumbBg.value,
-    shadowColor: value ? GOLD : '#000',
+    shadowColor: value ? RED : '#000',
     shadowOpacity: glowOpacity.value,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },
@@ -154,7 +154,7 @@ export function Slider({
   valueLabel,
   icon,
   disabled = false,
-  trackColor = GOLD,
+  trackColor = RED,
   showValue = true,
 }: SliderProps) {
   const progress = useSharedValue((value - min) / (max - min));

@@ -1,7 +1,7 @@
 import { View, ScrollView, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withRepeat, withTiming, interpolate, Extrapolation } from 'react-native-reanimated';
 import { useEffect } from 'react';
-import { COLORS, SPACING, GOLD, EASING } from '../theme';
+import { COLORS, SPACING, RED, EASING } from '../theme';
 
 interface ScreenShellProps {
   children: React.ReactNode;
@@ -46,7 +46,7 @@ export default function ScreenShell({
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.ambientGlow, glowStyle]} pointerEvents="none" />
-      <View style={styles.goldGlow} pointerEvents="none" />
+      <View style={styles.brandGlow} pointerEvents="none" />
       {header}
       {scroll ? (
         <ScrollView
@@ -73,18 +73,18 @@ const styles = StyleSheet.create({
     left: -100,
     right: -100,
     height: 400,
-    backgroundColor: 'rgba(217,180,91,0.018)',
+    backgroundColor: 'rgba(239,68,68,0.018)',
     borderBottomLeftRadius: 200,
     borderBottomRightRadius: 200,
   },
-  goldGlow: {
+  brandGlow: {
     position: 'absolute',
     top: -60,
     alignSelf: 'center',
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(217,180,91,0.04)',
+    backgroundColor: 'rgba(239,68,68,0.04)',
   },
   scrollContent: {
     flexGrow: 1,
