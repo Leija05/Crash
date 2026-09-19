@@ -3,10 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AppSettings = {
   developerMode: boolean;
-  deviceName: string; // Name pattern to match (e.g., "HC-05", "HC-10", "CRASH")
-  // actions
+  deviceName: string;
+  autoReconnect: boolean;
   setDeveloperMode: (v: boolean) => Promise<void>;
   setDeviceName: (v: string) => Promise<void>;
+  setAutoReconnect: (v: boolean) => Promise<void>;
   alertsConfigVersion: number;
   notifyAlertsConfigChanged: () => void;
   ready: boolean;
@@ -15,12 +16,14 @@ type AppSettings = {
 const DEFAULTS = {
   developerMode: false,
   deviceName: 'HC-05',
+  autoReconnect: false,
 };
 
 const AppSettingsContext = createContext<AppSettings>({
   ...DEFAULTS,
   setDeveloperMode: async () => {},
   setDeviceName: async () => {},
+  setAutoReconnect: async () => {},
   alertsConfigVersion: 0,
   notifyAlertsConfigChanged: () => {},
   ready: false,
@@ -33,6 +36,7 @@ const STORAGE_KEY = 'crash.appSettings.v1';
 export function AppSettingsProvider({ children }: { children: React.ReactNode }) {
   const [developerMode, setDevMode] = useState(DEFAULTS.developerMode);
   const [deviceName, setDevName] = useState(DEFAULTS.deviceName);
+  const [autoReconnect, setAutoReconnectState] = useState(DEFAULTS.autoReconnect);
   const [ready, setReady] = useState(false);
   const [alertsConfigVersion, setAlertsConfigVersion] = useState(0);
 
@@ -44,6 +48,7 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
           const parsed = JSON.parse(raw);
           setDevMode(!!parsed.developerMode);
           setDevName(parsed.deviceName || DEFAULTS.deviceName);
+          setAutoReconnectState(!!parsed.autoReconnect);
         }
       } catch (e) {
         console.warn('Failed to load app settings', e);
@@ -53,19 +58,24 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
     })();
   }, []);
 
-  const persist = async (next: { developerMode: boolean; deviceName: string }) => {
+  const persist = async (next: { developerMode: boolean; deviceName: string; autoReconnect: boolean }) => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
 
   const setDeveloperMode = useCallback(async (v: boolean) => {
     setDevMode(v);
-    await persist({ developerMode: v, deviceName });
-  }, [deviceName]);
+    await persist({ developerMode: v, deviceName, autoReconnect });
+  }, [deviceName, autoReconnect]);
 
   const setDeviceName = useCallback(async (v: string) => {
     setDevName(v);
-    await persist({ developerMode, deviceName: v });
-  }, [developerMode]);
+    await persist({ developerMode, deviceName: v, autoReconnect });
+  }, [developerMode, autoReconnect]);
+
+  const setAutoReconnect = useCallback(async (v: boolean) => {
+    setAutoReconnectState(v);
+    await persist({ developerMode, deviceName, autoReconnect: v });
+  }, [developerMode, deviceName]);
 
   const notifyAlertsConfigChanged = useCallback(() => {
     setAlertsConfigVersion((v) => v + 1);
@@ -73,7 +83,7 @@ export function AppSettingsProvider({ children }: { children: React.ReactNode })
 
   return (
     <AppSettingsContext.Provider
-      value={{ developerMode, deviceName, setDeveloperMode, setDeviceName, alertsConfigVersion, notifyAlertsConfigChanged, ready }}
+      value={{ developerMode, deviceName, autoReconnect, setDeveloperMode, setDeviceName, setAutoReconnect, alertsConfigVersion, notifyAlertsConfigChanged, ready }}
     >
       {children}
     </AppSettingsContext.Provider>

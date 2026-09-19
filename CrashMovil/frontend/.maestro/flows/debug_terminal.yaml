@@ -1,0 +1,23 @@
+appId: com.crash.movil
+---
+# Test: Admin debug terminal visibility
+- launchApp
+- waitForAnimationToEnd
+# Login as admin first (requires existing admin account)
+- tapOn:
+    text: "Iniciar sesión"
+- inputText:
+    text: "admin@crash.com"
+- tapOn:
+    id: "password-field"
+- inputText:
+    text: "admin123"
+- tapOn:
+    text: "ACCEDER AL CENTRO"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "TERMINAL DEBUG"
+- assertVisible:
+    text: "Admin only view"
+- takeScreenshot:
+    name: debug_terminal_visible

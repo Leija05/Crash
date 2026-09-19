@@ -1,0 +1,80 @@
+appId: com.crash.movil
+---
+# Test: Full app smoke test
+- launchApp
+- waitForAnimationToEnd
+
+# Check initial screen
+- optionalAssertVisible:
+    text: "C.R.A.S.H."
+- optionalAssertVisible:
+    text: "CRITICAL RESPONSE ALERT SYSTEM FOR HELMETS"
+
+# Login flow
+- assertVisible:
+    text: "Iniciar sesión"
+- inputText:
+    text: "test@crash.com"
+    id: "email-field"
+- inputText:
+    text: "test123"
+    id: "password-field"
+- tapOn:
+    text: "ACCEDER AL CENTRO"
+- waitForAnimationToEnd
+
+# Dashboard checks
+- assertVisible:
+    text: "C.R.A.S.H."
+- assertVisible:
+    text: "DESCONECTADO"
+- assertVisible:
+    text: "CONECTAR CASCO BLE"
+
+# Settings navigation
+- tapOn:
+    id: "tab-settings"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Ajustes"
+- assertVisible:
+    text: "DISPOSITIVO / CASCO"
+- assertVisible:
+    text: "Auto-reconectar al abrir"
+
+# Devices navigation
+- tapOn:
+    id: "tab-devices"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "BUSCAR CASCO"
+
+# Contacts navigation
+- tapOn:
+    id: "tab-contacts"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "CONTACTOS"
+
+# Impacts navigation
+- tapOn:
+    id: "tab-impacts"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "IMPACTOS"
+
+# Profile navigation
+- tapOn:
+    id: "tab-profile"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Mi Perfil"
+
+# Back to dashboard
+- tapOn:
+    id: "tab-home"
+- waitForAnimationToEnd
+
+# Take final screenshot
+- takeScreenshot:
+    name: full_smoke_test

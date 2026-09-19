@@ -1,0 +1,29 @@
+appId: com.crash.movil
+---
+# Test: Bluetooth device scan and connect
+- launchApp
+- waitForAnimationToEnd
+- optionalTapOn:
+    text: "CONECTAR CASCO BLE"
+- assertVisible:
+    text: "BUSCAR CASCO"
+- tapOn:
+    text: "Toca para escanear"
+- waitForAnimationToEnd
+- wait:
+    duration: 8000
+- optionalAssertVisible:
+    text: "CRASH"
+- optionalTapOn:
+    text: "CRASH"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "CONECTADO"
+- wait:
+    duration: 3000
+- assertVisible:
+    text: "LIVE"
+- wait:
+    duration: 2000
+- takeScreenshot:
+    name: bluetooth_connected

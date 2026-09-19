@@ -36,7 +36,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { token, logout } = useAuth();
   const onTabScroll = useTabBarScroll();
-  const { deviceName, setDeviceName, notifyAlertsConfigChanged } = useAppSettings();
+  const { deviceName, setDeviceName, notifyAlertsConfigChanged, autoReconnect, setAutoReconnect } = useAppSettings();
   const { connected, deviceName: liveDevice, disconnect, nativeAvailable } = useBluetooth();
   const { alert, confirm } = useAlert();
 
@@ -246,6 +246,15 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+
+                <DarkSwitch
+                  value={autoReconnect}
+                  onValueChange={setAutoReconnect}
+                  label={t('settings.autoReconnect')}
+                  icon="refresh"
+                  trackColor={COLORS.success}
+                  offTrackColor={COLORS.danger}
+                />
               </GlassCard>
             </Animated.View>
           </GroupSection>

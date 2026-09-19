@@ -155,6 +155,8 @@ const es = {
     deviceName: "Nombre del dispositivo",
     deviceNameLabel: "NOMBRE DEL DISPOSITIVO",
     deviceNameHelper: "Se usará como patrón de búsqueda para identificar tu módulo.",
+    autoReconnect: "Auto-reconectar al abrir",
+    autoReconnectHelper: "Conecta automáticamente al casco guardado al iniciar la app.",
     about: "Acerca de",
     version: "Versión",
     bluetoothDevice: "DISPOSITIVO BLUETOOTH",
@@ -289,6 +291,9 @@ const es = {
     gForceChart: "Gráfica de fuerza G",
     gyroscope: "Giroscopio",
     gps: "GPS",
+    debugTerminal: "TERMINAL DEBUG",
+    debugSubtitle: "Solo visible para administradores",
+    noTelemetryData: "Sin datos de telemetría",
   },
   impacts: {
     title: "IMPACTOS",

@@ -1,0 +1,11 @@
+appId: com.crash.movil
+---
+# Test: Auto-reconnect on app launch (requires previous pairing)
+- launchApp
+- waitForAnimationToEnd
+- assertVisible:
+    text: "CONECTADO"
+- assertVisible:
+    text: "LIVE"
+- takeScreenshot:
+    name: auto_reconnect_success

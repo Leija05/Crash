@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { bluetoothService, TelemetryData, ScanDevice, BluetoothStatus } from '../services/bluetooth';
+import { useAppSettings } from './AppSettingsContext';
 
 type BluetoothCtx = {
   status: BluetoothStatus;
@@ -24,6 +25,7 @@ export const useBluetooth = () => useContext(BluetoothContext);
 const LAST_DEVICE_KEY = 'crash.lastDevice.v1';
 
 export function BluetoothProvider({ children }: { children: React.ReactNode }) {
+  const { autoReconnect } = useAppSettings();
   const [status, setStatus] = useState<BluetoothStatus>('idle');
   const [statusDetail, setStatusDetail] = useState<string | undefined>();
   const [connected, setConnected] = useState(false);
@@ -37,6 +39,7 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intentionalDisconnect = useRef(false);
   const nativeAvailable = bluetoothService.isNativeAvailable();
+  const autoConnectAttempted = useRef(false);
 
   useEffect(() => {
     const unsubT = bluetoothService.onTelemetry((data) => {
@@ -49,7 +52,6 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
       setStatusDetail(detail);
       setConnected(bluetoothService.isConnected());
 
-      // Si el estado cambió a error o idle y no fue intencional, intentar reconectar
       if ((s === 'error' || s === 'idle') && !intentionalDisconnect.current && nativeAvailable) {
         scheduleReconnect();
       }
@@ -66,6 +68,29 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
     });
     return () => { unsubT(); unsubS(); unsubD(); clearReconnectTimer(); };
   }, [nativeAvailable]);
+
+  // Auto-connect on app launch if enabled and device was previously connected
+  useEffect(() => {
+    const attemptAutoConnect = async () => {
+      if (autoConnectAttempted.current || !nativeAvailable || !autoReconnect) return;
+      
+      const raw = await AsyncStorage.getItem(LAST_DEVICE_KEY);
+      if (!raw) return;
+      
+      try {
+        const saved = JSON.parse(raw);
+        if (saved?.id) {
+          autoConnectAttempted.current = true;
+          setStatusDetail('Conectando automáticamente...');
+          await bluetoothService.connectToDevice(saved.id);
+        }
+      } catch (e) {
+        console.warn('Auto-connect failed:', e);
+      }
+    };
+    
+    attemptAutoConnect();
+  }, [nativeAvailable, autoReconnect]);
 
   const clearReconnectTimer = useCallback(() => {
     if (reconnectTimeout.current) {

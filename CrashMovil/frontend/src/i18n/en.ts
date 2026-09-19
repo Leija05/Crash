@@ -155,6 +155,8 @@ const en = {
     deviceName: "Device name",
     deviceNameLabel: "DEVICE NAME",
     deviceNameHelper: "Used as search pattern to identify your module.",
+    autoReconnect: "Auto-reconnect on launch",
+    autoReconnectHelper: "Automatically connects to the saved helmet when the app starts.",
     about: "About",
     version: "Version",
     bluetoothDevice: "BLUETOOTH DEVICE",
@@ -289,6 +291,9 @@ const en = {
     gForceChart: "G-Force chart",
     gyroscope: "Gyroscope",
     gps: "GPS",
+    debugTerminal: "DEBUG TERMINAL",
+    debugSubtitle: "Admin only view",
+    noTelemetryData: "No telemetry data",
   },
   impacts: {
     title: "IMPACTS",

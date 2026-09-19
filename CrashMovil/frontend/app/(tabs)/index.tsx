@@ -698,10 +698,10 @@ export default function DashboardScreen() {
           <View style={styles.bentoCol}>
             <GlassCard padding={14} delay={40} redEdge>
               <Text style={styles.bentoTitle}>{t('dashboard.gyroscope')}</Text>
-              <View style={styles.sparklineGrid}>
-                <Sparkline data={gyroXData.map(d => d.y)} width={SPARK_W} height={50} color={COLORS.warning} showArea />
-                <Sparkline data={gyroYData.map(d => d.y)} width={SPARK_W} height={50} color={COLORS.warning} showArea />
-                <Sparkline data={gyroZData.map(d => d.y)} width={SPARK_W} height={50} color="#FB923C" showArea />
+              <View style={styles.gyroGrid}>
+                <GyroAxis label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="°/s" color={COLORS.warning} live={liveData} delay={0} />
+                <GyroAxis label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="°/s" color={COLORS.warning} live={liveData} delay={1} />
+                <GyroAxis label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="°/s" color="#FB923C" live={liveData} delay={2} />
               </View>
             </GlassCard>
             <GlassCard padding={14} delay={70} redEdge>
@@ -765,7 +765,7 @@ export default function DashboardScreen() {
         </Stagger>
 
         <Stagger index={8}>
-          <View style={styles.grid}>
+          <View style={styles.metricsGrid}>
             <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="°/s" color={COLORS.warning} live={liveData} delay={0} />
             <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="°/s" color={COLORS.warning} live={liveData} delay={1} />
             <MetricCard label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="°/s" color="#FB923C" live={liveData} delay={2} />
@@ -837,6 +837,22 @@ export default function DashboardScreen() {
             </GlassCard>
           )}
         </Stagger>
+
+        {isSuperAdmin && (
+          <Stagger index={12}>
+            <GlassCard padding={14} delay={40} redEdge>
+              <View style={styles.debugHeader}>
+                <Text style={styles.debugTitle}>{t('dashboard.debugTerminal')}</Text>
+                <Text style={styles.debugSubtitle}>{t('dashboard.debugSubtitle')}</Text>
+              </View>
+              <View style={styles.debugTerminal}>
+                <Text style={styles.debugText}>
+                  {telemetry ? JSON.stringify(telemetry, null, 2) : t('dashboard.noTelemetryData')}
+                </Text>
+              </View>
+            </GlassCard>
+          </Stagger>
+        )}
       </Animated.ScrollView>
 
       <PremiumModal
@@ -957,6 +973,30 @@ function MetricCard({ label, value, unit, color, live, delay = 0 }: {
         style={[styles.metricValue, { color: live ? color : COLORS.textDim }]}
       />
       <Text style={styles.metricUnit}>{unit}</Text>
+    </Animated.View>
+  );
+}
+
+function GyroAxis({ label, value, unit, color, live, delay = 0 }: {
+  label: string; value?: number; unit: string; color: string; live: boolean; delay?: number;
+}) {
+  return (
+    <Animated.View
+      entering={FadeIn.duration(320).delay(delay * 80).springify().damping(25).stiffness(200)}
+      style={styles.gyroAxis}
+      testID={`gyro-${label.toLowerCase().replace(/[\s-]+/g, '-')}`}
+    >
+      <View style={styles.gyroAxisTop}>
+        <Text style={styles.gyroAxisLabel}>{label}</Text>
+        <View style={[styles.gyroAxisDot, { backgroundColor: live ? color : COLORS.textFaint }]} />
+      </View>
+      <AnimatedNumber
+        value={live && value !== undefined ? value : 0}
+        decimals={1}
+        duration={400}
+        style={[styles.gyroAxisValue, { color: live ? color : COLORS.textDim }]}
+      />
+      <Text style={[styles.gyroAxisUnit, { color: live ? COLORS.textSec : COLORS.textDim }]}>{unit}</Text>
     </Animated.View>
   );
 }
@@ -1095,6 +1135,22 @@ const styles = StyleSheet.create({
 
   sparklineGrid: { flexDirection: 'row', gap: 8 },
 
+  gyroGrid: { flexDirection: 'row', gap: 10 },
+  gyroAxis: {
+    flex: 1,
+    backgroundColor: COLORS.glassBg,
+    borderRadius: RADIUS.md,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
+    alignItems: 'center',
+  },
+  gyroAxisTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 10 },
+  gyroAxisLabel: { fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', color: COLORS.textSec, letterSpacing: 1.5, textTransform: 'uppercase' },
+  gyroAxisDot: { width: 8, height: 8, borderRadius: 4 },
+  gyroAxisValue: { fontSize: FONT_SIZE.xl, fontFamily: FONT.monoMedium, fontWeight: '500', includeFontPadding: false },
+  gyroAxisUnit: { fontSize: FONT_SIZE.xs, fontFamily: FONT.body, marginTop: 2 },
+
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2 },
   liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.pill, backgroundColor: COLORS.bgElevated, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
@@ -1112,8 +1168,11 @@ const styles = StyleSheet.create({
   },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: SPACING.md },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: SPACING.md },
   metric: {
-    width: '48%', flexGrow: 1,
+    flex: 1,
+    minWidth: '47%',
+    maxWidth: '49%',
     backgroundColor: COLORS.surface, borderRadius: RADIUS.md, padding: 14,
     borderWidth: 1, borderColor: 'rgba(239,68,68,0.12)',
     ...SHADOWS.xs,
@@ -1199,4 +1258,39 @@ const styles = StyleSheet.create({
   },
   okBtnText: { color: '#FFFFFF', fontFamily: FONT.heading, fontWeight: '700', letterSpacing: 1, fontSize: FONT_SIZE.md },
   contactSent: { color: COLORS.textSec, fontSize: FONT_SIZE.md, fontFamily: FONT.body, marginBottom: 4, textAlign: 'center' },
+  debugHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  debugTitle: {
+    color: RED,
+    fontSize: FONT_SIZE.xs,
+    fontFamily: FONT.heading,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  debugSubtitle: {
+    color: COLORS.textDim,
+    fontSize: FONT_SIZE.xs,
+    fontFamily: FONT.mono,
+    fontWeight: '500',
+  },
+  debugTerminal: {
+    backgroundColor: '#0a0a0a',
+    borderRadius: RADIUS.md,
+    padding: 12,
+    maxHeight: 300,
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+    ...SHADOWS.glow(RED, 0.1, 8),
+  },
+  debugText: {
+    color: '#00ff88',
+    fontSize: 10,
+    fontFamily: FONT.mono,
+    lineHeight: 16,
+  },
 });
