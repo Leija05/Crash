@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-import json
 import logging
 
 import httpx
@@ -130,6 +129,23 @@ def build_diagnosis_summary(diagnosis: dict | None) -> str:
     )
 
 
+def build_template_diagnosis(diagnosis: dict | None) -> str:
+    """Construye el diagnóstico resumido para el template de WhatsApp (variable {{2}})."""
+    if not diagnosis:
+        return "Diagnóstico no disponible"
+
+    parts = []
+    if diagnosis.get("severity_assessment"):
+        parts.append(diagnosis["severity_assessment"])
+    if diagnosis.get("possible_injuries"):
+        injuries = diagnosis["possible_injuries"][:2]
+        parts.append(f"Lesiones: {', '.join(injuries)}")
+    if diagnosis.get("when_to_call_emergency"):
+        parts.append(diagnosis["when_to_call_emergency"])
+
+    return " | ".join(parts) if parts else "Evaluación pendiente"
+
+
 async def send_emergency_alerts(user: dict, impact: dict, profile: dict | None, diagnosis: dict | None):
     from app.core.database import get_db
 
@@ -142,22 +158,25 @@ async def send_emergency_alerts(user: dict, impact: dict, profile: dict | None, 
         logger.warning("No verified contacts to alert")
         return []
 
-    location_str = ""
+    maps_link = ""
     if impact.get("location") and impact["location"].get("latitude"):
         lat = impact["location"]["latitude"]
         lon = impact["location"]["longitude"]
-        location_str = f"Ubicación: https://maps.google.com/?q={lat},{lon}\n"
+        maps_link = f"https://maps.google.com/?q={lat},{lon}"
 
-    diagnosis_summary = build_diagnosis_summary(diagnosis)
-    diagnosis_str = f"Diagnóstico IA (resumen):\n{diagnosis_summary}\n"
+    template_diagnosis = build_template_diagnosis(diagnosis)
+    template_recommendation = (
+        (diagnosis.get("emergency_recommendations") or ["Contactar servicios de emergencia"])[0]
+        if diagnosis else "Contactar servicios de emergencia"
+    )
 
-    message = (
-        f"ALERTA DE EMERGENCIA C.R.A.S.H.\n\n"
-        f"Se ha detectado un impacto de {impact['g_force']:.1f}G ({impact['severity_label']})\n"
-        f"Fecha: {impact['created_at']}\n\n"
-        f"{location_str}"
-        f"{diagnosis_str}\n"
-        f"Por favor, contacte a {user.get('name', 'el usuario')} inmediatamente."
+    fallback_message = (
+        f"EMERGENCIA!!!\n"
+        f"Hemos detectado un choque.\n"
+        f"*GRADO*: {impact.get('severity_label', 'N/A')}.\n"
+        f"*DIAGNOSTICO*: {template_diagnosis}.\n"
+        f"*RECOMENDACION*: {template_recommendation}.\n"
+        f"*UBICACION* {maps_link if maps_link else 'Ubicación no disponible'}."
     )
 
     unique_contacts = []
@@ -172,13 +191,13 @@ async def send_emergency_alerts(user: dict, impact: dict, profile: dict | None, 
     alerted_contacts = []
     template_values = [
         impact.get("severity_label", "N/A"),
-        diagnosis_summary,
-        (diagnosis.get("emergency_recommendations") or ["Contactar servicios de emergencia"])[0] if diagnosis else "Contactar servicios de emergencia",
-        f"https://maps.google.com/?q={impact['location']['latitude']},{impact['location']['longitude']}" if impact.get("location") and impact["location"].get("latitude") else "Ubicación no disponible",
+        template_diagnosis,
+        template_recommendation,
+        maps_link if maps_link else "Ubicación no disponible",
     ]
     for contact in unique_contacts:
         try:
-            await send_whatsapp_message(contact["phone"], message, template_params=template_values)
+            await send_whatsapp_message(contact["phone"], fallback_message, template_params=template_values)
             logger.info(f"Alert sent to {contact['name']} ({contact['phone']})")
             alerted_contacts.append({"id": contact.get("id"), "name": contact.get("name"), "phone": contact.get("phone")})
         except Exception as e:
