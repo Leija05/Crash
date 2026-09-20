@@ -69,9 +69,13 @@ async def generate_ai_diagnosis(impact: dict, profile: dict | None) -> dict:
                     raise RuntimeError("GOOGLE_API_KEY no configurada")
                 from google import genai
                 client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+                # google-genai SDK uses model names like "gemini-2.0-flash-exp" or "gemini-1.5-flash"
+                model_name = settings.GEMINI_MODEL
+                if model_name.startswith("gemini-2.5"):
+                    model_name = "gemini-2.0-flash-exp"
                 gemini_resp = await asyncio.to_thread(
                     client.models.generate_content,
-                    model=settings.GEMINI_MODEL,
+                    model=model_name,
                     contents=combined_prompt,
                 )
                 response = (getattr(gemini_resp, "text", "") or "").strip()
@@ -104,7 +108,7 @@ async def generate_ai_diagnosis(impact: dict, profile: dict | None) -> dict:
                     raise RuntimeError("COHERE_API_KEY no configurada")
                 async with httpx.AsyncClient(timeout=30.0) as http_client:
                     cohere_resp = await http_client.post(
-                        "https://api.cohere.com/v2/chat",
+                        "https://api.cohere.com/v1/chat",
                         headers={
                             "Authorization": f"Bearer {settings.COHERE_API_KEY}",
                             "Content-Type": "application/json",
@@ -131,7 +135,8 @@ async def generate_ai_diagnosis(impact: dict, profile: dict | None) -> dict:
             logger.warning(f"AI provider {provider} failed: {exc}")
 
     if not response:
-        raise RuntimeError(f"All AI providers failed. Last error: {last_error}")
+        logger.error(f"All AI providers failed. Last error: {last_error}. Using fallback diagnosis.")
+        return _generate_fallback_diagnosis(impact)
 
     try:
         cleaned = response.strip()
@@ -176,20 +181,55 @@ async def generate_ai_diagnosis(impact: dict, profile: dict | None) -> dict:
             "when_to_call_emergency": _as_str(parsed.get("when_to_call_emergency")) or "Ante pérdida de conocimiento, sangrado abundante o dolor intenso, llamar al 911.",
         }
     except json.JSONDecodeError:
-        g = impact.get("g_force", 0)
-        return {
-            "severity_assessment": f"Impacto de {g:.1f}G clasificado como {impact.get('severity_label', 'N/A')}. Evalúe al paciente en sitio y vigile signos de trauma.",
-            "priority_level": impact.get("severity", "medio"),
-            "estimated_injury_probability": f"{impact.get('injury_probability', 0)}%",
-            "mechanism_of_injury": f"Deceleración brusca de ~{g:.1f}G; energía transferida compatible con traumatismo por impacto.",
-            "body_areas_at_risk": ["Cabeza y cuello", "Columna", "Tórax", "Extremidades"],
-            "possible_injuries": ["Traumatismo craneoencefálico", "Lesión cervical", "Contusiones y fracturas"],
-            "first_aid_steps": [
-                "Mantener la calma y verificar si el rider responde.",
-                "No mover al paciente si hay sospecha de lesión cervical.",
-                "Llamar a servicios de emergencia (911) y compartir ubicación.",
-            ],
-            "emergency_recommendations": ["Activar servicios de emergencia 911.", "No retirar el casco sin inmovilizar la columna."],
-            "profile_warnings": "Ninguna",
-            "when_to_call_emergency": "Ante pérdida de conocimiento, sangrado abundante o dolor intenso, llamar al 911 de inmediato.",
-        }
+        logger.warning("AI response JSON decode failed. Using fallback diagnosis.")
+        return _generate_fallback_diagnosis(impact)
+
+
+def _generate_fallback_diagnosis(impact: dict) -> dict:
+    """Genera un diagnóstico básico sin IA cuando todos los proveedores fallan."""
+    g = impact.get("g_force", 0)
+    severity = impact.get("severity_label", "N/A")
+    injury_prob = impact.get("injury_probability", 0)
+
+    if g >= 15:
+        severity_desc = "crítico"
+        priority = "crítico"
+    elif g >= 10:
+        severity_desc = "alto"
+        priority = "alto"
+    elif g >= 5:
+        severity_desc = "medio"
+        priority = "medio"
+    else:
+        severity_desc = "bajo"
+        priority = "bajo"
+
+    return {
+        "severity_assessment": f"Impacto de {g:.1f}G clasificado como {severity}. Probabilidad de lesión: {injury_prob}%. Requiere evaluación médica {'urgente' if g >= 10 else 'pronta'}.",
+        "priority_level": priority,
+        "estimated_injury_probability": f"{injury_prob}%",
+        "mechanism_of_injury": f"Deceleración brusca de ~{g:.1f}G; energía transferida compatible con traumatismo por impacto de {'alta' if g >= 15 else 'media' if g >= 10 else 'baja'} energía.",
+        "body_areas_at_risk": ["Cabeza y cuello", "Columna vertebral", "Tórax", "Abdomen", "Pelvis", "Extremidades"],
+        "possible_injuries": [
+            "Traumatismo craneoencefálico",
+            "Lesión cervical",
+            "Contusión pulmonar",
+            "Fracturas costales",
+            "Lesiones abdominales",
+            "Fracturas de extremidades",
+        ],
+        "first_aid_steps": [
+            "Mantener la calma y evaluar si el rider responde.",
+            "No mover al paciente si hay sospecha de lesión cervical.",
+            "Controlar hemorragias externas con presión directa.",
+            "Llamar a servicios de emergencia (911) y compartir ubicación.",
+            "Mantener al paciente abrigado y tranquilo.",
+        ],
+        "emergency_recommendations": [
+            "Activar servicios de emergencia 911.",
+            "No retirar el casco sin inmovilizar la columna.",
+            "Proporcionar datos del impacto (fuerza G, ubicación) a paramédicos.",
+        ],
+        "profile_warnings": "Ninguna (diagnóstico generado sin IA - revise perfil médico manualmente)",
+        "when_to_call_emergency": "Ante pérdida de conocimiento, sangrado abundante, dificultad respiratoria o dolor intenso, llamar al 911 de inmediato.",
+    }
