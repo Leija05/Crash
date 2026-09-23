@@ -347,10 +347,12 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     const shouldTrack = connected || phoneSensorActive;
     if (permissionGranted === true && trackingEnabled && shouldTrack) {
       startLiveTracking();
+      startBackgroundTracking().catch(() => {});
     } else if (!shouldTrack) {
       stopLiveTracking();
+      stopBackgroundTracking().catch(() => {});
     }
-  }, [permissionGranted, trackingEnabled, connected, phoneSensorActive, startLiveTracking, stopLiveTracking]);
+  }, [permissionGranted, trackingEnabled, connected, phoneSensorActive, startLiveTracking, stopLiveTracking, startBackgroundTracking, stopBackgroundTracking]);
 
   // Limpiar al desmontar
   useEffect(() => {

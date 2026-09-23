@@ -178,6 +178,10 @@ export function SpeedDial({
     onOpenChange?.(!open);
   };
 
+  const mainIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${interpolate(mainRotate.value, [0, 1], [0, 45])}deg` }],
+  }));
+
   const handleActionPress = (action: SpeedDialAction) => {
     action.onPress();
     onOpenChange?.(false);
@@ -186,64 +190,15 @@ export function SpeedDial({
   return (
     <View style={[styles.speedDialContainer, posStyle]}>
       {actions.map((action, index) => (
-        <Animated.View
+        <SpeedDialActionItem
           key={action.label}
-          style={styles.actionWrapper}
-          entering={FadeIn.duration(200).delay(index * 50).springify().damping(26).stiffness(200)}
-        >
-          <Animated.View
-            style={[
-              styles.actionBtn,
-              {
-                backgroundColor: action.variant === 'danger' ? COLORS.danger : COLORS.primary,
-                opacity: isOpen.value,
-                transform: [
-                  {
-                    translateY: interpolate(
-                      isOpen.value,
-                      [0, 1],
-                      [isBottom ? -60 * (index + 1) : 60 * (index + 1), 0],
-                      Extrapolate.CLAMP
-                    ),
-                  },
-                  { scale: isOpen.value },
-                ],
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={() => handleActionPress(action)}
-              activeOpacity={0.85}
-              style={styles.actionBtnContent}
-            >
-              <Ionicons
-                name={action.icon as React.ComponentProps<typeof Ionicons>['name']}
-                size={20}
-                color={action.variant === 'danger' ? '#FFF' : '#000'}
-              />
-            </TouchableOpacity>
-          </Animated.View>
-          <Animated.View
-            style={[
-              styles.actionLabel,
-              {
-                opacity: isOpen.value,
-                transform: [
-                  {
-                    translateX: interpolate(
-                      isOpen.value,
-                      [0, 1],
-                      [isRight ? 20 : -20, 0],
-                      Extrapolate.CLAMP
-                    ),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.actionLabelText}>{action.label}</Text>
-          </Animated.View>
-        </Animated.View>
+          action={action}
+          index={index}
+          isOpen={isOpen}
+          isBottom={isBottom}
+          isRight={isRight}
+          onPress={handleActionPress}
+        />
       ))}
       <AnimatedTouchableOpacity
         style={[
@@ -260,12 +215,85 @@ export function SpeedDial({
           name={mainIcon as React.ComponentProps<typeof Ionicons>['name']}
           size={28}
           color={mainIconColor}
-          style={{
-            transform: [{ rotate: `${interpolate(mainRotate.value, [0, 1], [0, 45])}deg` }],
-          }}
+          style={mainIconStyle}
         />
       </AnimatedTouchableOpacity>
     </View>
+  );
+}
+
+function SpeedDialActionItem({
+  action,
+  index,
+  isOpen,
+  isBottom,
+  isRight,
+  onPress,
+}: {
+  action: SpeedDialAction;
+  index: number;
+  isOpen: any;
+  isBottom: boolean;
+  isRight: boolean;
+  onPress: (action: SpeedDialAction) => void;
+}) {
+  const btnStyle = useAnimatedStyle(() => ({
+    opacity: isOpen.value,
+    transform: [
+      {
+        translateY: interpolate(
+          isOpen.value,
+          [0, 1],
+          [isBottom ? -60 * (index + 1) : 60 * (index + 1), 0],
+          Extrapolate.CLAMP
+        ),
+      },
+      { scale: isOpen.value },
+    ],
+  }));
+
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: isOpen.value,
+    transform: [
+      {
+        translateX: interpolate(
+          isOpen.value,
+          [0, 1],
+          [isRight ? 20 : -20, 0],
+          Extrapolate.CLAMP
+        ),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      style={styles.actionWrapper}
+      entering={FadeIn.duration(200).delay(index * 50).springify().damping(26).stiffness(200)}
+    >
+      <Animated.View
+        style={[
+          styles.actionBtn,
+          { backgroundColor: action.variant === 'danger' ? COLORS.danger : COLORS.primary },
+          btnStyle,
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => onPress(action)}
+          activeOpacity={0.85}
+          style={styles.actionBtnContent}
+        >
+          <Ionicons
+            name={action.icon as React.ComponentProps<typeof Ionicons>['name']}
+            size={20}
+            color={action.variant === 'danger' ? '#FFF' : '#000'}
+          />
+        </TouchableOpacity>
+      </Animated.View>
+      <Animated.View style={[styles.actionLabel, labelStyle]}>
+        <Text style={styles.actionLabelText}>{action.label}</Text>
+      </Animated.View>
+    </Animated.View>
   );
 }
 

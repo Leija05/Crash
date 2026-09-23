@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Animated, { FadeIn, SlideInRight } from 'react-native-reanimated';
 import { useAuth } from '../../src/context/AuthContext';
+import { usePhoneSensor } from '../../src/context/PhoneSensorContext';
 import { impactsAPI } from '../../src/services/api';
 import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, RED, RED_GRADIENT, RED_GRADIENT_DIAGONAL, FONT, FONT_SIZE } from '../../src/theme';
 import { MultiLineChart } from '../../src/components/Charts';
@@ -51,6 +52,7 @@ function DataItem({ label, value, unit, color = COLORS.text }: { label: string; 
 export default function ImpactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
+  const { canUsePhoneSensor } = usePhoneSensor();
   const router = useRouter();
 
   const { width: SCREEN_W } = useWindowDimensions();
@@ -191,12 +193,14 @@ export default function ImpactDetailScreen() {
             <View style={styles.sevMeta}>
               <View style={styles.sourceTag}>
                 <Ionicons
-                  name={impact.source === 'phone_sensor' ? 'phone-portrait-outline' : 'hardware-chip-outline'}
+                  name={canUsePhoneSensor && impact.source === 'phone_sensor' ? 'phone-portrait-outline' : 'shield-checkmark-outline'}
                   size={12}
-                  color={impact.source === 'phone_sensor' ? '#60A5FA' : RED}
+                  color={canUsePhoneSensor && impact.source === 'phone_sensor' ? '#60A5FA' : RED}
                 />
-                <Text style={[styles.sourceTagText, { color: impact.source === 'phone_sensor' ? '#60A5FA' : RED }]}>
-                  {impact.source === 'phone_sensor' ? 'SENSOR DEL TELÉFONO' : 'CIRCUITO CRASH'}
+                <Text style={[styles.sourceTagText, { color: canUsePhoneSensor && impact.source === 'phone_sensor' ? '#60A5FA' : RED }]}>
+                  {canUsePhoneSensor && impact.source === 'phone_sensor'
+                    ? 'TELEMETRÍA AUTÓNOMA (ADMIN)'
+                    : 'SISTEMA C.R.A.S.H.'}
                 </Text>
               </View>
 

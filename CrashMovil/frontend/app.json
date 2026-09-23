@@ -28,7 +28,7 @@
       "versionCode": 22,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/crashicon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#12131A"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [

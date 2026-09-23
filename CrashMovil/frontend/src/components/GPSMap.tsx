@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, ViewStyle } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
@@ -39,6 +39,19 @@ export function GPSMap({
   const [mapType, setMapType] = useState<'interactive' | 'vector'>('interactive');
   const [webViewLoaded, setWebViewLoaded] = useState(false);
   const [webViewError, setWebViewError] = useState(false);
+  const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    if (
+      webViewLoaded &&
+      currentLocation &&
+      typeof currentLocation.latitude === 'number' &&
+      typeof currentLocation.longitude === 'number'
+    ) {
+      const script = `if (window.setVehiclePos) { window.setVehiclePos(${currentLocation.latitude}, ${currentLocation.longitude}); } true;`;
+      webViewRef.current?.injectJavaScript(script);
+    }
+  }, [currentLocation, webViewLoaded]);
 
   // Normalizar los puntos de la ruta
   const validRoute = useMemo(() => {
@@ -125,6 +138,37 @@ export function GPSMap({
             border: 2px solid #FFFFFF;
             border-radius: 50%;
             box-shadow: 0 0 10px #10B981;
+          }
+          .vehicle-marker-wrapper {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .vehicle-pulsar {
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgba(96, 165, 250, 0.3);
+            border: 2px solid #60A5FA;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 16px rgba(96, 165, 250, 0.9);
+            animation: vPulse 1.6s infinite ease-out;
+          }
+          .vehicle-core {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: #FFFFFF;
+          }
+          @keyframes vPulse {
+            0% { transform: scale(0.9); opacity: 0.85; }
+            50% { transform: scale(1.18); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.85; }
           }
           .leaflet-popup-content-wrapper {
             background: rgba(18, 18, 22, 0.95) !important;
@@ -250,6 +294,24 @@ export function GPSMap({
           } else {
             map.setView([${centerLat}, ${centerLon}], 15);
           }
+
+          let vehicleMarker = null;
+          window.setVehiclePos = function(lat, lng) {
+            if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) return;
+            const vIcon = L.divIcon({
+              className: 'vehicle-marker-wrapper',
+              html: '<div class="vehicle-pulsar"><div class="vehicle-core"></div></div>',
+              iconSize: [28, 28],
+              iconAnchor: [14, 14]
+            });
+            if (!vehicleMarker) {
+              vehicleMarker = L.marker([lat, lng], { icon: vIcon, zIndexOffset: 2500 }).addTo(map);
+            } else {
+              vehicleMarker.setLatLng([lat, lng]);
+            }
+          };
+
+          ${currentLocation && typeof currentLocation.latitude === 'number' && typeof currentLocation.longitude === 'number' ? `window.setVehiclePos(${currentLocation.latitude}, ${currentLocation.longitude});` : ''}
         </script>
       </body>
       </html>
@@ -332,6 +394,18 @@ export function GPSMap({
               <Circle cx={projectedImpact.x} cy={projectedImpact.y} r={7} fill="#EF4444" stroke="#FFFFFF" strokeWidth={2} />
             </>
           )}
+
+          {currentLocation && typeof currentLocation.latitude === 'number' && typeof currentLocation.longitude === 'number' && (
+            (() => {
+              const p = project(currentLocation.latitude, currentLocation.longitude);
+              return (
+                <>
+                  <Circle cx={p.x} cy={p.y} r={14} fill="rgba(96,165,250,0.3)" />
+                  <Circle cx={p.x} cy={p.y} r={5} fill="#60A5FA" stroke="#FFFFFF" strokeWidth={2} />
+                </>
+              );
+            })()
+          )}
         </Svg>
       </View>
     );
@@ -340,6 +414,7 @@ export function GPSMap({
   return (
     <View style={[styles.container, { width, height }, style]}>
       <WebView
+        ref={webViewRef}
         originWhitelist={['*']}
         source={{ html: leafletHtml }}
         style={styles.webView}

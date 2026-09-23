@@ -1,23 +1,20 @@
 import { Platform, NativeModules } from 'react-native';
 
 const { ForegroundService } = NativeModules;
-
 const isAndroid = Platform.OS === 'android';
-
 let serviceActive = false;
 
 export const foregroundService = {
-  async start(deviceName: string): Promise<boolean> {
+  async start(deviceName: string, threshold: number = 5.0): Promise<boolean> {
     if (!isAndroid || !ForegroundService) {
-      console.warn('ForegroundService not available on this platform');
       return false;
     }
     try {
-      await ForegroundService.start(deviceName);
+      await ForegroundService.start(deviceName, threshold);
       serviceActive = true;
       return true;
     } catch (e) {
-      console.error('Failed to start foreground service:', e);
+      console.warn('Failed to start foreground service:', e);
       return false;
     }
   },
@@ -31,7 +28,7 @@ export const foregroundService = {
       serviceActive = false;
       return true;
     } catch (e) {
-      console.error('Failed to stop foreground service:', e);
+      console.warn('Failed to stop foreground service:', e);
       return false;
     }
   },
@@ -49,7 +46,45 @@ export const foregroundService = {
       await ForegroundService.updateTelemetry(deviceName, speed, gForce, battery);
       return true;
     } catch (e) {
-      console.warn('Failed to update foreground notification:', e);
+      return false;
+    }
+  },
+
+  async updateLocation(
+    latitude: number,
+    longitude: number,
+    speed: number = 0,
+  ): Promise<boolean> {
+    if (!isAndroid || !ForegroundService || !serviceActive) {
+      return false;
+    }
+    try {
+      await ForegroundService.updateLocation(latitude, longitude, speed);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async setThreshold(threshold: number): Promise<boolean> {
+    if (!isAndroid || !ForegroundService || !serviceActive) {
+      return false;
+    }
+    try {
+      await ForegroundService.setThreshold(threshold);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  async isRunning(): Promise<boolean> {
+    if (!isAndroid || !ForegroundService) {
+      return false;
+    }
+    try {
+      return await ForegroundService.isRunning();
+    } catch {
       return false;
     }
   },

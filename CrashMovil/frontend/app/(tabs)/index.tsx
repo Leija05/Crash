@@ -41,18 +41,30 @@ function estimateSpeed(ax: number, ay: number, az: number): number {
 }
 
 const ANDROID_ALERT_CHANNEL_ID = 'crash-alerts';
+const ANDROID_STATUS_CHANNEL_ID = 'crash-monitoring';
 const NOTIFICATION_TELEMETRY_THROTTLE_MS = 12000;
 const NOTIFICATION_COUNTDOWN_ID = 'crash-countdown';
 const NOTIFICATION_STATUS_ID = 'crash-status';
 const ACTION_CANCEL_COUNTDOWN = 'CANCEL_COUNTDOWN';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
+  handleNotification: async (notification) => {
+    const id = notification.request.identifier || '';
+    const content = notification.request.content as any;
+    const isEmergency = id.includes('alert')
+      || id.includes('emergency')
+      || id.includes('countdown')
+      || id.includes('threshold')
+      || id.includes('dispatched')
+      || content?.priority === Notifications.AndroidNotificationPriority.MAX;
+
+    return {
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: isEmergency,
+      shouldSetBadge: false,
+    };
+  },
 });
 
 function Stagger({ children, index = 0 }: { children: React.ReactNode; index?: number }) {
@@ -78,7 +90,7 @@ export default function DashboardScreen() {
   } = useBluetooth();
   const {
     phoneSensorActive, canUsePhoneSensor, phoneTelemetry, latestDetectedImpact,
-    togglePhoneSensor, clearDetectedImpact, setSensorThreshold,
+    clearDetectedImpact, setSensorThreshold,
   } = usePhoneSensor();
   const {
     permissionGranted, grantedLocation, currentLocation, isTracking,
@@ -111,9 +123,12 @@ export default function DashboardScreen() {
   const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true);
   const lastTelemetrySentAtRef = useRef(0);
   const lastNotificationUpdateRef = useRef(0);
+  const lastReportedGRef = useRef(1.0);
+  const lastReportedPeakRef = useRef(1.0);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownTargetTsRef = useRef<number | null>(null);
   const emergencyFlowRef = useRef<() => void>(() => {});
+  const lastImpactTriggerTsRef = useRef(0);
 
   const cancelCountdown = useCallback(() => {
     if (countdownTimerRef.current) {
@@ -122,15 +137,18 @@ export default function DashboardScreen() {
     }
     countdownTargetTsRef.current = null;
     setCountdown(null);
+    lastImpactTriggerTsRef.current = Date.now();
     impactTriggeredRef.current = false;
   }, []);
 
   const startCountdown = useCallback((seconds: number) => {
+    const now = Date.now();
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
     }
-    countdownTargetTsRef.current = Date.now() + seconds * 1000;
+    lastImpactTriggerTsRef.current = now;
+    countdownTargetTsRef.current = now + seconds * 1000;
     setCountdown(seconds);
     haptics.warning();
 
@@ -155,7 +173,11 @@ export default function DashboardScreen() {
         countdownTimerRef.current = null;
         countdownTargetTsRef.current = null;
         setCountdown(null);
-        emergencyFlowRef.current();
+        lastImpactTriggerTsRef.current = Date.now();
+        impactTriggeredRef.current = true;
+        if (emergencyFlowRef.current) {
+          emergencyFlowRef.current();
+        }
       }
     }, 200);
   }, []);
@@ -220,23 +242,30 @@ export default function DashboardScreen() {
   // Detección autónoma de impacto en el smartphone
   useEffect(() => {
     if (!phoneSensorActive || !latestDetectedImpact) return;
-    if (countdown !== null || sending || emergencyInFlightRef.current) return;
+    const detected = latestDetectedImpact;
+    // Consumir y limpiar de inmediato para que nunca quede un impacto residual en el contexto
+    clearDetectedImpact();
 
+    const now = Date.now();
+    if (countdown !== null || sending || emergencyInFlightRef.current || now - lastImpactTriggerTsRef.current < 15000) {
+      return;
+    }
+
+    lastImpactTriggerTsRef.current = now;
+    impactTriggeredRef.current = true;
     impactTelemetryRef.current = {
-      acceleration_x: latestDetectedImpact.acceleration.x,
-      acceleration_y: latestDetectedImpact.acceleration.y,
-      acceleration_z: latestDetectedImpact.acceleration.z,
-      gyroscope_x: latestDetectedImpact.gyroscope.x,
-      gyroscope_y: latestDetectedImpact.gyroscope.y,
-      gyroscope_z: latestDetectedImpact.gyroscope.z,
-      g_force: latestDetectedImpact.gForce,
-      speed_kmh: Math.round((latestDetectedImpact.gForce - 1.0) * 18.5),
+      acceleration_x: detected.acceleration.x,
+      acceleration_y: detected.acceleration.y,
+      acceleration_z: detected.acceleration.z,
+      gyroscope_x: detected.gyroscope.x,
+      gyroscope_y: detected.gyroscope.y,
+      gyroscope_z: detected.gyroscope.z,
+      g_force: detected.gForce,
+      speed_kmh: Math.round((detected.gForce - 1.0) * 18.5),
       battery: 100,
       critical: true,
-      timestamp: Date.now(),
+      timestamp: now,
     };
-    impactTriggeredRef.current = true;
-    clearDetectedImpact();
     haptics.error();
     startCountdown(countdownSeconds);
   }, [phoneSensorActive, latestDetectedImpact, countdown, sending, countdownSeconds, clearDetectedImpact, startCountdown]);
@@ -285,33 +314,38 @@ export default function DashboardScreen() {
     return () => clearInterval(t);
   }, [connected]);
 
+  const isMonitoring = connected || phoneSensorActive;
+
   useEffect(() => {
-    if (connected) {
-      foregroundService.start(deviceName || 'C.R.A.S.H.');
+    if (isMonitoring) {
+      foregroundService.start('C.R.A.S.H.', alertThreshold);
     } else {
       foregroundService.stop();
     }
-  }, [connected, deviceName]);
+  }, [isMonitoring, alertThreshold]);
 
   useEffect(() => {
-    if (telemetry) telemetryForServiceRef.current = telemetry;
-  }, [telemetry]);
+    if (effectiveTelemetry) telemetryForServiceRef.current = effectiveTelemetry;
+  }, [effectiveTelemetry]);
 
   useEffect(() => {
-    if (!connected || !telemetry) return;
+    if (!isMonitoring) return;
     const interval = setInterval(() => {
       const t = telemetryForServiceRef.current;
       if (!t) return;
       const speed = estimateSpeed(t.acceleration_x, t.acceleration_y, t.acceleration_z);
       foregroundService.updateTelemetry(
-        deviceName || 'C.R.A.S.H.',
+        'C.R.A.S.H.',
         speed,
         t.g_force,
         batteryLevel,
       );
-    }, 3000);
+      if (currentLocation?.latitude && currentLocation?.longitude) {
+        foregroundService.updateLocation(currentLocation.latitude, currentLocation.longitude, speed);
+      }
+    }, 2000);
     return () => clearInterval(interval);
-  }, [connected, deviceName, batteryLevel]);
+  }, [isMonitoring, batteryLevel, currentLocation]);
 
   const onRefresh = useCallback(() => {
     haptics.light();
@@ -398,7 +432,16 @@ export default function DashboardScreen() {
   }, [token, connected, telemetry, staleData, locationTrackingEnabled]);
 
   useEffect(() => {
-    if (highImpact && countdown === null && !sending && !impactTriggeredRef.current) {
+    const now = Date.now();
+    if (
+      highImpact &&
+      countdown === null &&
+      !sending &&
+      !emergencyInFlightRef.current &&
+      !impactTriggeredRef.current &&
+      now - lastImpactTriggerTsRef.current >= 15000
+    ) {
+      lastImpactTriggerTsRef.current = now;
       impactTriggeredRef.current = true;
       impactTelemetryRef.current = telemetry ?? telemetryRef.current;
       haptics.error();
@@ -407,10 +450,72 @@ export default function DashboardScreen() {
   }, [highImpact, countdown, sending, countdownSeconds, telemetry, startCountdown]);
 
   useEffect(() => {
-    if (!liveData || gForce < alertThreshold) {
+    if (!liveData || (gForce < alertThreshold && Date.now() - lastImpactTriggerTsRef.current >= 15000 && countdown === null && !sending)) {
       impactTriggeredRef.current = false;
     }
-  }, [liveData, gForce, alertThreshold]);
+  }, [liveData, gForce, alertThreshold, countdown, sending]);
+
+  const pushStatusNotification = useCallback(async (forceImmediate = false, overrideG?: number) => {
+    const isMonitoring = connected || phoneSensorActive;
+    if (Platform.OS !== 'android') return;
+
+    if (!isMonitoring) {
+      await Notifications.dismissNotificationAsync(NOTIFICATION_STATUS_ID).catch(() => {});
+      return;
+    }
+
+    const now = Date.now();
+    const current = telemetryForDisplay;
+    const gVal = overrideG !== undefined ? overrideG : (current?.g_force ?? 1.0);
+    const currentPeak = Math.max(peakG, gVal);
+
+    // Detección de picos y saltos dinámicos en tiempo real
+    const deltaG = Math.abs(gVal - lastReportedGRef.current);
+    const isSpike = deltaG >= 0.35 || gVal >= alertThreshold * 0.7;
+    const isNewPeak = currentPeak > lastReportedPeakRef.current + 0.2;
+    const shouldBypassThrottle = forceImmediate || isSpike || isNewPeak;
+
+    // Respetar throttle de 3000ms únicamente si las lecturas son estables
+    if (!shouldBypassThrottle && now - lastNotificationUpdateRef.current < 3000) {
+      return;
+    }
+
+    lastNotificationUpdateRef.current = now;
+    lastReportedGRef.current = gVal;
+    if (currentPeak > lastReportedPeakRef.current) {
+      lastReportedPeakRef.current = currentPeak;
+    }
+
+    const speed = current ? estimateSpeed(current.acceleration_x, current.acceleration_y, current.acceleration_z) : 0;
+    const lat = currentLocation?.latitude ?? current?.latitude;
+    const lng = currentLocation?.longitude ?? current?.longitude;
+    const coordsStr = (lat && lng) ? `${lat.toFixed(4)}°, ${lng.toFixed(4)}°` : 'Sincronizando GPS...';
+    // Distintivo de estado táctico en tiempo real (sin revelar si es móvil o circuito)
+    let statusBadge = '🟢 Normal';
+    if (gVal >= alertThreshold) {
+      statusBadge = '🚨 ¡IMPACTO!';
+    } else if (gVal >= alertThreshold * 0.7 || isSpike) {
+      statusBadge = `⚠️ Pico: ${gVal.toFixed(2)}G`;
+    } else if (currentPeak >= 2.5) {
+      statusBadge = `⚡ Max: ${currentPeak.toFixed(2)}G`;
+    }
+
+    const title = `🛡️ C.R.A.S.H. · Monitoreo Activo [${statusBadge}]`;
+    const line1 = `⚡ G: ${gVal.toFixed(2)}G (Pico: ${currentPeak.toFixed(2)}G) · 🚗 ${Math.round(speed)} km/h`;
+    const line2 = `📍 GPS: ${coordsStr}`;
+    const body = `${line1}\n${line2}`;
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: NOTIFICATION_STATUS_ID,
+      content: {
+        title,
+        body,
+        sticky: true,
+        priority: Notifications.AndroidNotificationPriority.LOW,
+      },
+      trigger: { channelId: ANDROID_STATUS_CHANNEL_ID },
+    }).catch(() => {});
+  }, [connected, phoneSensorActive, telemetryForDisplay, peakG, alertThreshold, currentLocation, deviceName]);
 
   const triggerEmergencyFlow = useCallback(async () => {
     const currentTelemetry = impactTelemetryRef.current ?? telemetryRef.current;
@@ -466,13 +571,43 @@ export default function DashboardScreen() {
       }
       if (impact?.alerts_sent) haptics.success(); else haptics.warning();
       setAlertResult(impact);
+
+      // Aviso inconfundible al usuario de que se mandó la alerta de emergencia
+      const gRecorded = (currentTelemetry?.g_force ?? 1.0).toFixed(2);
+      const contactsText = impact?.alerted_contacts?.length
+        ? `${impact.alerted_contacts.length} contactos de emergencia`
+        : 'tus contactos de emergencia';
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: `crash-dispatched-${Date.now()}`,
+        content: {
+          title: '🚨 ¡ALERTA DE EMERGENCIA DESPACHADA!',
+          body: `📢 Notificación de impacto enviada (${gRecorded}G) a ${contactsText} con tu ubicación exacta. La ayuda viene en camino.`,
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          vibrate: [0, 600, 200, 600, 200, 1000],
+        },
+        trigger: { channelId: ANDROID_ALERT_CHANNEL_ID },
+      }).catch(() => {});
+
+      // Ráfaga háptica intensa para que el usuario se dé cuenta de inmediato
+      haptics.error();
+      setTimeout(() => haptics.error(), 300);
+      setTimeout(() => haptics.error(), 650);
+
+      // Actualizar inmediatamente la barra de estado con confirmación
+      pushStatusNotification(true);
     } catch (e: any) {
       alert({ title: t('common.error'), message: e.message || t('errors.generic') });
     } finally {
       setSending(false);
       emergencyInFlightRef.current = false;
     }
-  }, [token, sending, hasEmergencyContacts, router, alertThreshold, confirm, alert, t, connected, getRecentRoute]);
+  }, [token, sending, hasEmergencyContacts, router, alertThreshold, confirm, alert, t, connected, getRecentRoute, pushStatusNotification]);
+
+  useEffect(() => {
+    emergencyFlowRef.current = triggerEmergencyFlow;
+  }, [triggerEmergencyFlow]);
 
   const simulateImpact = useCallback(async () => {
     if (!token || sending || emergencyInFlightRef.current) return;
@@ -562,6 +697,19 @@ export default function DashboardScreen() {
       } else {
         haptics.warning();
       }
+
+      // Aviso de prueba despachada en simulación
+      await Notifications.scheduleNotificationAsync({
+        identifier: `crash-sim-dispatched-${Date.now()}`,
+        content: {
+          title: '🚨 ¡ALERTA DE PRUEBA DESPACHADA!',
+          body: '📢 La simulación de impacto fue transmitida y tus contactos recibieron el aviso de emergencia con éxito.',
+          sound: 'default',
+          priority: Notifications.AndroidNotificationPriority.MAX,
+          vibrate: [0, 500, 200, 500, 200, 800],
+        },
+        trigger: { channelId: ANDROID_ALERT_CHANNEL_ID },
+      }).catch(() => {});
     } catch (e: any) {
       setSimulationError(e.message || t('errors.generic'));
       haptics.error();
@@ -572,15 +720,35 @@ export default function DashboardScreen() {
   }, [token, sending, hasEmergencyContacts, router, confirm, t, connected, phoneSensorActive, getRecentRoute]);
 
   useEffect(() => {
-    const setupNotificationChannel = async () => {
+    const setupNotificationChannels = async () => {
       if (Platform.OS !== 'android') return;
-      await Notifications.setNotificationChannelAsync(ANDROID_ALERT_CHANNEL_ID, {
-        name: 'C.R.A.S.H. Monitoreo',
-        importance: Notifications.AndroidImportance.HIGH,
+
+      // Canal 1: Monitoreo continuo y telemetría en vivo (silencioso, no intrusivo)
+      await Notifications.setNotificationChannelAsync(ANDROID_STATUS_CHANNEL_ID, {
+        name: 'C.R.A.S.H. Monitoreo en Vivo',
+        description: 'Barra de estado continua con Fuerza G, velocidad y coordenadas',
+        importance: Notifications.AndroidImportance.LOW,
+        enableVibrate: false,
+        vibrationPattern: null,
+        sound: null,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        showBadge: false,
+      });
+
+      // Canal 2: Alertas críticas y despacho de emergencia (máxima prioridad, sonido y vibración)
+      await Notifications.setNotificationChannelAsync(ANDROID_ALERT_CHANNEL_ID, {
+        name: 'C.R.A.S.H. Alertas de Emergencia',
+        description: 'Avisos críticos de impacto, cuenta regresiva y confirmación de despacho',
+        importance: Notifications.AndroidImportance.MAX,
+        enableVibrate: true,
+        vibrationPattern: [0, 500, 200, 500, 200, 1000],
+        sound: 'default',
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: true,
+        showBadge: true,
       });
     };
-    setupNotificationChannel();
+    setupNotificationChannels();
   }, []);
 
   useEffect(() => {
@@ -593,55 +761,44 @@ export default function DashboardScreen() {
     return () => sub.remove();
   }, [cancelCountdown]);
 
-  // Notificación persistente optimizada en segundo plano (3.0s throttle para bajo consumo de batería)
+  // Actualizar notificación persistente de estado (con bypass inteligente para picos)
   useEffect(() => {
-    const pushStatusNotification = async () => {
-      const isMonitoring = connected || phoneSensorActive;
-      if (Platform.OS !== 'android' || !isMonitoring) {
-        await Notifications.dismissNotificationAsync(NOTIFICATION_STATUS_ID).catch(() => {});
-        return;
-      }
-      const now = Date.now();
-      if (now - lastNotificationUpdateRef.current < 3000) return;
-      lastNotificationUpdateRef.current = now;
-      const current = telemetryForDisplay;
-      const gVal = current?.g_force ?? 1.0;
-      const speed = current ? estimateSpeed(current.acceleration_x, current.acceleration_y, current.acceleration_z) : 0;
-      const lat = currentLocation?.latitude ?? current?.latitude;
-      const lng = currentLocation?.longitude ?? current?.longitude;
-      const coordsText = (lat && lng) ? ` · Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}` : '';
-      const sourceText = phoneSensorActive ? 'Sensor Móvil' : (deviceName || 'Casco');
-      const title = `C.R.A.S.H. · ${sourceText}`;
-      const body = `Fuerza G: ${gVal.toFixed(2)}G · Vel: ${Math.round(speed)} km/h${coordsText}`;
-      await Notifications.scheduleNotificationAsync({
-        identifier: NOTIFICATION_STATUS_ID,
-        content: { title, body, sticky: true, priority: Notifications.AndroidNotificationPriority.LOW },
-        trigger: null,
-      });
-    };
-    pushStatusNotification();
-  }, [connected, phoneSensorActive, telemetryForDisplay, deviceName, currentLocation, t]);
+    pushStatusNotification(false);
+  }, [telemetryForDisplay, pushStatusNotification]);
 
-  // Alerta inmediata de límite excedido en segundo plano
+  // Actualización instantánea en tiempo real ante detección de picos en smartphone
+  useEffect(() => {
+    const unsubPeak = phoneSensorEngine.onPeak((newPeak, currentG) => {
+      setPeakG(prev => (newPeak > prev ? newPeak : prev));
+      pushStatusNotification(true, currentG);
+    });
+    return () => unsubPeak();
+  }, [pushStatusNotification]);
+
+  // Alerta de umbral excedido y actualización en tiempo real en segundo plano
   useEffect(() => {
     const unsubThreshold = phoneSensorEngine.onThresholdExceeded(async (gVal) => {
+      // 1. Actualización inmediata en tiempo real de la barra de notificaciones
+      pushStatusNotification(true, gVal);
+
+      // 2. Si la app está en segundo plano o pantalla bloqueada, avisar con máxima prioridad
       if (AppState.currentState !== 'active' && gVal >= alertThreshold) {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: '⚠️ ALERTA DE IMPACTO DETECTADO',
-            body: `¡Fuerza G: ${gVal.toFixed(2)}G! Toca para abrir C.R.A.S.H. y verificar estado.`,
+            title: '🚨 ¡IMPACTO DETECTADO EN SEGUNDO PLANO!',
+            body: `⚠️ Fuerza G de ${gVal.toFixed(2)}G registrada. Abre C.R.A.S.H. de inmediato para verificar tu estado.`,
             sound: 'default',
             priority: Notifications.AndroidNotificationPriority.MAX,
-            vibrate: [0, 450, 200, 450],
+            vibrate: [0, 500, 200, 500, 200, 1000],
           },
-          trigger: null,
-        });
+          trigger: { channelId: ANDROID_ALERT_CHANNEL_ID },
+        }).catch(() => {});
       }
     });
     return () => unsubThreshold();
-  }, [alertThreshold]);
+  }, [alertThreshold, pushStatusNotification]);
 
-  // Notificación de cuenta regresiva en curso
+  // Notificación de cuenta regresiva en curso con máxima prioridad en canal de alertas
   useEffect(() => {
     const updateCountdownNotification = async () => {
       if (Platform.OS !== 'android') return;
@@ -650,22 +807,24 @@ export default function DashboardScreen() {
         return;
       }
       await Notifications.setNotificationCategoryAsync('crash-actions', [
-        { identifier: ACTION_CANCEL_COUNTDOWN, buttonTitle: t('dashboard.cancel'), options: { opensAppToForeground: false } },
+        { identifier: ACTION_CANCEL_COUNTDOWN, buttonTitle: '❌ ' + t('dashboard.cancel'), options: { opensAppToForeground: true } },
       ]);
       await Notifications.scheduleNotificationAsync({
         identifier: NOTIFICATION_COUNTDOWN_ID,
         content: {
-          title: t('dashboard.impactDetected'),
-          body: `${t('dashboard.sendNow')} ${countdown}s · G ${(impactTelemetryRef.current?.g_force ?? gForce).toFixed(2)}`,
+          title: `🚨 ¡IMPACTO DETECTADO! (${countdown}s)`,
+          body: `⚠️ Despachando auxilio en ${countdown}s · G ${(impactTelemetryRef.current?.g_force ?? gForce).toFixed(2)}. Toca para CANCELAR si estás bien.`,
           categoryIdentifier: 'crash-actions',
           sticky: true,
+          sound: countdown === countdownSeconds ? 'default' : undefined,
           priority: Notifications.AndroidNotificationPriority.MAX,
+          vibrate: countdown === countdownSeconds ? [0, 500, 200, 500] : undefined,
         },
-        trigger: null,
-      });
+        trigger: { channelId: ANDROID_ALERT_CHANNEL_ID },
+      }).catch(() => {});
     };
     updateCountdownNotification();
-  }, [countdown, gForce, t]);
+  }, [countdown, gForce, countdownSeconds, t]);
 
   const { accelChartData, accelYData, accelZData, gForceChartData, gpsRoute } = useMemo(() => {
     const aData = accelHistory.current.map((d, i) => ({
@@ -755,13 +914,21 @@ export default function DashboardScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.statusLabel}>
-                  {liveData ? (connected ? t('dashboard.connected') : t('dashboard.phoneSensorActive')) : connected ? t('dashboard.noData') : t('dashboard.disconnected')}
+                  {liveData
+                    ? (connected
+                        ? t('dashboard.connected')
+                        : (canUsePhoneSensor
+                            ? 'PROTECCIÓN ACTIVA · MODO AUTÓNOMO'
+                            : t('dashboard.phoneSensorActive')))
+                    : connected
+                    ? t('dashboard.noData')
+                    : t('dashboard.disconnected')}
                 </Text>
                 <Text style={styles.statusDetail} numberOfLines={1}>
                   {connected
                     ? staleData ? (statusDetail || t('dashboard.waitingTelemetry')) : `${deviceName}${batteryLevel !== null ? ` · ${t('dashboard.battery')} ${batteryLevel}%` : ''}`
                     : phoneSensorActive
-                    ? t('dashboard.phoneSensorDetail')
+                    ? (canUsePhoneSensor ? 'Telemetría autónoma activa (Admin)' : t('dashboard.phoneSensorDetail'))
                     : t('dashboard.tapToConnect')}
                 </Text>
               </View>
@@ -770,75 +937,9 @@ export default function DashboardScreen() {
           </GlassCard>
         </Stagger>
 
-        {canUsePhoneSensor && (
-          <Stagger index={1}>
-            <GlassCard
-              padding={14}
-              bezel
-              delay={55}
-              style={[
-                styles.adminSensorCard,
-                phoneSensorActive && styles.adminSensorCardActive,
-              ]}
-            >
-              <View style={styles.adminSensorInner}>
-                <View style={[styles.adminIconWrap, phoneSensorActive && styles.adminIconWrapActive]}>
-                  <Ionicons
-                    name="phone-portrait"
-                    size={20}
-                    color={phoneSensorActive ? '#60A5FA' : COLORS.textDim}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.adminSensorTitle}>{t('dashboard.adminPhoneSensor').toUpperCase()}</Text>
-                    <View style={styles.adminTag}>
-                      <Text style={styles.adminTagText}>ADMIN</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.adminSensorDesc} numberOfLines={2}>
-                    {phoneSensorActive
-                      ? t('dashboard.adminPhoneSensorDesc')
-                      : t('dashboard.phoneSensorDetail')}
-                  </Text>
-                </View>
-                <Switch
-                  value={phoneSensorActive}
-                  onValueChange={(val) => {
-                    haptics.medium();
-                    togglePhoneSensor(val);
-                  }}
-                  trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(59,130,246,0.5)' }}
-                  thumbColor={phoneSensorActive ? '#60A5FA' : '#9CA3AF'}
-                />
-              </View>
-            </GlassCard>
-          </Stagger>
-        )}
-
         {/* Quick Tactical Controls Dock */}
         <Stagger index={2}>
           <View style={styles.quickDock}>
-            {canUsePhoneSensor && (
-              <TouchableOpacity
-                style={[styles.quickDockBtn, phoneSensorActive && styles.quickDockBtnActive]}
-                onPress={() => {
-                  haptics.medium();
-                  togglePhoneSensor(!phoneSensorActive);
-                }}
-                activeOpacity={0.75}
-              >
-                <Ionicons
-                  name="phone-portrait-outline"
-                  size={14}
-                  color={phoneSensorActive ? '#60A5FA' : COLORS.textDim}
-                />
-                <Text style={[styles.quickDockText, phoneSensorActive && styles.quickDockTextActive]}>
-                  {phoneSensorActive ? 'SENSOR ON' : 'SENSOR MÓVIL'}
-                </Text>
-              </TouchableOpacity>
-            )}
-
             <TouchableOpacity
               style={styles.quickDockBtn}
               onPress={resetPeakG}
@@ -943,7 +1044,7 @@ export default function DashboardScreen() {
           </GlassCard>
         </Stagger>
 
-        <Stagger index={3}>
+        <Stagger index={4}>
           <View style={styles.bentoRow}>
             <GlassCard padding={14} delay={40} style={styles.bentoHalf} redEdge>
               <Text style={styles.bentoTitle}>{t('dashboard.acceleration')}</Text>
@@ -988,7 +1089,7 @@ export default function DashboardScreen() {
           </View>
         </Stagger>
 
-        <Stagger index={4}>
+        <Stagger index={5}>
           <View style={styles.bentoCol}>
             <GlassCard padding={14} delay={40} redEdge>
               <Text style={styles.bentoTitle}>{t('dashboard.gyroscope')}</Text>
@@ -1015,7 +1116,7 @@ export default function DashboardScreen() {
           </View>
         </Stagger>
 
-        <Stagger index={5}>
+        <Stagger index={6}>
           <View style={styles.sectionHead}>
             <Text style={styles.sectionTitle}>{t('dashboard.telemetryTitle')}</Text>
             <View style={[styles.liveBadge, liveData && styles.liveBadgeOn]}>
@@ -1025,7 +1126,7 @@ export default function DashboardScreen() {
           </View>
         </Stagger>
 
-        <Stagger index={6}>
+        <Stagger index={7}>
           <GlassCard padding={16} delay={40} redEdge>
             <Text style={styles.chartTitle}>{t('dashboard.accelChart')}</Text>
             <MultiLineChart
@@ -1042,7 +1143,7 @@ export default function DashboardScreen() {
           </GlassCard>
         </Stagger>
 
-        <Stagger index={7}>
+        <Stagger index={8}>
           <GlassCard padding={16} delay={40} redEdge>
             <Text style={styles.chartTitle}>{t('dashboard.gForceChart')}</Text>
             <LineChart
@@ -1235,15 +1336,33 @@ export default function DashboardScreen() {
 }
 
 function CoordItem({ label, value, live, delay = 0 }: { label: string; value?: number; live: boolean; delay?: number }) {
+  const numVal = live && value !== undefined ? value : 0;
+  const norm = Math.max(-1, Math.min(1, numVal / 15));
+  const isPositive = norm >= 0;
+  const barPercent = Math.min(50, Math.abs(norm) * 50);
+
   return (
     <Animated.View
       entering={FadeIn.duration(320).delay(delay * 80).springify().damping(25).stiffness(200)}
       style={styles.coordCell}
     >
-      <Text style={styles.coordLabel}>{label}</Text>
-      <Text style={[styles.coordValue, { color: live ? COLORS.text : COLORS.textDim }]}>
-        {live && value !== undefined ? (value >= 0 ? `+${value.toFixed(2)}` : value.toFixed(2)) : '0.00'}
-      </Text>
+      <View style={styles.coordCellTop}>
+        <Text style={styles.coordLabel}>{label}</Text>
+        <Text style={[styles.coordValue, { color: live ? COLORS.text : COLORS.textDim }]}>
+          {live && value !== undefined ? (value >= 0 ? `+${value.toFixed(2)}` : value.toFixed(2)) : '0.00'}
+        </Text>
+      </View>
+      <View style={styles.coordBarTrack}>
+        <View style={styles.coordBarCenterMark} />
+        <View
+          style={[
+            styles.coordBarFill,
+            isPositive
+              ? { left: '50%', width: `${barPercent}%`, backgroundColor: RED }
+              : { right: '50%', width: `${barPercent}%`, backgroundColor: '#60A5FA' },
+          ]}
+        />
+      </View>
     </Animated.View>
   );
 }
@@ -1251,6 +1370,11 @@ function CoordItem({ label, value, live, delay = 0 }: { label: string; value?: n
 const GyroAxis = React.memo(function GyroAxis({ label, value, unit, color, live, delay = 0 }: {
   label: string; value?: number; unit: string; color: string; live: boolean; delay?: number;
 }) {
+  const numVal = live && value !== undefined ? value : 0;
+  const norm = Math.max(-1, Math.min(1, numVal / 50));
+  const isPositive = norm >= 0;
+  const barPercent = Math.min(50, Math.abs(norm) * 50);
+
   return (
     <Animated.View
       entering={FadeIn.duration(320).delay(delay * 80).springify().damping(25).stiffness(200)}
@@ -1265,6 +1389,18 @@ const GyroAxis = React.memo(function GyroAxis({ label, value, unit, color, live,
         {live && value !== undefined ? (value >= 0 ? `+${value.toFixed(1)}` : value.toFixed(1)) : '0.0'}
       </Text>
       <Text style={[styles.gyroAxisUnit, { color: live ? COLORS.textSec : COLORS.textDim }]}>{unit}</Text>
+
+      <View style={styles.gyroBarTrack}>
+        <View style={styles.gyroBarCenterMark} />
+        <View
+          style={[
+            styles.gyroBarFill,
+            isPositive
+              ? { left: '50%', width: `${barPercent}%`, backgroundColor: color }
+              : { right: '50%', width: `${barPercent}%`, backgroundColor: color },
+          ]}
+        />
+      </View>
     </Animated.View>
   );
 });
@@ -1465,10 +1601,39 @@ const styles = StyleSheet.create({
   coordCell: {
     flex: 1, borderRadius: RADIUS.sm,
     backgroundColor: COLORS.bgElevated, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
-    paddingVertical: 10, alignItems: 'center',
+    paddingHorizontal: 8, paddingVertical: 10, alignItems: 'center',
   },
-  coordLabel: { color: COLORS.textDim, fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', marginBottom: 4 },
-  coordValue: { fontSize: FONT_SIZE.lg, fontFamily: FONT.monoMedium, fontWeight: '500', includeFontPadding: false },
+  coordCellTop: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 6,
+  },
+  coordLabel: { color: COLORS.textDim, fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700' },
+  coordValue: { fontSize: FONT_SIZE.md, fontFamily: FONT.monoMedium, fontWeight: '600', includeFontPadding: false },
+  coordBarTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  coordBarCenterMark: {
+    position: 'absolute',
+    left: '50%',
+    width: 1,
+    height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    zIndex: 1,
+  },
+  coordBarFill: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    borderRadius: 1,
+  },
   locationBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     marginTop: 10, paddingVertical: 10, borderRadius: RADIUS.sm,
@@ -1509,6 +1674,29 @@ const styles = StyleSheet.create({
   gyroAxisDot: { width: 8, height: 8, borderRadius: 4 },
   gyroAxisValue: { fontSize: FONT_SIZE.xl, fontFamily: FONT.monoMedium, fontWeight: '500', includeFontPadding: false },
   gyroAxisUnit: { fontSize: FONT_SIZE.xs, fontFamily: FONT.body, marginTop: 2 },
+  gyroBarTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 2,
+    marginTop: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  gyroBarCenterMark: {
+    position: 'absolute',
+    left: '50%',
+    width: 1,
+    height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    zIndex: 1,
+  },
+  gyroBarFill: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    borderRadius: 1,
+  },
 
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', color: COLORS.textSec, letterSpacing: 2 },

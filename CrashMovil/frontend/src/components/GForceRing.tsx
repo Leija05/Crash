@@ -26,7 +26,6 @@ import Animated, {
   Easing,
   createAnimatedComponent,
 } from 'react-native-reanimated';
-import AnimatedNumber from './AnimatedNumber';
 import {
   COLORS,
   RADIUS,

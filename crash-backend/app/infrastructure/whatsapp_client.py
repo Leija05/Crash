@@ -130,20 +130,20 @@ def build_diagnosis_summary(diagnosis: dict | None) -> str:
 
 
 def build_template_diagnosis(diagnosis: dict | None) -> str:
-    """Construye el diagnóstico resumido para el template de WhatsApp (variable {{2}})."""
+    """Construye el diagnóstico clínico resumido para la plantilla y mensaje."""
     if not diagnosis:
-        return "Diagnóstico no disponible"
+        return "Evaluación médica preliminar pendiente"
 
     parts = []
     if diagnosis.get("severity_assessment"):
         parts.append(diagnosis["severity_assessment"])
     if diagnosis.get("possible_injuries"):
-        injuries = diagnosis["possible_injuries"][:2]
+        injuries = diagnosis["possible_injuries"][:3]
         parts.append(f"Lesiones: {', '.join(injuries)}")
     if diagnosis.get("when_to_call_emergency"):
         parts.append(diagnosis["when_to_call_emergency"])
 
-    return " | ".join(parts) if parts else "Evaluación pendiente"
+    return " | ".join(parts) if parts else "Evaluación médica preliminar"
 
 
 def _normalize_whatsapp_phone(raw: str) -> str:
@@ -177,18 +177,30 @@ async def send_emergency_alerts(user: dict, impact: dict, profile: dict | None, 
         maps_link = f"https://maps.google.com/?q={lat},{lon}"
 
     template_diagnosis = build_template_diagnosis(diagnosis)
-    template_recommendation = (
-        (diagnosis.get("emergency_recommendations") or ["Contactar servicios de emergencia"])[0]
-        if diagnosis else "Contactar servicios de emergencia"
-    )
+    recommendations_list = (diagnosis.get("emergency_recommendations") or [
+        "¡NO retirar el casco! Mantener inmovilización cervical estricta",
+        "Evaluar estado de consciencia y respiración sin mover al paciente",
+        "Llamar al 911 indicando cinemática de trauma por choque en motocicleta"
+    ]) if diagnosis else [
+        "¡NO retirar el casco! Mantener inmovilización cervical",
+        "Verificar signos vitales y consciencia",
+        "Llamar al 911 de inmediato"
+    ]
+    template_recommendation = recommendations_list[0]
+    recomms_formatted = "\n".join([f"• {r}" for r in recommendations_list[:3]])
+
+    injuries_list = (diagnosis.get("possible_injuries") or ["Traumatismo por desaceleración violenta"])[:3]
+    injuries_formatted = "\n".join([f"• {inj}" for inj in injuries_list])
+
+    clinical_summary = diagnosis.get("severity_assessment", template_diagnosis) if diagnosis else template_diagnosis
 
     fallback_message = (
-        f"EMERGENCIA!!!\n"
-        f"Hemos detectado un choque.\n"
-        f"*GRADO*: {impact.get('severity_label', 'N/A')}.\n"
-        f"*DIAGNOSTICO*: {template_diagnosis}.\n"
-        f"*RECOMENDACION*: {template_recommendation}.\n"
-        f"*UBICACION* {maps_link if maps_link else 'Ubicación no disponible'}."
+        f"🚨 *ALERTA MÉDICA DE IMPACTO - C.R.A.S.H.*\n"
+        f"Se ha detectado un accidente en motocicleta con impacto de {impact.get('g_force', 0):.1f}G ({impact.get('severity_label', 'Alto')}).\n\n"
+        f"🩺 *DIAGNÓSTICO CLÍNICO*:\n{clinical_summary}\n\n"
+        f"🩹 *LESIONES SOSPECHADAS*:\n{injuries_formatted}\n\n"
+        f"⚕️ *ACCIONES MÉDICAS INMEDIATAS*:\n{recomms_formatted}\n\n"
+        f"📍 *UBICACIÓN GPS EN VIVO*:\n{maps_link if maps_link else 'Ubicación no disponible'}"
     )
     unique_contacts = []
     seen_phones = set()

@@ -18,29 +18,33 @@ interface AnimatedNumberProps extends TextProps {
 export default function AnimatedNumber({
   value,
   decimals = 0,
-  duration = 500,
+  duration = 350,
   odometer = true,
   separator = false,
   style,
   ...rest
 }: AnimatedNumberProps) {
-  const progress = useSharedValue(0);
+  const progress = useSharedValue(1);
+  const prevValueShared = useSharedValue(value);
+  const targetValueShared = useSharedValue(value);
   const [display, setDisplay] = useState(value.toFixed(decimals));
 
   useEffect(() => {
+    prevValueShared.value = targetValueShared.value;
+    targetValueShared.value = value;
     progress.value = 0;
     progress.value = withSpring(1, {
       duration,
-      dampingRatio: 0.7,
+      dampingRatio: 0.8,
       mass: 0.9,
       overshootClamping: false,
     });
-  }, [value, duration, progress]);
+  }, [value, duration, progress, prevValueShared, targetValueShared]);
 
   useAnimatedReaction(
     () => progress.value,
     (p) => {
-      const v = interpolate(p, [0, 1], [0, value], Extrapolation.CLAMP);
+      const v = interpolate(p, [0, 1], [prevValueShared.value, targetValueShared.value], Extrapolation.CLAMP);
       const text = v.toFixed(decimals);
       runOnJS(setDisplay)(separator ? text.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : text);
     }

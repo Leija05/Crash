@@ -129,6 +129,10 @@ export function LineChart({
     opacity: animate ? progress.value : 1,
   }), [areaPathData, animate]);
 
+  const animatedPointProps = useAnimatedProps(() => ({
+    opacity: animate ? progress.value : 1,
+  }), [animate]);
+
   React.useEffect(() => {
     if (animate) {
       progress.value = withTiming(1, { duration: animationDuration, easing: Easing.out(Easing.cubic) });
@@ -211,7 +215,7 @@ export function LineChart({
             fill={d.color || color}
             stroke={COLORS.bg}
             strokeWidth={2}
-            opacity={animate ? progress.value : 1}
+            animatedProps={animatedPointProps}
           />
         ))}
 
@@ -428,13 +432,22 @@ function MultiLineDataset({
     return p;
   }, [data, xScale, yScale, yMin, chartHeight, paddingLeft, paddingTop]);
 
+  const animatedAreaProps = useAnimatedProps(() => ({
+    opacity: progress.value,
+  }));
+
+  const animatedLineProps = useAnimatedProps(() => ({
+    strokeDashoffset: path.length * (1 - progress.value),
+    opacity: progress.value,
+  }));
+
   return (
     <G>
       {showArea && (
         <AnimatedPath
           d={areaPath}
           fill={dataset.color + '10'}
-          opacity={progress.value}
+          animatedProps={animatedAreaProps}
         />
       )}
       <AnimatedPath
@@ -445,8 +458,7 @@ function MultiLineDataset({
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeDasharray={path.length}
-        strokeDashoffset={path.length * (1 - progress.value)}
-        opacity={progress.value}
+        animatedProps={animatedLineProps}
       />
     </G>
   );
@@ -511,13 +523,26 @@ export function Sparkline({ data, width = 120, height = 40, color = COLORS.prima
     }
   }, [animate, data.length]);
 
+  const animatedAreaProps = useAnimatedProps(() => ({
+    opacity: progress.value,
+  }));
+
+  const animatedLineProps = useAnimatedProps(() => ({
+    strokeDashoffset: path.length * (1 - progress.value),
+    opacity: progress.value,
+  }));
+
+  const animatedCircleProps = useAnimatedProps(() => ({
+    opacity: progress.value,
+  }));
+
   return (
     <Svg width={width} height={height}>
       {showArea && (
         <AnimatedPath
           d={areaPath}
           fill={color + '15'}
-          opacity={progress.value}
+          animatedProps={animatedAreaProps}
         />
       )}
       <AnimatedPath
@@ -528,17 +553,16 @@ export function Sparkline({ data, width = 120, height = 40, color = COLORS.prima
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeDasharray={path.length}
-        strokeDashoffset={path.length * (1 - progress.value)}
-        opacity={progress.value}
+        animatedProps={animatedLineProps}
       />
-      <Circle
+      <AnimatedCircle
         cx={points[points.length - 1]?.x || 0}
         cy={points[points.length - 1]?.y || 0}
         r={3}
         fill={color}
         stroke={COLORS.bg}
         strokeWidth={2}
-        opacity={progress.value}
+        animatedProps={animatedCircleProps}
       />
     </Svg>
   );
