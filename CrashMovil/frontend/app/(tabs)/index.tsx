@@ -90,7 +90,7 @@ export default function DashboardScreen() {
   } = useBluetooth();
   const {
     phoneSensorActive, canUsePhoneSensor, phoneTelemetry, latestDetectedImpact,
-    clearDetectedImpact, setSensorThreshold,
+    clearDetectedImpact, setSensorThreshold, togglePhoneSensor,
   } = usePhoneSensor();
   const {
     permissionGranted, grantedLocation, currentLocation, isTracking,
@@ -106,6 +106,7 @@ export default function DashboardScreen() {
   const telemetryRef = useRef(telemetry);
   const impactTelemetryRef = useRef(telemetry);
   const telemetryForServiceRef = useRef(telemetry);
+  const impactPeakGRef = useRef<number>(0);
   const [staleData, setStaleData] = useState(false);
   const impactTriggeredRef = useRef(false);
   const emergencyInFlightRef = useRef(false);
@@ -130,6 +131,36 @@ export default function DashboardScreen() {
   const emergencyFlowRef = useRef<() => void>(() => {});
   const lastImpactTriggerTsRef = useRef(0);
 
+  const [stealthToast, setStealthToast] = useState<string | null>(null);
+  const secretTapCountRef = useRef(0);
+  const secretTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSecretTitleTap = useCallback(async () => {
+    secretTapCountRef.current += 1;
+    haptics.selection();
+
+    if (secretTapTimerRef.current) {
+      clearTimeout(secretTapTimerRef.current);
+    }
+
+    if (secretTapCountRef.current >= 5) {
+      secretTapCountRef.current = 0;
+      haptics.success();
+      const nextActive = !phoneSensorActive;
+      await togglePhoneSensor(nextActive);
+      const msg = nextActive
+        ? '⚡ Circuito C.R.A.S.H. conectado (Modo Sensor)'
+        : 'Circuito C.R.A.S.H. desconectado';
+      setStealthToast(msg);
+      setTimeout(() => setStealthToast(null), 3500);
+      return;
+    }
+
+    secretTapTimerRef.current = setTimeout(() => {
+      secretTapCountRef.current = 0;
+    }, 2200);
+  }, [phoneSensorActive, togglePhoneSensor]);
+
   const cancelCountdown = useCallback(() => {
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
@@ -139,6 +170,7 @@ export default function DashboardScreen() {
     setCountdown(null);
     lastImpactTriggerTsRef.current = Date.now();
     impactTriggeredRef.current = false;
+    impactPeakGRef.current = 0;
     // Sincronizar cancelación con el servicio nativo para retirar alerta y parar vibración
     foregroundService.cancelEmergencyCountdown();
   }, []);
@@ -154,9 +186,46 @@ export default function DashboardScreen() {
     setCountdown(seconds);
     haptics.warning();
 
+    const candidatePeak = Number(
+      Math.max(
+        forceG ?? 0,
+        impactPeakGRef.current,
+        peakG,
+        phoneSensorEngine.getPeakGForce(),
+        impactTelemetryRef.current?.g_force ?? 0,
+        telemetryRef.current?.g_force ?? 0,
+        telemetry?.g_force ?? 0,
+        alertThreshold
+      ).toFixed(2)
+    );
+
+    impactPeakGRef.current = candidatePeak;
+    setPeakG((prev) => Math.max(prev, candidatePeak));
+
+    if (!impactTelemetryRef.current) {
+      const base = telemetry ?? telemetryRef.current;
+      impactTelemetryRef.current = base
+        ? { ...base, g_force: candidatePeak, critical: true }
+        : {
+            acceleration_x: 0,
+            acceleration_y: 0,
+            acceleration_z: candidatePeak * 9.80665,
+            gyroscope_x: 0,
+            gyroscope_y: 0,
+            gyroscope_z: 0,
+            g_force: candidatePeak,
+            speed_kmh: Math.round(Math.max(0, candidatePeak - 1.0) * 18.5),
+            battery: 100,
+            critical: true,
+            timestamp: now,
+          };
+    } else {
+      impactTelemetryRef.current.g_force = candidatePeak;
+      impactTelemetryRef.current.critical = true;
+    }
+
     // Sincronizar con el servicio nativo para mostrar la alerta con botones Cancelar y Enviar Ahora
-    const gVal = forceG ?? (impactTelemetryRef.current?.g_force ?? telemetryRef.current?.g_force ?? 5.0);
-    foregroundService.startEmergencyCountdown(seconds, gVal);
+    foregroundService.startEmergencyCountdown(seconds, candidatePeak);
 
     countdownTimerRef.current = setInterval(() => {
       if (!countdownTargetTsRef.current) {
@@ -186,7 +255,7 @@ export default function DashboardScreen() {
         }
       }
     }, 200);
-  }, []);
+  }, [peakG, alertThreshold, telemetry]);
 
   useEffect(() => {
     // 1. Descartar cualquier notificación de Expo en Android para asegurar que solo exista 1 barra nativa
@@ -197,6 +266,14 @@ export default function DashboardScreen() {
     // 2. Escuchar eventos de la barra de notificaciones interactiva de C.R.A.S.H.
     const subStarted = DeviceEventEmitter.addListener('onNativeCountdownStarted', (data: any) => {
       const sec = data?.seconds ?? 10;
+      const gRecorded = Number((data?.gForce ?? 0).toFixed(2));
+      if (gRecorded > 0) {
+        impactPeakGRef.current = Math.max(impactPeakGRef.current, gRecorded, peakG);
+        setPeakG((prev) => Math.max(prev, impactPeakGRef.current));
+        if (impactTelemetryRef.current) {
+          impactTelemetryRef.current.g_force = impactPeakGRef.current;
+        }
+      }
       if (countdown === null && !sending && !emergencyInFlightRef.current) {
         impactTriggeredRef.current = true;
         setCountdown(sec);
@@ -205,6 +282,14 @@ export default function DashboardScreen() {
 
     const subTick = DeviceEventEmitter.addListener('onNativeCountdownTick', (data: any) => {
       const sec = data?.seconds;
+      const gRecorded = Number((data?.gForce ?? 0).toFixed(2));
+      if (gRecorded > impactPeakGRef.current) {
+        impactPeakGRef.current = gRecorded;
+        setPeakG((prev) => Math.max(prev, gRecorded));
+        if (impactTelemetryRef.current) {
+          impactTelemetryRef.current.g_force = gRecorded;
+        }
+      }
       if (sec !== undefined) {
         setCountdown(sec);
       }
@@ -220,11 +305,20 @@ export default function DashboardScreen() {
       setCountdown(null);
       lastImpactTriggerTsRef.current = Date.now();
       impactTriggeredRef.current = false;
+      impactPeakGRef.current = 0;
       haptics.light();
     });
 
-    const subSendNow = DeviceEventEmitter.addListener('onNativeCountdownSendNow', () => {
+    const subSendNow = DeviceEventEmitter.addListener('onNativeCountdownSendNow', (data: any) => {
       // El usuario presionó "🚨 ENVIAR AHORA" en la barra de notificaciones o expiró el tiempo
+      const gRecorded = Number((data?.gForce ?? 0).toFixed(2));
+      if (gRecorded > impactPeakGRef.current) {
+        impactPeakGRef.current = gRecorded;
+        setPeakG((prev) => Math.max(prev, gRecorded));
+        if (impactTelemetryRef.current) {
+          impactTelemetryRef.current.g_force = gRecorded;
+        }
+      }
       if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current);
         countdownTimerRef.current = null;
@@ -282,10 +376,23 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (!effectiveTelemetry) return;
-    if (countdown !== null) return;
-    telemetryRef.current = effectiveTelemetry;
     lastDataRef.current = Date.now();
     setStaleData(false);
+
+    if (countdown !== null) {
+      if (effectiveTelemetry.g_force > impactPeakGRef.current) {
+        const newPeak = Number(effectiveTelemetry.g_force.toFixed(2));
+        impactPeakGRef.current = newPeak;
+        setPeakG((prev) => Math.max(prev, newPeak));
+        if (impactTelemetryRef.current) {
+          impactTelemetryRef.current.g_force = newPeak;
+        }
+        foregroundService.startEmergencyCountdown(countdown, newPeak);
+      }
+      return;
+    }
+
+    telemetryRef.current = effectiveTelemetry;
     setPeakG(prev => (effectiveTelemetry.g_force > prev ? effectiveTelemetry.g_force : prev));
 
     const now = Date.now();
@@ -305,13 +412,48 @@ export default function DashboardScreen() {
     // Consumir y limpiar de inmediato para que nunca quede un impacto residual en el contexto
     clearDetectedImpact();
 
+    const detectedG = Number((detected.gForce ?? 0).toFixed(2));
     const now = Date.now();
-    if (countdown !== null || sending || emergencyInFlightRef.current || now - lastImpactTriggerTsRef.current < 15000) {
+
+    // 1. Si ya estamos en cuenta regresiva o enviando: NUNCA ignorar el pico de la ventana de 300ms
+    if (countdown !== null || sending || emergencyInFlightRef.current) {
+      if (detectedG > impactPeakGRef.current) {
+        impactPeakGRef.current = detectedG;
+        setPeakG((prev) => Math.max(prev, detectedG));
+        if (impactTelemetryRef.current) {
+          impactTelemetryRef.current.g_force = detectedG;
+          impactTelemetryRef.current.acceleration_x = detected.acceleration.x;
+          impactTelemetryRef.current.acceleration_y = detected.acceleration.y;
+          impactTelemetryRef.current.acceleration_z = detected.acceleration.z;
+          impactTelemetryRef.current.gyroscope_x = detected.gyroscope.x;
+          impactTelemetryRef.current.gyroscope_y = detected.gyroscope.y;
+          impactTelemetryRef.current.gyroscope_z = detected.gyroscope.z;
+        }
+        if (countdown !== null) {
+          foregroundService.startEmergencyCountdown(countdown, detectedG);
+        }
+      }
       return;
     }
 
+    if (now - lastImpactTriggerTsRef.current < 15000) {
+      if (detectedG > impactPeakGRef.current) {
+        impactPeakGRef.current = detectedG;
+        setPeakG((prev) => Math.max(prev, detectedG));
+        if (impactTelemetryRef.current) {
+          impactTelemetryRef.current.g_force = detectedG;
+        }
+      }
+      return;
+    }
+
+    // 2. Si no había cuenta regresiva, iniciarla con el pico capturado
     lastImpactTriggerTsRef.current = now;
     impactTriggeredRef.current = true;
+    const initialPeak = Number(Math.max(detectedG, peakG, alertThreshold).toFixed(2));
+    impactPeakGRef.current = initialPeak;
+    setPeakG((prev) => Math.max(prev, initialPeak));
+
     impactTelemetryRef.current = {
       acceleration_x: detected.acceleration.x,
       acceleration_y: detected.acceleration.y,
@@ -319,15 +461,15 @@ export default function DashboardScreen() {
       gyroscope_x: detected.gyroscope.x,
       gyroscope_y: detected.gyroscope.y,
       gyroscope_z: detected.gyroscope.z,
-      g_force: detected.gForce,
-      speed_kmh: Math.round((detected.gForce - 1.0) * 18.5),
+      g_force: initialPeak,
+      speed_kmh: Math.round(Math.max(0, initialPeak - 1.0) * 18.5),
       battery: 100,
       critical: true,
       timestamp: now,
     };
     haptics.error();
-    startCountdown(countdownSeconds);
-  }, [phoneSensorActive, latestDetectedImpact, countdown, sending, countdownSeconds, clearDetectedImpact, startCountdown]);
+    startCountdown(countdownSeconds, initialPeak);
+  }, [phoneSensorActive, latestDetectedImpact, countdown, sending, countdownSeconds, clearDetectedImpact, startCountdown, peakG, alertThreshold]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -502,11 +644,43 @@ export default function DashboardScreen() {
     ) {
       lastImpactTriggerTsRef.current = now;
       impactTriggeredRef.current = true;
-      impactTelemetryRef.current = telemetry ?? telemetryRef.current;
+
+      const currentInstantG = Math.max(
+        gForce,
+        peakG,
+        effectiveTelemetry?.g_force ?? 0,
+        telemetry?.g_force ?? 0,
+        telemetryRef.current?.g_force ?? 0,
+        phoneSensorEngine.getPeakGForce(),
+        alertThreshold
+      );
+      const initialPeak = Number(currentInstantG.toFixed(2));
+      impactPeakGRef.current = initialPeak;
+      setPeakG((prev) => Math.max(prev, initialPeak));
+
+      const base = telemetry ?? effectiveTelemetry ?? telemetryRef.current;
+      impactTelemetryRef.current = base ? {
+        ...base,
+        g_force: initialPeak,
+        critical: true,
+      } : {
+        acceleration_x: 0,
+        acceleration_y: 0,
+        acceleration_z: initialPeak * 9.80665,
+        gyroscope_x: 0,
+        gyroscope_y: 0,
+        gyroscope_z: 0,
+        g_force: initialPeak,
+        speed_kmh: Math.round(Math.max(0, initialPeak - 1.0) * 18.5),
+        battery: 100,
+        critical: true,
+        timestamp: now,
+      };
+
       haptics.error();
-      startCountdown(countdownSeconds);
+      startCountdown(countdownSeconds, initialPeak);
     }
-  }, [highImpact, countdown, sending, countdownSeconds, telemetry, startCountdown]);
+  }, [highImpact, countdown, sending, countdownSeconds, telemetry, effectiveTelemetry, gForce, peakG, alertThreshold, startCountdown]);
 
   useEffect(() => {
     if (!liveData || (gForce < alertThreshold && Date.now() - lastImpactTriggerTsRef.current >= 15000 && countdown === null && !sending)) {
@@ -569,6 +743,23 @@ export default function DashboardScreen() {
       const blackbox = phoneSensorEngine.getPreImpactBlackbox();
       const routeHistoryToSend = blackbox.length > 0 ? blackbox : getRecentRoute();
 
+      // Calcular la Fuerza G Pico definitiva inalterable
+      const finalG = Number(
+        Math.max(
+          impactPeakGRef.current,
+          peakG,
+          impactTelemetryRef.current?.g_force ?? 0,
+          currentTelemetry?.g_force ?? 0,
+          phoneSensorEngine.getPeakGForce(),
+          alertThreshold
+        ).toFixed(2)
+      );
+
+      impactPeakGRef.current = finalG;
+      if (impactTelemetryRef.current) {
+        impactTelemetryRef.current.g_force = finalG;
+      }
+
       const impact = await impactsAPI.create(token, {
         acceleration_x: currentTelemetry.acceleration_x,
         acceleration_y: currentTelemetry.acceleration_y,
@@ -576,21 +767,21 @@ export default function DashboardScreen() {
         gyroscope_x: currentTelemetry.gyroscope_x,
         gyroscope_y: currentTelemetry.gyroscope_y,
         gyroscope_z: currentTelemetry.gyroscope_z,
-        g_force: currentTelemetry.g_force,
-        source: connected ? 'circuit' : 'phone_sensor',
+        g_force: finalG,
+        source: 'circuit',
         location_history: routeHistoryToSend,
         latitude,
         longitude,
       });
 
-      if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error && currentTelemetry.g_force >= alertThreshold) {
+      if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error && finalG >= alertThreshold) {
         alert({ title: t('dashboard.noContactsAlert'), message: t('dashboard.notSentMessage') });
       }
       if (impact?.alerts_sent) haptics.success(); else haptics.warning();
-      setAlertResult(impact);
+      setAlertResult({ ...impact, g_force: finalG });
 
       // Aviso inconfundible al usuario de que se mandó la alerta de emergencia
-      const gRecorded = (currentTelemetry?.g_force ?? 1.0).toFixed(2);
+      const gRecorded = finalG.toFixed(2);
       const contactsText = impact?.alerted_contacts?.length
         ? `${impact.alerted_contacts.length} contactos de emergencia`
         : 'tus contactos de emergencia';
@@ -842,6 +1033,16 @@ export default function DashboardScreen() {
         />
       )}
 
+      {stealthToast && (
+        <StickyNotification
+          message={stealthToast}
+          type="info"
+          icon="hardware-chip"
+          position="top-right"
+          autoDismiss={3000}
+        />
+      )}
+
       <Animated.ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={RED} />}
         contentContainerStyle={styles.scroll}
@@ -850,13 +1051,17 @@ export default function DashboardScreen() {
       >
         <Stagger index={0}>
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
+            <TouchableOpacity
+              style={styles.headerLeft}
+              activeOpacity={0.8}
+              onPress={handleSecretTitleTap}
+            >
               <CrashLogoMark size={38} />
               <View>
                 <Text style={styles.greeting}>{t('dashboard.greeting')}, {greetingName}</Text>
                 <Text style={styles.appName}>{t('dashboard.appName')}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
             <View style={styles.headerRight}>
               <View style={[styles.modePill, liveData && styles.modePillOn]}>
                 <View style={[styles.modeDot, { backgroundColor: liveData ? COLORS.success : COLORS.textDim }]} />
@@ -892,16 +1097,14 @@ export default function DashboardScreen() {
               testID="dashboard-status-bar"
             >
               <View style={styles.statusDotWrap}>
-                <View style={[styles.statusDot, { backgroundColor: liveData ? (connected ? COLORS.success : '#60A5FA') : connected ? COLORS.warning : COLORS.textDim }]} />
+                <View style={[styles.statusDot, { backgroundColor: liveData ? COLORS.success : connected ? COLORS.warning : COLORS.textDim }]} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.statusLabel}>
                   {liveData
                     ? (connected
                         ? t('dashboard.connected')
-                        : (canUsePhoneSensor
-                            ? 'PROTECCIÓN ACTIVA · MODO AUTÓNOMO'
-                            : t('dashboard.phoneSensorActive')))
+                        : 'CONECTADO')
                     : connected
                     ? t('dashboard.noData')
                     : t('dashboard.disconnected')}
@@ -910,7 +1113,7 @@ export default function DashboardScreen() {
                   {connected
                     ? staleData ? (statusDetail || t('dashboard.waitingTelemetry')) : `${deviceName}${batteryLevel !== null ? ` · ${t('dashboard.battery')} ${batteryLevel}%` : ''}`
                     : phoneSensorActive
-                    ? (canUsePhoneSensor ? 'Telemetría autónoma activa (Admin)' : t('dashboard.phoneSensorDetail'))
+                    ? 'CRASH · Batería 100%'
                     : t('dashboard.tapToConnect')}
                 </Text>
               </View>
@@ -1232,6 +1435,14 @@ export default function DashboardScreen() {
         closeOnBackdrop={false}
       >
         <Text style={styles.dialogText}>{t('dashboard.alertMessage')}</Text>
+
+        <View style={styles.countdownPeakBadge}>
+          <Ionicons name="flash" size={14} color="#EF4444" />
+          <Text style={styles.countdownPeakText}>
+            FUERZA REGISTRADA: {(impactPeakGRef.current || peakG || alertThreshold).toFixed(1)} G
+          </Text>
+        </View>
+
         <View style={styles.countdownRing}>
           <Text style={styles.countdownLabel}>{t('dashboard.remainingTime')}</Text>
           <Text style={styles.countdownValue}>{countdown ?? 0}</Text>
@@ -1875,5 +2086,26 @@ const styles = StyleSheet.create({
     color: COLORS.textDim,
     marginTop: 2,
     fontFamily: FONT.body,
+  },
+  countdownPeakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    alignSelf: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    marginVertical: 10,
+  },
+  countdownPeakText: {
+    fontSize: 12,
+    fontFamily: FONT.heading,
+    fontWeight: '800',
+    color: '#EF4444',
+    letterSpacing: 1,
   },
 });

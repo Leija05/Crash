@@ -327,7 +327,7 @@ export default function SettingsScreen() {
                   label={t('settings.autoCalls')}
                   icon="call-outline"
                   trackColor={COLORS.success}
-                  offTrackColor={COLORS.danger}
+                  offTrackColor="rgba(255, 255, 255, 0.12)"
                 />
 
                 <DarkSwitch
@@ -349,49 +349,6 @@ export default function SettingsScreen() {
               </GlassCard>
             </Animated.View>
           </GroupSection>
-
-          {canUsePhoneSensor && (
-            <GroupSection label="ADMINISTRACIÓN · SENSORES">
-              <Animated.View
-                entering={FadeInUp.duration(500).delay(350).springify().damping(26).stiffness(200)}
-                style={{ marginBottom: SPACING.md }}
-              >
-                <GlassCard padding={16} style={{ marginBottom: SPACING.md }}>
-                  <SectionHeader title="Telemetría Autónoma (Sensor Móvil)" icon="hardware-chip-outline" accent />
-                  <Text style={[styles.helper, { marginBottom: 14 }]}>
-                    Permite capturar datos telemétricos y detectar impactos utilizando los acelerómetros del dispositivo cuando no hay conexión física con el casco.
-                  </Text>
-
-                  <DarkSwitch
-                    value={phoneSensorActive}
-                    onValueChange={(val) => {
-                      haptics.medium();
-                      togglePhoneSensor(val);
-                    }}
-                    label="Activar Sensor del Dispositivo"
-                    icon="phone-portrait-outline"
-                    trackColor="#3B82F6"
-                    offTrackColor="rgba(255,255,255,0.1)"
-                  />
-
-                  {phoneSensorActive && phoneTelemetry && (
-                    <View style={{ marginTop: 14, padding: 12, backgroundColor: 'rgba(59, 130, 246, 0.08)', borderRadius: RADIUS.md, borderWidth: 1, borderColor: 'rgba(59, 130, 246, 0.25)' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={{ color: '#60A5FA', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 }}>DIAGNÓSTICO EN VIVO (ADMIN)</Text>
-                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#60A5FA' }} />
-                      </View>
-                      <Text style={{ color: COLORS.text, fontSize: 12, fontWeight: '600' }}>
-                        Fuerza G: {phoneTelemetry.gForce.toFixed(2)}G · Velocidad: {Math.round(phoneTelemetry.speedKmh)} km/h
-                      </Text>
-                      <Text style={{ color: COLORS.textDim, fontSize: 11, marginTop: 4, fontFamily: FONT.mono }}>
-                        X: {phoneTelemetry.acceleration.x.toFixed(2)} · Y: {phoneTelemetry.acceleration.y.toFixed(2)} · Z: {phoneTelemetry.acceleration.z.toFixed(2)}
-                      </Text>
-                    </View>
-                  )}
-                </GlassCard>
-              </Animated.View>
-            </GroupSection>
-          )}
 
           <GroupSection label={t('settings.groupCompany')}>
             <Animated.View

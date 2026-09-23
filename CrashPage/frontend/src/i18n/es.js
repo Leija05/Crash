@@ -196,11 +196,10 @@ const es = {
     close: "Cerrar"
   },
   circuit: {
-    dualModeTitle: "Arquitectura de Detección Dual",
-    modeHelmetLabel: "Modo Casco IoT (Arduino + MPU-6050 + BLE HM-10)",
-    modeMobileLabel: "Modo Sensor Móvil (Phone Sensor Engine Nativo 60 Hz)",
-    btnHelmet: "Casco Físico IoT",
-    btnMobile: "Phone Sensor Engine",
+    headerTitle: "Nodo Sensor IoT · Casco Inteligente",
+    headerSubtitle: "Sistema embebido de telemetría inercial basado en ESP32 con Bluetooth Low Energy integrado y sensor MEMS MPU-6050 a ±16G.",
+    badgeEsp32: "ESP32 (BLE SoC)",
+    badgeMpu: "MPU-6050 (±16G)",
   },
   landing: {
     navCircuito: "Circuito & Hardware",
@@ -208,7 +207,7 @@ const es = {
     navAccessShort: "Acceso",
     eyebrowCircuit: "Ingeniería de Hardware · C.R.A.S.H. 2.0 (v3.2.1)",
     titleCircuit: "Componentes del Circuito y Arquitectura Física",
-    circuitDesc: "Diseño electrónico embebido montable en Equipo de Protección Personal (EPP). Esquema de conexionado de pines, sensor inercial de alta escala (±16G), monitoreo de batería LiPo y conmutación con Phone Sensor Engine.",
+    circuitDesc: "Diseño electrónico embebido montable en Equipo de Protección Personal (EPP). Microcontrolador ESP32 con Bluetooth Low Energy integrado, sensor inercial MEMS MPU-6050 de alta escala (±16G), monitoreo de batería LiPo y sistema de alerta acústica y visual.",
   },
 };
 

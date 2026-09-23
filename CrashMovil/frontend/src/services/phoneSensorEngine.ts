@@ -184,10 +184,14 @@ class PhoneSensorEngine {
 
       this.nativeImpactSub = DeviceEventEmitter.addListener('onNativeImpact', (data: any) => {
         if (!data) return;
+        const nativeG = Number((data.gForce ?? 5.0).toFixed(2));
+        if (nativeG > this.peakGForce) {
+          this.peakGForce = nativeG;
+        }
         const detected: DetectedImpact = {
           acceleration: { x: data.accelX ?? 0, y: data.accelY ?? 0, z: data.accelZ ?? 0 },
           gyroscope: { x: data.gyroX ?? 0, y: data.gyroY ?? 0, z: data.gyroZ ?? 0 },
-          gForce: data.gForce ?? 5.0,
+          gForce: Math.max(nativeG, this.peakGForce),
           timestamp: new Date().toISOString(),
         };
         for (const listener of this.impactListeners) {
@@ -331,9 +335,21 @@ class PhoneSensorEngine {
 
   private triggerImpactEvent() {
     this.peakCaptureWindow = false;
-    if (this.peakWindowSamples.length === 0) return;
+    if (this.peakWindowSamples.length === 0) {
+      const fallbackG = Math.max(this.peakGForce, this.currentGForce, this.alertThreshold);
+      const detected: DetectedImpact = {
+        acceleration: { ...this.currentAccel },
+        gyroscope: { ...this.currentGyro },
+        gForce: Number(fallbackG.toFixed(2)),
+        timestamp: new Date().toISOString(),
+      };
+      for (const listener of this.impactListeners) {
+        try { listener(detected); } catch {}
+      }
+      return;
+    }
 
-    // Encontrar la muestra con el pico G más alto
+    // Encontrar la muestra con el pico G más alto dentro de la ventana de 300ms
     let maxSample = this.peakWindowSamples[0];
     for (const sample of this.peakWindowSamples) {
       if (sample.g > maxSample.g) {
@@ -341,10 +357,13 @@ class PhoneSensorEngine {
       }
     }
 
+    const peakG = Number(Math.max(maxSample.g, this.peakGForce, this.currentGForce, this.alertThreshold).toFixed(2));
+    this.peakGForce = peakG;
+
     const detected: DetectedImpact = {
       acceleration: maxSample.accel,
       gyroscope: maxSample.gyro,
-      gForce: maxSample.g,
+      gForce: peakG,
       timestamp: new Date().toISOString(),
     };
 
@@ -356,6 +375,15 @@ class PhoneSensorEngine {
       }
     }
     this.peakWindowSamples = [];
+  }
+
+  public getPeakGForce(): number {
+    return this.peakGForce;
+  }
+
+  public resetPeakGForce(): void {
+    this.peakGForce = 1.0;
+    this.windowMaxG = 1.0;
   }
 
   public onTelemetry(listener: TelemetryListener): () => void {

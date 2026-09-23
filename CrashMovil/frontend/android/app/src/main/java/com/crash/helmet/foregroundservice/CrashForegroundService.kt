@@ -74,7 +74,10 @@ class CrashForegroundService : Service(), SensorEventListener {
         }
 
         fun startCountdownFromJS(seconds: Int, gForce: Double) {
-            activeInstance?.startCountdownTimer(seconds, gForce)
+            activeInstance?.let { service ->
+                val maxG = Math.max(gForce, Math.max(service.currentG, service.peakG))
+                service.startCountdownTimer(seconds, maxG)
+            }
         }
 
         fun cancelCountdownFromJS() {
@@ -308,6 +311,11 @@ class CrashForegroundService : Service(), SensorEventListener {
                 peakG = currentG
             }
 
+            // Si está en cuenta regresiva y se registra un pico mayor (sacudida/rebote/vuelco), capturar el pico
+            if (isCountingDown && currentG > currentImpactG) {
+                currentImpactG = currentG
+            }
+
             // Detección de picos en tiempo real
             val deltaG = Math.abs(currentG - lastNotifiedG)
             val isSpike = deltaG >= 0.35 || currentG >= (alertThreshold * 0.7)
@@ -423,12 +431,16 @@ class CrashForegroundService : Service(), SensorEventListener {
     fun startCountdownTimer(seconds: Int, gRecorded: Double) {
         countdownTimer?.cancel()
         isCountingDown = true
-        currentImpactG = gRecorded
+        val maxG = Math.max(gRecorded, Math.max(currentG, peakG))
+        currentImpactG = if (maxG > 0.1) maxG else alertThreshold
+        if (currentImpactG > peakG) {
+            peakG = currentImpactG
+        }
 
         // Notificar a JS que la cuenta regresiva comenzó
         val startMap = Arguments.createMap().apply {
             putInt("seconds", seconds)
-            putDouble("gForce", gRecorded)
+            putDouble("gForce", currentImpactG)
         }
         ForegroundServiceModule.sendEvent("onNativeCountdownStarted", startMap)
 

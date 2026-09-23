@@ -71,15 +71,15 @@ const NORMS = [
 ];
 
 const ARCH = [
-  { key: "archHardware", t: "Hardware IoT & Circuito Embebido", d: "Arduino Nano (ATmega328P) con IMU MPU-6050 (I2C en A4/A5, escala ±16G), transceptor BLE HM-10 (UART 9600 baud), alarma piezoeléctrica en D8, LED D13, divisor de batería LiPo en A0 y cargador TP4056 con BMS." },
-  { key: "archMobileEngine", t: "Phone Sensor Engine (Modo Dual)", d: "Motor inercial nativo en la app móvil (~60Hz acelerómetro, 25Hz giroscopio) con buffer circular de Caja Negra de 10 segundos pre-impacto (-9.5s a 0.0s) y Foreground Service en segundo plano." },
+  { key: "archHardware", t: "Hardware IoT & Circuito Embebido", d: "ESP32 (Xtensa Dual-Core 240 MHz) con transceptor Bluetooth Low Energy (BLE) integrado, sensor inercial MEMS MPU-6050 (I2C en GPIO 21/22, escala ±16G), alarma piezoeléctrica en GPIO 18, LED indicador en GPIO 2, divisor de batería LiPo en GPIO 34 y cargador TP4056 con BMS." },
+  { key: "archMobileApp", t: "App Móvil C.R.A.S.H. (React Native)", d: "Centro de control del motociclista enlazado vía Bluetooth Low Energy (BLE) a 10 Hz, con tacómetro HUD a 60 FPS, Caja Negra circular pre-impacto de 10 segundos (-9.5s a 0.0s) y protocolo de cuenta regresiva de emergencia." },
   { key: "archBackend", t: "Backend Cloud Unificado (FastAPI)", d: "Arquitectura en la nube con red neuronal de clasificación de lesiones, WebSockets bidireccionales en vivo (< 20 ms), almacenamiento de telemetría y geocercas dinámicas." },
   { key: "archAlert", t: "Capa de Alerta Omnicanal", d: "Integración con WhatsApp Business para difundir mensajes interactivos con ubicación GPS precisa del siniestro a contactos de emergencia y centro de monitoreo." },
 ];
 
 const HERO_SUB = [
-  { key: "heroMobile", icon: Smartphone, t: "App Móvil & Phone Engine", s: "El Escudo del Conductor", d: "Doble blindaje: cliente BLE para el casco o detección autónoma nativa a 60 Hz con caja negra circular de 10 segundos.", tag: "CLIENTE · DUAL MODE" },
-  { key: "heroBackend", icon: Cpu, t: "Hardware IoT & Circuito", s: "Nodo Sensor 10 Hz", d: "Arduino Nano + MPU-6050 (±16G), BLE HM-10, alarma sonora D8, LED D13 y divisor de batería A0 con filtro anti-falsos positivos.", tag: "CIRCUITO · MEMS" },
+  { key: "heroMobile", icon: Smartphone, t: "App Móvil C.R.A.S.H.", s: "El Escudo del Conductor", d: "Enlace inalámbrico BLE a 10 Hz con el casco, tacómetro de fuerza G a 60 FPS, Caja Negra forense de 10 segundos y despacho SOS coordinado.", tag: "APP · BLE CLIENT" },
+  { key: "heroBackend", icon: Cpu, t: "Hardware IoT & Circuito", s: "Nodo Sensor 10 Hz", d: "ESP32 con BLE integrado + MPU-6050 (±16G), alarma acústica GPIO 18, LED de diagnóstico y divisor de batería con filtro anti-falsos positivos.", tag: "ESP32 · MEMS · BLE" },
   { key: "heroDashboard", icon: Monitor, t: "FastAPI Cloud & Monitoreo", s: "Centro de Control 24/7", d: "WebSockets en vivo < 20 ms, IA de estimación de lesiones, geocercas de riesgo y alertas automáticas por WhatsApp.", tag: "STREAM · CLOUD" },
 ];
 
@@ -551,8 +551,8 @@ function CockpitSection({ t }) {
       n: "01",
       tag: t("landing.cockpitTag1", "SENSOR · MPU-6050 ±16G"),
       title: t("landing.cockpitTitle1", "Detección Biomecánica"),
-      text: t("landing.cockpitText1", "El nodo sensor captura la cinemática a 10 Hz por BLE (o a 60 Hz en el celular) con confirmación anti-falsos de 3 muestras consecutivas ≥ 4.0G sostenido."),
-      meta: [["MUESTREO", "10 Hz / 60 Hz"], ["ESCALA", "± 16 G"]],
+      text: t("landing.cockpitText1", "El nodo sensor ESP32 captura la cinemática a 10 Hz por BLE integrado con confirmación anti-falsos de 3 muestras consecutivas ≥ 4.0G sostenido."),
+      meta: [["MUESTREO", "10 Hz BLE"], ["ESCALA", "± 16 G"]],
     },
     {
       n: "02",
@@ -1404,7 +1404,7 @@ function Landing() {
               className="mt-8 hud-ticker text-zinc-400 flex flex-wrap items-center gap-x-6 gap-y-2"
             >
               <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />SENSORES EN LÍNEA</span>
-              <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />LINK BLE HM-10</span>
+              <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />LINK BLE ESP32</span>
               <span>G-MAX <span className="text-white font-bold">16.0G</span></span>
               <span>MODELO <span className="text-white font-bold">v3.2.1</span></span>
               <span className="tick-blink text-red-400">▌</span>
@@ -1478,13 +1478,13 @@ function Landing() {
               <TiltCard onMouseMove={handleSpot} className="hud-frame glass-refined card-spot rounded-3xl p-8 h-full">
                 <div className="flex items-start justify-between gap-6">
                   <div>
-                    <span className="tactical-index">01 / APP MÓVIL & DUAL SENSING</span>
+                    <span className="tactical-index">01 / APP MÓVIL C.R.A.S.H.</span>
                     <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center my-4">
                       <Smartphone size={22} className="text-red-400" />
                     </div>
-                    <div className="font-bold font-mono text-xl text-white">{t("landing.heroMobile", "App Móvil & Phone Engine")}</div>
-                    <div className="text-red-400 text-xs font-mono uppercase tracking-wider mt-1 mb-2 font-semibold">{t("landing.heroMobileSub", "El Escudo del Conductor")}</div>
-                    <p className="text-zinc-300 text-sm leading-relaxed max-w-md">{t("landing.heroMobileDesc", "Cliente BLE para casco IoT y motor inercial nativo 60 Hz en el smartphone con caja negra circular de 10 segundos pre-impacto (-9.5s a 0.0s) y Foreground Service en segundo plano.")}</p>
+                    <div className="font-bold font-mono text-xl text-white">{t("landing.heroMobile", "App Móvil C.R.A.S.H.")}</div>
+                    <div className="text-red-400 text-xs font-mono uppercase tracking-wider mt-1 mb-2 font-semibold">{t("landing.heroMobileSub", "Centro de Control del Piloto")}</div>
+                    <p className="text-zinc-300 text-sm leading-relaxed max-w-md">{t("landing.heroMobileDesc", "Cliente BLE para casco IoT con recepción de telemetría a 10 Hz, visualización HUD a 60 FPS, Caja Negra circular pre-impacto de 10 segundos (-9.5s a 0.0s) y protocolo de cuenta regresiva de emergencia.")}</p>
                   </div>
                   <div className="hidden sm:flex flex-col items-center gap-2 pt-8">
                     <div className="wave-bars h-16">
@@ -1492,7 +1492,7 @@ function Landing() {
                         <span key={i} style={{ animationDelay: `${(i % 7) * 0.11}s`, height: `${18 + ((i * 29) % 46)}px` }} />
                       ))}
                     </div>
-                    <span className="hud-ticker text-zinc-400 font-mono mt-2">TELEMETRÍA 60 HZ</span>
+                    <span className="hud-ticker text-zinc-400 font-mono mt-2">TELEMETRÍA BLE 10 HZ</span>
                   </div>
                 </div>
               </TiltCard>
@@ -1503,11 +1503,11 @@ function Landing() {
                 <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center my-4">
                   <Cpu size={22} className="text-red-400" />
                 </div>
-                <div className="font-bold font-mono text-xl text-white">{t("landing.heroBackend", "Hardware IoT & Circuito")}</div>
-                <div className="text-red-400 text-xs font-mono uppercase tracking-wider mt-1 mb-2 font-semibold">{t("landing.heroBackendSub", "Nodo Sensor 10 Hz")}</div>
-                <p className="text-zinc-300 text-sm leading-relaxed">{t("landing.heroBackendDesc", "Arduino Nano + MPU-6050 (±16G), BLE HM-10, alarma piezoeléctrica D8 (≥10G), LED D13 y divisor de batería A0 con filtro anti-falsos positivos.")}</p>
+                <div className="font-bold font-mono text-xl text-white">{t("landing.heroBackend", "ESP32 + IMU MPU-6050")}</div>
+                <div className="text-red-400 text-xs font-mono uppercase tracking-wider mt-1 mb-2 font-semibold">{t("landing.heroBackendSub", "Nodo Sensor BLE Integrado")}</div>
+                <p className="text-zinc-300 text-sm leading-relaxed">{t("landing.heroBackendDesc", "SoC ESP32 Dual-Core con Bluetooth Low Energy integrado, acelerómetro y giroscopio MPU-6050 (±16G), alarma piezoeléctrica (≥10G), LED de estado y divisor de batería con filtro anti-falsos positivos.")}</p>
                 <div className="mt-5 flex items-center gap-2 hud-ticker text-zinc-300">
-                  <span className="glow-dot bg-red-500 text-red-500" /> MPU-6050 ±16G · BLE HM-10
+                  <span className="glow-dot bg-red-500 text-red-500" /> MPU-6050 ±16G · BLE NATIVO
                 </div>
               </TiltCard>
             </motion.div>
@@ -1552,7 +1552,7 @@ function Landing() {
               {t("landing.titleCircuit", "Componentes del Circuito y Arquitectura Física")}
             </h2>
             <p className="text-zinc-300 text-sm sm:text-base max-w-3xl leading-relaxed mb-10">
-              {t("landing.circuitDesc", "Diseño electrónico embebido montable en Equipo de Protección Personal (EPP). Esquema de conexionado de pines, sensor inercial de alta escala (±16G), monitoreo de batería LiPo y conmutación con Phone Sensor Engine.")}
+              {t("landing.circuitDesc", "Diseño electrónico embebido montable en Equipo de Protección Personal (EPP). Microcontrolador ESP32 con Bluetooth Low Energy integrado, sensor inercial MEMS MPU-6050 de alta escala (±16G), monitoreo de batería LiPo y sistema de alerta acústica y visual.")}
             </p>
           </ScrollReveal>
           <CircuitExplorer />

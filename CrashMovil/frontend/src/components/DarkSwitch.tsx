@@ -40,7 +40,7 @@ export function DarkSwitch({
   thumbColor = '#FFFFFF',
 }: DarkSwitchProps) {
   const thumbActiveColor = '#FFFFFF';
-  const thumbOffColor = '#E4E4E7';
+  const thumbOffColor = '#FFFFFF';
 
   const thumbX = useSharedValue(value ? 1 : 0);
   const trackBg = useSharedValue(value ? trackColor : offTrackColor);
@@ -48,6 +48,14 @@ export function DarkSwitch({
   const glowOpacity = useSharedValue(value ? 0.45 : 0);
   const labelClr = useSharedValue(value ? '#FFFFFF' : '#E4E4E7');
   const pressScale = useSharedValue(1);
+
+  useEffect(() => {
+    thumbX.value = withSpring(value ? 1 : 0, ANIMATION.springBouncy);
+    trackBg.value = withTiming(value ? trackColor : offTrackColor, { duration: 200 });
+    thumbBg.value = withTiming(value ? thumbActiveColor : thumbOffColor, { duration: 200 });
+    glowOpacity.value = withTiming(value ? 0.45 : 0, { duration: 200 });
+    labelClr.value = withTiming(value ? '#FFFFFF' : '#E4E4E7', { duration: 200 });
+  }, [value, trackColor, offTrackColor]);
 
   const sizeConfig = {
     sm: { width: 44, height: 24, thumbSize: 18, padding: 3 },
@@ -66,11 +74,13 @@ export function DarkSwitch({
   const animatedThumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: thumbTranslateX.value }],
     backgroundColor: thumbBg.value,
-    shadowColor: value ? RED : '#000',
-    shadowOpacity: glowOpacity.value,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: value ? 4 : 2,
+    borderWidth: 1.5,
+    borderColor: value ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.22)',
+    shadowColor: value ? (trackColor || RED) : '#000000',
+    shadowOpacity: value ? 0.45 : 0.65,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1.5 },
+    elevation: value ? 4 : 3,
   }));
 
   const animatedLabelStyle = useAnimatedStyle(() => ({
