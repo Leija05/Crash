@@ -15,6 +15,7 @@ type LatestVersion = {
   notes?: string;
   mandatory?: boolean;
   platform?: string;
+  size_mb?: number;
 };
 
 function versionTuple(v?: string): number[] {

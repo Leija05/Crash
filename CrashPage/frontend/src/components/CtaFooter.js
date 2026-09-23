@@ -133,8 +133,8 @@ const CtaFooter = ({ brand, onPlansClick, onBookCall, onBrandClick }) => {
           </button>
         </div>
 
-        <div className="mt-12 hud-ticker text-neutral-500 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />{t("landing.ctaTicker1", "SENSORES EN L\u00cdNEA")}</span>
+        <div className="mt-12 hud-ticker text-zinc-300 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-semibold">
+          <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />{t("landing.ctaTicker1", "SENSORES EN LÍNEA")}</span>
           <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />{t("landing.ctaTicker2", "RESPUESTA < 8.2s")}</span>
           <span className="tick-blink text-red-400">▌</span>
         </div>
@@ -149,27 +149,28 @@ const CtaFooter = ({ brand, onPlansClick, onBookCall, onBrandClick }) => {
             >
               {brand}
             </button>
-            <p className="text-white/40 font-mono font-light text-xs">
-              &copy; 2026 C.R.A.S.H. {t("landing.ctaRights", "\u00b7 Hecho en M\u00e9xico")}
+            <p className="text-zinc-400 font-mono font-medium text-xs">
+              &copy; 2026 C.R.A.S.H. v3.2.1 {t("landing.ctaRights", "· Hecho en México")}
             </p>
           </div>
           <div className="flex items-center gap-6">
             {[
               { key: "privacy", label: t("landing.ctaPrivacy", "Privacidad") },
-              { key: "terms", label: t("landing.ctaTerms", "T\u00e9rminos") },
+              { key: "terms", label: t("landing.ctaTerms", "Términos") },
               { key: "contact", label: t("landing.ctaContact", "Contacto") },
             ].map((link) => (
               <a
                 key={link.key}
                 href={`#${link.key}`}
                 onClick={(e) => e.preventDefault()}
-                className="text-white/40 hover:text-white/70 font-mono font-light text-xs transition-colors cursor-pointer"
+                className="text-zinc-400 hover:text-white font-mono font-medium text-xs transition-colors cursor-pointer"
               >
                 {link.label}
               </a>
             ))}
           </div>
         </div>
+
       </div>
     </section>
   );

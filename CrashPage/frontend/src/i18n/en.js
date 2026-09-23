@@ -195,6 +195,21 @@ const en = {
     retry: "Retry",
     close: "Close"
   },
+  circuit: {
+    dualModeTitle: "Dual Sensing Architecture",
+    modeHelmetLabel: "IoT Smart Helmet Mode (Arduino + MPU-6050 + BLE HM-10)",
+    modeMobileLabel: "Mobile Sensor Mode (Native Phone Sensor Engine 60 Hz)",
+    btnHelmet: "IoT Physical Helmet",
+    btnMobile: "Phone Sensor Engine",
+  },
+  landing: {
+    navCircuito: "Circuit & Hardware",
+    navAccess: "Dispatcher access",
+    navAccessShort: "Access",
+    eyebrowCircuit: "Hardware Engineering · C.R.A.S.H. 2.0 (v3.2.1)",
+    titleCircuit: "Circuit Components & Physical Architecture",
+    circuitDesc: "Embedded electronic design mountable on Personal Protective Equipment (PPE). Pinout wiring scheme, high-scale inertial sensor (±16G), LiPo battery monitoring, and seamless switching with Phone Sensor Engine.",
+  },
 };
 
-export default en;
+export default en;

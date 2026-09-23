@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, useWindowDimensions, Animated as RNAnimated, Switch, AppState,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, useWindowDimensions, Animated as RNAnimated, Switch, AppState, DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -139,9 +139,11 @@ export default function DashboardScreen() {
     setCountdown(null);
     lastImpactTriggerTsRef.current = Date.now();
     impactTriggeredRef.current = false;
+    // Sincronizar cancelación con el servicio nativo para retirar alerta y parar vibración
+    foregroundService.cancelEmergencyCountdown();
   }, []);
 
-  const startCountdown = useCallback((seconds: number) => {
+  const startCountdown = useCallback((seconds: number, forceG?: number) => {
     const now = Date.now();
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
@@ -151,6 +153,10 @@ export default function DashboardScreen() {
     countdownTargetTsRef.current = now + seconds * 1000;
     setCountdown(seconds);
     haptics.warning();
+
+    // Sincronizar con el servicio nativo para mostrar la alerta con botones Cancelar y Enviar Ahora
+    const gVal = forceG ?? (impactTelemetryRef.current?.g_force ?? telemetryRef.current?.g_force ?? 5.0);
+    foregroundService.startEmergencyCountdown(seconds, gVal);
 
     countdownTimerRef.current = setInterval(() => {
       if (!countdownTargetTsRef.current) {
@@ -183,10 +189,63 @@ export default function DashboardScreen() {
   }, []);
 
   useEffect(() => {
+    // 1. Descartar cualquier notificación de Expo en Android para asegurar que solo exista 1 barra nativa
+    if (Platform.OS === 'android') {
+      Notifications.dismissNotificationAsync(NOTIFICATION_STATUS_ID).catch(() => {});
+    }
+
+    // 2. Escuchar eventos de la barra de notificaciones interactiva de C.R.A.S.H.
+    const subStarted = DeviceEventEmitter.addListener('onNativeCountdownStarted', (data: any) => {
+      const sec = data?.seconds ?? 10;
+      if (countdown === null && !sending && !emergencyInFlightRef.current) {
+        impactTriggeredRef.current = true;
+        setCountdown(sec);
+      }
+    });
+
+    const subTick = DeviceEventEmitter.addListener('onNativeCountdownTick', (data: any) => {
+      const sec = data?.seconds;
+      if (sec !== undefined) {
+        setCountdown(sec);
+      }
+    });
+
+    const subCancelled = DeviceEventEmitter.addListener('onNativeCountdownCancelled', () => {
+      // El usuario presionó "❌ CANCELAR" en la barra de notificaciones
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+      countdownTargetTsRef.current = null;
+      setCountdown(null);
+      lastImpactTriggerTsRef.current = Date.now();
+      impactTriggeredRef.current = false;
+      haptics.light();
+    });
+
+    const subSendNow = DeviceEventEmitter.addListener('onNativeCountdownSendNow', () => {
+      // El usuario presionó "🚨 ENVIAR AHORA" en la barra de notificaciones o expiró el tiempo
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+      countdownTargetTsRef.current = null;
+      setCountdown(null);
+      lastImpactTriggerTsRef.current = Date.now();
+      impactTriggeredRef.current = true;
+      if (emergencyFlowRef.current) {
+        emergencyFlowRef.current();
+      }
+    });
+
     return () => {
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      subStarted.remove();
+      subTick.remove();
+      subCancelled.remove();
+      subSendNow.remove();
     };
-  }, []);
+  }, [countdown, sending]);
 
   const pulseAnim = useRef(new RNAnimated.Value(0)).current;
   const accelHistory = useRef<{ x: number; y: number; z: number; t: number }[]>([]);
@@ -459,63 +518,21 @@ export default function DashboardScreen() {
     const isMonitoring = connected || phoneSensorActive;
     if (Platform.OS !== 'android') return;
 
-    if (!isMonitoring) {
-      await Notifications.dismissNotificationAsync(NOTIFICATION_STATUS_ID).catch(() => {});
-      return;
-    }
+    // En Android, descartar SIEMPRE la notificación secundaria de Expo para garantizar exactamente 1 barra nativa
+    await Notifications.dismissNotificationAsync(NOTIFICATION_STATUS_ID).catch(() => {});
 
-    const now = Date.now();
+    if (!isMonitoring) return;
+
     const current = telemetryForDisplay;
     const gVal = overrideG !== undefined ? overrideG : (current?.g_force ?? 1.0);
-    const currentPeak = Math.max(peakG, gVal);
-
-    // Detección de picos y saltos dinámicos en tiempo real
-    const deltaG = Math.abs(gVal - lastReportedGRef.current);
-    const isSpike = deltaG >= 0.35 || gVal >= alertThreshold * 0.7;
-    const isNewPeak = currentPeak > lastReportedPeakRef.current + 0.2;
-    const shouldBypassThrottle = forceImmediate || isSpike || isNewPeak;
-
-    // Respetar throttle de 3000ms únicamente si las lecturas son estables
-    if (!shouldBypassThrottle && now - lastNotificationUpdateRef.current < 3000) {
-      return;
-    }
-
-    lastNotificationUpdateRef.current = now;
-    lastReportedGRef.current = gVal;
-    if (currentPeak > lastReportedPeakRef.current) {
-      lastReportedPeakRef.current = currentPeak;
-    }
-
     const speed = current ? estimateSpeed(current.acceleration_x, current.acceleration_y, current.acceleration_z) : 0;
-    const lat = currentLocation?.latitude ?? current?.latitude;
-    const lng = currentLocation?.longitude ?? current?.longitude;
-    const coordsStr = (lat && lng) ? `${lat.toFixed(4)}°, ${lng.toFixed(4)}°` : 'Sincronizando GPS...';
-    // Distintivo de estado táctico en tiempo real (sin revelar si es móvil o circuito)
-    let statusBadge = '🟢 Normal';
-    if (gVal >= alertThreshold) {
-      statusBadge = '🚨 ¡IMPACTO!';
-    } else if (gVal >= alertThreshold * 0.7 || isSpike) {
-      statusBadge = `⚠️ Pico: ${gVal.toFixed(2)}G`;
-    } else if (currentPeak >= 2.5) {
-      statusBadge = `⚡ Max: ${currentPeak.toFixed(2)}G`;
+
+    // La barra única oficial de C.R.A.S.H. (ID 1001) es gestionada por el servicio nativo con colores rojo y negro
+    foregroundService.updateTelemetry('C.R.A.S.H.', speed, gVal, batteryLevel);
+    if (currentLocation?.latitude && currentLocation?.longitude) {
+      foregroundService.updateLocation(currentLocation.latitude, currentLocation.longitude, speed);
     }
-
-    const title = `🛡️ C.R.A.S.H. · Monitoreo Activo [${statusBadge}]`;
-    const line1 = `⚡ G: ${gVal.toFixed(2)}G (Pico: ${currentPeak.toFixed(2)}G) · 🚗 ${Math.round(speed)} km/h`;
-    const line2 = `📍 GPS: ${coordsStr}`;
-    const body = `${line1}\n${line2}`;
-
-    await Notifications.scheduleNotificationAsync({
-      identifier: NOTIFICATION_STATUS_ID,
-      content: {
-        title,
-        body,
-        sticky: true,
-        priority: Notifications.AndroidNotificationPriority.LOW,
-      },
-      trigger: { channelId: ANDROID_STATUS_CHANNEL_ID },
-    }).catch(() => {});
-  }, [connected, phoneSensorActive, telemetryForDisplay, peakG, alertThreshold, currentLocation, deviceName]);
+  }, [connected, phoneSensorActive, telemetryForDisplay, batteryLevel, currentLocation]);
 
   const triggerEmergencyFlow = useCallback(async () => {
     const currentTelemetry = impactTelemetryRef.current ?? telemetryRef.current;
@@ -775,56 +792,21 @@ export default function DashboardScreen() {
     return () => unsubPeak();
   }, [pushStatusNotification]);
 
-  // Alerta de umbral excedido y actualización en tiempo real en segundo plano
+  // Actualización inmediata en tiempo real de la barra de notificaciones nativa ante picos o umbrales
   useEffect(() => {
-    const unsubThreshold = phoneSensorEngine.onThresholdExceeded(async (gVal) => {
-      // 1. Actualización inmediata en tiempo real de la barra de notificaciones
+    const unsubThreshold = phoneSensorEngine.onThresholdExceeded((gVal) => {
       pushStatusNotification(true, gVal);
-
-      // 2. Si la app está en segundo plano o pantalla bloqueada, avisar con máxima prioridad
-      if (AppState.currentState !== 'active' && gVal >= alertThreshold) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: '🚨 ¡IMPACTO DETECTADO EN SEGUNDO PLANO!',
-            body: `⚠️ Fuerza G de ${gVal.toFixed(2)}G registrada. Abre C.R.A.S.H. de inmediato para verificar tu estado.`,
-            sound: 'default',
-            priority: Notifications.AndroidNotificationPriority.MAX,
-            vibrate: [0, 500, 200, 500, 200, 1000],
-          },
-          trigger: { channelId: ANDROID_ALERT_CHANNEL_ID },
-        }).catch(() => {});
-      }
     });
     return () => unsubThreshold();
-  }, [alertThreshold, pushStatusNotification]);
+  }, [pushStatusNotification]);
 
-  // Notificación de cuenta regresiva en curso con máxima prioridad en canal de alertas
+  // Asegurar que ninguna notificación duplicada de Expo compita con la barra interactiva nativa oficial
   useEffect(() => {
-    const updateCountdownNotification = async () => {
-      if (Platform.OS !== 'android') return;
-      if (countdown === null) {
-        await Notifications.dismissNotificationAsync(NOTIFICATION_COUNTDOWN_ID).catch(() => {});
-        return;
-      }
-      await Notifications.setNotificationCategoryAsync('crash-actions', [
-        { identifier: ACTION_CANCEL_COUNTDOWN, buttonTitle: '❌ ' + t('dashboard.cancel'), options: { opensAppToForeground: true } },
-      ]);
-      await Notifications.scheduleNotificationAsync({
-        identifier: NOTIFICATION_COUNTDOWN_ID,
-        content: {
-          title: `🚨 ¡IMPACTO DETECTADO! (${countdown}s)`,
-          body: `⚠️ Despachando auxilio en ${countdown}s · G ${(impactTelemetryRef.current?.g_force ?? gForce).toFixed(2)}. Toca para CANCELAR si estás bien.`,
-          categoryIdentifier: 'crash-actions',
-          sticky: true,
-          sound: countdown === countdownSeconds ? 'default' : undefined,
-          priority: Notifications.AndroidNotificationPriority.MAX,
-          vibrate: countdown === countdownSeconds ? [0, 500, 200, 500] : undefined,
-        },
-        trigger: { channelId: ANDROID_ALERT_CHANNEL_ID },
-      }).catch(() => {});
-    };
-    updateCountdownNotification();
-  }, [countdown, gForce, countdownSeconds, t]);
+    if (Platform.OS === 'android') {
+      Notifications.dismissNotificationAsync(NOTIFICATION_COUNTDOWN_ID).catch(() => {});
+      Notifications.dismissNotificationAsync(NOTIFICATION_STATUS_ID).catch(() => {});
+    }
+  }, [countdown]);
 
   const { accelChartData, accelYData, accelZData, gForceChartData, gpsRoute } = useMemo(() => {
     const aData = accelHistory.current.map((d, i) => ({

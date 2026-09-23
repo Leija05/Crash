@@ -195,6 +195,21 @@ const es = {
     retry: "Reintentar",
     close: "Cerrar"
   },
+  circuit: {
+    dualModeTitle: "Arquitectura de Detección Dual",
+    modeHelmetLabel: "Modo Casco IoT (Arduino + MPU-6050 + BLE HM-10)",
+    modeMobileLabel: "Modo Sensor Móvil (Phone Sensor Engine Nativo 60 Hz)",
+    btnHelmet: "Casco Físico IoT",
+    btnMobile: "Phone Sensor Engine",
+  },
+  landing: {
+    navCircuito: "Circuito & Hardware",
+    navAccess: "Acceso monitoristas",
+    navAccessShort: "Acceso",
+    eyebrowCircuit: "Ingeniería de Hardware · C.R.A.S.H. 2.0 (v3.2.1)",
+    titleCircuit: "Componentes del Circuito y Arquitectura Física",
+    circuitDesc: "Diseño electrónico embebido montable en Equipo de Protección Personal (EPP). Esquema de conexionado de pines, sensor inercial de alta escala (±16G), monitoreo de batería LiPo y conmutación con Phone Sensor Engine.",
+  },
 };
 
-export default es;
+export default es;

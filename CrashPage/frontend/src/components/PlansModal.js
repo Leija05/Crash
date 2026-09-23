@@ -104,18 +104,18 @@ const PlansModal = ({ onClose, audience, onAudienceChange, cycle, onCycleChange,
                   className="inline-flex items-center gap-2.5 border border-white/15 rounded-full px-3.5 py-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-300 glass-refined"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]" />
-                  {t("landing.plansModalBadge", "Planes \u00b7 Precios \u00b7 MXN")}
-                  <span className="tactical-index ml-1">v3.0</span>
+                  {t("landing.plansModalBadge", "Planes · Precios · MXN")}
+                  <span className="tactical-index ml-1">v3.2.1</span>
                 </motion.div>
                 <motion.h2
                   variants={fadeUp}
                   id="plans-modal-title"
-                  className="mt-4 font-bold font-mono text-2xl sm:text-3xl tracking-tight leading-[1.08]"
+                  className="mt-4 font-bold font-mono text-2xl sm:text-3xl tracking-tight leading-[1.08] text-white"
                 >
-                  {t("landing.plansModalTitle", "Elige tu nivel de protecci\u00f3n")}
+                  {t("landing.plansModalTitle", "Elige tu nivel de protección")}
                 </motion.h2>
-                <motion.p variants={fadeUp} className="mt-2 text-zinc-500 text-sm font-mono max-w-md">
-                  <span className="text-red-400">//</span> {t("landing.plansModalHint", "Perfil B2C o B2B. Los precios en B2B incluyen dashboard corporativo y telemetr\u00eda de flotilla.")}
+                <motion.p variants={fadeUp} className="mt-2 text-zinc-300 text-sm font-mono max-w-md">
+                  <span className="text-red-400">//</span> {t("landing.plansModalHint", "Perfil B2C o B2B. Los precios en B2B incluyen dashboard corporativo y telemetría de flotilla.")}
                 </motion.p>
               </motion.div>
 
@@ -128,7 +128,7 @@ const PlansModal = ({ onClose, audience, onAudienceChange, cycle, onCycleChange,
                 transition={{ delay: 0.15, duration: 0.3, ease: EASE }}
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.94 }}
-                className="liquid-glass-strong shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-zinc-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="liquid-glass-strong shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-zinc-200 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 aria-label={t("landing.plansCloseAria", "Cerrar planes")}
               >
                 <X size={17} />
@@ -137,7 +137,7 @@ const PlansModal = ({ onClose, audience, onAudienceChange, cycle, onCycleChange,
 
             {/* ── Audience toggle ── */}
             <motion.div variants={fadeUp} initial="hidden" animate="show" className="mt-6">
-              <div className="inline-flex p-1 rounded-full border border-white/10 bg-white/[0.03]">
+              <div className="inline-flex p-1 rounded-full border border-white/15 bg-white/[0.05]">
                 {[
                   { a: "b2c", icon: Users, label: t("landing.audienceB2c", "Usuario (B2C)") },
                   { a: "b2b", icon: Building2, label: t("landing.audienceB2b", "Empresa (B2B)") },
@@ -147,12 +147,14 @@ const PlansModal = ({ onClose, audience, onAudienceChange, cycle, onCycleChange,
                     type="button"
                     onClick={() => onAudienceChange(a)}
                     whileTap={{ scale: 0.97 }}
-                    className={`relative px-5 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-2 font-mono cursor-pointer ${audience === a ? "text-black" : "text-zinc-400 hover:text-white"}`}
+                    className={`relative px-5 py-2 rounded-full text-sm font-semibold transition-colors flex items-center gap-2 font-mono cursor-pointer ${
+                      audience === a ? "text-black" : "text-zinc-200 hover:text-white"
+                    }`}
                   >
                     {audience === a && (
                       <motion.span
                         layoutId="plans-aud-pill"
-                        className="absolute inset-0 rounded-full bg-white shadow-[0_0_24px_rgba(255,255,255,0.18)]"
+                        className="absolute inset-0 rounded-full bg-white shadow-[0_0_24px_rgba(255,255,255,0.25)]"
                         transition={pillSpring}
                       />
                     )}
@@ -162,6 +164,7 @@ const PlansModal = ({ onClose, audience, onAudienceChange, cycle, onCycleChange,
                 ))}
               </div>
             </motion.div>
+
           </div>
 
           {/* ── Body ── */}
@@ -241,21 +244,21 @@ const PlansModal = ({ onClose, audience, onAudienceChange, cycle, onCycleChange,
                         {t("landing.whyPara", "En 2024 se registraron 61,869 accidentes con motocicleta en M\u00e9xico. M\u00e1s de 386 mil personas usan la moto como herramienta de trabajo.")}
                       </p>
                       <div className="space-y-3 text-sm">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <span className="text-zinc-500 font-mono text-xs">{t("landing.priceDeviceB2c", "Dispositivo (B2C)")}</span>
-                          <span className="font-mono font-bold">{mx(deviceB2C)}</span>
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <span className="text-zinc-300 font-mono text-xs">{t("landing.priceDeviceB2c", "Dispositivo (B2C)")}</span>
+                          <span className="font-mono font-bold text-white">{mx(deviceB2C)}</span>
                         </div>
-                        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                          <span className="text-zinc-500 font-mono text-xs">{t("landing.priceSubMonth", "Suscripci\u00f3n / mes")}</span>
-                          <span className="font-mono font-bold">{mx(subB2C)}</span>
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <span className="text-zinc-300 font-mono text-xs">{t("landing.priceSubMonth", "Suscripción / mes")}</span>
+                          <span className="font-mono font-bold text-white">{mx(subB2C)}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-zinc-500 font-mono text-xs">{t("landing.priceProduction", "Costo de producci\u00f3n")}</span>
+                          <span className="text-zinc-300 font-mono text-xs">{t("landing.priceProduction", "Costo de producción")}</span>
                           <span className="font-mono font-bold text-red-400">$800 MXN</span>
                         </div>
                       </div>
-                      <div className="mt-6 hud-ticker text-neutral-600 text-[10px] uppercase tracking-[0.2em]">
-                        {t("landing.whyTicker", "Protecci\u00f3n \u00b7 Monitoreo \u00b7 Alerta")} <span className="tick-blink text-red-400">▌</span>
+                      <div className="mt-6 hud-ticker text-zinc-400 text-[10px] uppercase tracking-[0.2em] font-semibold">
+                        {t("landing.whyTicker", "Protección · Monitoreo · Alerta")} <span className="tick-blink text-red-400">▌</span>
                       </div>
                     </div>
                   </motion.div>
@@ -269,19 +272,22 @@ const PlansModal = ({ onClose, audience, onAudienceChange, cycle, onCycleChange,
                   transition={{ duration: 0.25, ease: EASE }}
                 >
                   {/* Cycle toggle */}
-                  <div className="inline-flex flex-wrap gap-1 border border-white/10 rounded-full p-1 mb-6 bg-white/[0.02]">
+                  <div className="inline-flex flex-wrap gap-1 border border-white/15 rounded-full p-1 mb-6 bg-white/[0.04]">
                     {CYCLES.map((c) => (
                       <motion.button
                         key={c.key}
                         type="button"
                         onClick={() => onCycleChange(c.label)}
                         whileTap={{ scale: 0.97 }}
-                        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all font-mono cursor-pointer ${cycle === c.label ? "bg-white text-black shadow-sm" : "text-zinc-400 hover:text-white"}`}
+                        className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all font-mono cursor-pointer ${
+                          cycle === c.label ? "bg-white text-black font-bold shadow-md" : "text-zinc-200 hover:text-white"
+                        }`}
                       >
                         {t(`landing.${c.key}`, c.label)}
                       </motion.button>
                     ))}
                   </div>
+
 
                   {planList.length === 0 ? (
                     <div className="hud-frame glass-refined rounded-3xl p-12 text-center" style={{ borderRadius: 22 }}>

@@ -36,14 +36,17 @@ export function DarkSwitch({
   disabled = false, 
   size = 'md', 
   trackColor = RED,
-  offTrackColor = '#2A2A34',
-  thumbColor = RED,
+  offTrackColor = '#27272A',
+  thumbColor = '#FFFFFF',
 }: DarkSwitchProps) {
+  const thumbActiveColor = '#FFFFFF';
+  const thumbOffColor = '#E4E4E7';
+
   const thumbX = useSharedValue(value ? 1 : 0);
   const trackBg = useSharedValue(value ? trackColor : offTrackColor);
-  const thumbBg = useSharedValue(thumbColor);
-  const glowOpacity = useSharedValue(value ? 0.4 : 0);
-  const labelClr = useSharedValue(value ? trackColor : COLORS.textSec);
+  const thumbBg = useSharedValue(value ? thumbActiveColor : thumbOffColor);
+  const glowOpacity = useSharedValue(value ? 0.45 : 0);
+  const labelClr = useSharedValue(value ? '#FFFFFF' : '#E4E4E7');
   const pressScale = useSharedValue(1);
 
   const sizeConfig = {
@@ -86,9 +89,9 @@ export function DarkSwitch({
     
     thumbX.value = withSpring(newValue ? 1 : 0, ANIMATION.springBouncy);
     trackBg.value = withTiming(newValue ? trackColor : offTrackColor, { duration: 200 });
-    thumbBg.value = withTiming(thumbColor, { duration: 200 });
-    glowOpacity.value = withTiming(newValue ? 0.4 : 0, { duration: 200 });
-    labelClr.value = withTiming(newValue ? trackColor : COLORS.textSec, { duration: 200 });
+    thumbBg.value = withTiming(newValue ? thumbActiveColor : thumbOffColor, { duration: 200 });
+    glowOpacity.value = withTiming(newValue ? 0.45 : 0, { duration: 200 });
+    labelClr.value = withTiming(newValue ? '#FFFFFF' : '#E4E4E7', { duration: 200 });
     
     pressScale.value = withSpring(0.95, ANIMATION.spring, () => {
       pressScale.value = withSpring(1, ANIMATION.spring);
@@ -98,6 +101,7 @@ export function DarkSwitch({
   return (
     <View style={styles.container}>
       {label && (
+
         <View style={styles.labelRow}>
           {icon && <Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={20} color={COLORS.textSec} style={styles.icon} />}
           <View style={styles.labelContent}>

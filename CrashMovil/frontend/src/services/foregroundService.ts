@@ -78,6 +78,43 @@ export const foregroundService = {
     }
   },
 
+  async startEmergencyCountdown(seconds: number, gForce: number): Promise<boolean> {
+    if (!isAndroid || !ForegroundService) {
+      return false;
+    }
+    try {
+      await ForegroundService.startEmergencyCountdown(seconds, gForce);
+      return true;
+    } catch (e) {
+      console.warn('Failed to start native countdown:', e);
+      return false;
+    }
+  },
+
+  async cancelEmergencyCountdown(): Promise<boolean> {
+    if (!isAndroid || !ForegroundService) {
+      return false;
+    }
+    try {
+      await ForegroundService.cancelEmergencyCountdown();
+      return true;
+    } catch (e) {
+      console.warn('Failed to cancel native countdown:', e);
+      return false;
+    }
+  },
+
+  async checkPermissions(): Promise<{ locationGranted: boolean; notificationsGranted: boolean; allGranted: boolean } | null> {
+    if (!isAndroid || !ForegroundService) {
+      return null;
+    }
+    try {
+      return await ForegroundService.checkPermissions();
+    } catch {
+      return null;
+    }
+  },
+
   async isRunning(): Promise<boolean> {
     if (!isAndroid || !ForegroundService) {
       return false;

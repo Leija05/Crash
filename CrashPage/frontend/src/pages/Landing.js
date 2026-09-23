@@ -7,7 +7,7 @@ import {
 } from "framer-motion";
 import {
   Smartphone, Cpu, Monitor,
-  MessagesSquare, Database, ShoppingCart, X, MessageCircle, Mail,
+  MessagesSquare, Database, ShoppingCart, X, Menu, MessageCircle, Mail,
   Check, ArrowRight, MapPin, History, Signal, Users, Building2,
   Gauge, Brain, ShieldAlert, Zap, Activity, Radar, ChevronDown, Download,
   Crosshair, Radio, Network, LocateFixed, Sun, Moon,
@@ -17,6 +17,7 @@ import { useI18n } from "../i18n";
 import { useSettings } from "../context/SettingsContext";
 import CtaFooter from "../components/CtaFooter";
 import PlansModal from "../components/PlansModal";
+import CircuitExplorer from "../components/CircuitExplorer";
 import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
 import { openExternal } from "../lib/openExternal";
 import { mx, CYCLE_MULT, B2C_DEVICE, B2C_SUB, B2B_DEVICE, B2B_SUB_PER_DRIVER } from "../lib/pricing";
@@ -70,16 +71,16 @@ const NORMS = [
 ];
 
 const ARCH = [
-  { key: "archHardware", t: "Hardware (Nodo Sensor)", d: "Módulo compacto montable en cascos (EPP) o chasis vehiculares con sensores MEMS (MPU-6050) para medir fuerzas G y cambios de orientación." },
-  { key: "archBackend", t: "Backend (Cerebro del Sistema)", d: "FastAPI (Python) con IA (red neuronal de clasificación) que analiza la curva de aceleración para determinar severidad y probabilidad de lesiones." },
-  { key: "archAlert", t: "Capa de Alerta", d: "Integración con bot de WhatsApp Business para difundir mensajes con plantillas interactivas y geolocalización precisa del incidente." },
-  { key: "archInterface", t: "Interfaz de Control", d: "Aplicación web de alto rendimiento (React) con panel de monitoreo en tiempo real y estética de alto impacto visual." },
+  { key: "archHardware", t: "Hardware IoT & Circuito Embebido", d: "Arduino Nano (ATmega328P) con IMU MPU-6050 (I2C en A4/A5, escala ±16G), transceptor BLE HM-10 (UART 9600 baud), alarma piezoeléctrica en D8, LED D13, divisor de batería LiPo en A0 y cargador TP4056 con BMS." },
+  { key: "archMobileEngine", t: "Phone Sensor Engine (Modo Dual)", d: "Motor inercial nativo en la app móvil (~60Hz acelerómetro, 25Hz giroscopio) con buffer circular de Caja Negra de 10 segundos pre-impacto (-9.5s a 0.0s) y Foreground Service en segundo plano." },
+  { key: "archBackend", t: "Backend Cloud Unificado (FastAPI)", d: "Arquitectura en la nube con red neuronal de clasificación de lesiones, WebSockets bidireccionales en vivo (< 20 ms), almacenamiento de telemetría y geocercas dinámicas." },
+  { key: "archAlert", t: "Capa de Alerta Omnicanal", d: "Integración con WhatsApp Business para difundir mensajes interactivos con ubicación GPS precisa del siniestro a contactos de emergencia y centro de monitoreo." },
 ];
 
 const HERO_SUB = [
-  { key: "heroMobile", icon: Smartphone, t: "App Móvil", s: "El Escudo del Conductor", d: "Cero distracciones en marcha, caja negra offline y botón de pánico silencioso en el casco.", tag: "CLIENTE · ANDROID" },
-  { key: "heroBackend", icon: Cpu, t: "Backend / Dispositivo", s: "El Cerebro", d: "Arduino Nano + MPU-6050 detecta impactos en milisegundos, con filtro de acelerómetro e IA de gravedad.", tag: "SENSOR · MEMS" },
-  { key: "heroDashboard", icon: Monitor, t: "Dashboard Web", s: "Centro de Monitoreo", d: "WebSockets en vivo, gestión por excepción y difusión automática a contactos y autoridades.", tag: "STREAM · WEBSOCKET" },
+  { key: "heroMobile", icon: Smartphone, t: "App Móvil & Phone Engine", s: "El Escudo del Conductor", d: "Doble blindaje: cliente BLE para el casco o detección autónoma nativa a 60 Hz con caja negra circular de 10 segundos.", tag: "CLIENTE · DUAL MODE" },
+  { key: "heroBackend", icon: Cpu, t: "Hardware IoT & Circuito", s: "Nodo Sensor 10 Hz", d: "Arduino Nano + MPU-6050 (±16G), BLE HM-10, alarma sonora D8, LED D13 y divisor de batería A0 con filtro anti-falsos positivos.", tag: "CIRCUITO · MEMS" },
+  { key: "heroDashboard", icon: Monitor, t: "FastAPI Cloud & Monitoreo", s: "Centro de Control 24/7", d: "WebSockets en vivo < 20 ms, IA de estimación de lesiones, geocercas de riesgo y alertas automáticas por WhatsApp.", tag: "STREAM · CLOUD" },
 ];
 
 const FEATURES = [
@@ -90,6 +91,7 @@ const FEATURES = [
   { key: "featureGeofence", icon: MapPin, t: "Geocercas de riesgo", d: "Zonas peligrosas (curvas, túneles, escolares) activan modo Precaución y cronometran el tiempo exacto en la zona." },
   { key: "featureBlackbox", icon: Database, t: "Caja Negra del Casco", d: "Almacena telemetría IMU local y la envía en ráfaga al recuperar la señal en zonas muertas, sin perder datos." },
 ];
+
 
 /* ── Ease functions ──────────────────────────────────────────────── */
 const easeGentle = { duration: 0.5, ease: [0.16, 1, 0.3, 1] };
@@ -219,46 +221,52 @@ function Magnetic({ children, className = "", strength = 0.16, style = {} }) {
   );
 }
 
-/* ── Particle canvas background ─────────────────────────────────── */
+/* ── Particle canvas background (optimizado para 60+ FPS y bajo consumo) ── */
 function ParticleBackground() {
   const canvasRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    let animId;
-    let w, h;
+    const ctx = canvas.getContext("2d", { alpha: true });
+    let animId = null;
+    let isVisible = true;
+    let isScrolledPast = false;
 
-    // Móvil: menos partículas y DPR limitado para no pintar 2-3x píxeles
+    // Móvil/Touch: menos partículas y DPR limitado para no saturar GPU
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const dpr = isMobile ? Math.min(1.5, window.devicePixelRatio || 1) : (window.devicePixelRatio || 1);
-    const PARTICLE_COUNT = isMobile ? 22 : 55;
-    const LINK_DIST = isMobile ? 110 : 150;
+    const isTouch = window.matchMedia("(pointer: coarse)").matches;
+    const dpr = isMobile || isTouch ? 1 : Math.min(1.5, window.devicePixelRatio || 1);
+    const PARTICLE_COUNT = isMobile ? 14 : 45;
+    const LINK_DIST = isMobile ? 80 : 130;
+    const LINK_DIST_SQ = LINK_DIST * LINK_DIST;
+    const ENABLE_LINKS = !isMobile;
 
     const resize = () => {
-      w = canvas.width = canvas.offsetWidth * dpr;
-      h = canvas.height = canvas.offsetHeight * dpr;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = canvas.offsetHeight * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", resize, { passive: true });
 
     const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
       x: Math.random() * canvas.offsetWidth,
       y: Math.random() * canvas.offsetHeight,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-      r: Math.random() * 2 + 1,
-      a: Math.random() * 0.4 + 0.1,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      r: Math.random() * 1.8 + 1,
+      a: Math.random() * 0.35 + 0.1,
     }));
 
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    const updateAndDraw = () => {
       const cw = canvas.offsetWidth;
       const ch = canvas.offsetHeight;
+      ctx.clearRect(0, 0, cw, ch);
 
-      particles.forEach((p) => {
+      // 1. Dibujar partículas (círculos)
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
         if (p.x < 0 || p.x > cw) p.vx *= -1;
@@ -268,37 +276,74 @@ function ParticleBackground() {
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(239,68,68,${p.a})`;
         ctx.fill();
-      });
-
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < LINK_DIST) {
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(239,68,68,${0.08 * (1 - dist / LINK_DIST)})`;
-            ctx.stroke();
-          }
-        }
       }
 
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
+      // 2. Líneas conectadas en un solo batch path (evita múltiples llamadas GPU de stroke)
+      if (ENABLE_LINKS) {
+        ctx.beginPath();
+        for (let i = 0; i < particles.length; i++) {
+          const pi = particles[i];
+          for (let j = i + 1; j < particles.length; j++) {
+            const pj = particles[j];
+            const dx = pi.x - pj.x;
+            const dy = pi.y - pj.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < LINK_DIST_SQ) {
+              ctx.moveTo(pi.x, pi.y);
+              ctx.lineTo(pj.x, pj.y);
+            }
+          }
+        }
+        ctx.strokeStyle = "rgba(239,68,68,0.06)";
+        ctx.lineWidth = 0.75;
+        ctx.stroke();
+      }
 
-    // Pausa el canvas cuando la pestaña no es visible (ahorra CPU/batería)
+      if (isVisible && !isScrolledPast) {
+        animId = requestAnimationFrame(updateAndDraw);
+      } else {
+        animId = null;
+      }
+    };
+
+    const startLoop = () => {
+      if (!animId && isVisible && !isScrolledPast) {
+        animId = requestAnimationFrame(updateAndDraw);
+      }
+    };
+
+    const stopLoop = () => {
+      if (animId) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
+    };
+
+    // Pausar canvas al scrollear profundamente en la página (> 1400px) para ahorrar CPU/GPU
+    const onScroll = () => {
+      const scrolledPast = window.scrollY > 1400;
+      if (scrolledPast !== isScrolledPast) {
+        isScrolledPast = scrolledPast;
+        if (isScrolledPast) stopLoop();
+        else startLoop();
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    // Pausar canvas cuando la pestaña no es visible
     const onVisibility = () => {
-      if (document.hidden) { cancelAnimationFrame(animId); animId = null; }
-      else if (!animId) draw();
+      isVisible = !document.hidden;
+      if (isVisible) startLoop();
+      else stopLoop();
     };
     document.addEventListener("visibilitychange", onVisibility);
 
+    startLoop();
+
     return () => {
-      if (animId) cancelAnimationFrame(animId);
+      stopLoop();
       window.removeEventListener("resize", resize);
+      window.removeEventListener("scroll", onScroll);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
@@ -306,28 +351,35 @@ function ParticleBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0"
+      className="pointer-events-none fixed inset-0 z-0 will-change-transform"
       style={{ width: "100%", height: "100%" }}
     />
   );
 }
 
-/* ── 3D Tilt Card ─────────────────────────────────────────────────── */
+/* ── 3D Tilt Card (GPU hardware-accelerated, ZERO React re-renders) ── */
 function TiltCard({ children, className = "", style = {}, onMouseMove }) {
   const ref = useRef(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const reduce = useReducedMotion();
+  const rotateX = useSpring(0, { stiffness: 280, damping: 22, mass: 0.5 });
+  const rotateY = useSpring(0, { stiffness: 280, damping: 22, mass: 0.5 });
 
   const handleMouse = useCallback((e) => {
     onMouseMove?.(e);
+    if (reduce) return;
     const el = ref.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const x = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
     const y = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
-    setTilt({ x: y * -6, y: x * 6 });
-  }, [onMouseMove]);
+    rotateX.set(y * -5);
+    rotateY.set(x * 5);
+  }, [onMouseMove, reduce, rotateX, rotateY]);
 
-  const handleLeave = useCallback(() => setTilt({ x: 0, y: 0 }), []);
+  const handleLeave = useCallback(() => {
+    rotateX.set(0);
+    rotateY.set(0);
+  }, [rotateX, rotateY]);
 
   return (
     <div
@@ -338,10 +390,8 @@ function TiltCard({ children, className = "", style = {}, onMouseMove }) {
       style={{ perspective: "800px", ...style }}
     >
       <motion.div
-        animate={{ rotateX: tilt.x, rotateY: tilt.y }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="w-full h-full"
-        style={{ transformStyle: "preserve-3d" }}
+        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+        className="w-full h-full will-change-transform"
       >
         {children}
       </motion.div>
@@ -499,33 +549,34 @@ function CockpitSection({ t }) {
   const steps = [
     {
       n: "01",
-      tag: t("landing.cockpitTag1", "SENSOR · MPU-6050"),
-      title: t("landing.cockpitTitle1", "Detección"),
-      text: t("landing.cockpitText1", "El nodo sensor captura la curva de fuerza-G en milisegundos y la transmite por Bluetooth al teléfono del conductor."),
-      meta: [["RESPUESTA", "≤ 8 ms"], ["UMBRAL", "2.5 G"]],
+      tag: t("landing.cockpitTag1", "SENSOR · MPU-6050 ±16G"),
+      title: t("landing.cockpitTitle1", "Detección Biomecánica"),
+      text: t("landing.cockpitText1", "El nodo sensor captura la cinemática a 10 Hz por BLE (o a 60 Hz en el celular) con confirmación anti-falsos de 3 muestras consecutivas ≥ 4.0G sostenido."),
+      meta: [["MUESTREO", "10 Hz / 60 Hz"], ["ESCALA", "± 16 G"]],
     },
     {
       n: "02",
-      tag: t("landing.cockpitTag2", "RED NEURONAL · FASTAPI"),
-      title: t("landing.cockpitTitle2", "Triaje IA"),
-      text: t("landing.cockpitText2", "La red neuronal clasifica la gravedad y estima la probabilidad de lesión antes de decidir el protocolo de respuesta."),
-      meta: [["MODELO", "NN-4L"], ["PRECISIÓN", "94%"]],
+      tag: t("landing.cockpitTag2", "RED NEURONAL · FASTAPI CLOUD"),
+      title: t("landing.cockpitTitle2", "Triaje IA en la Nube"),
+      text: t("landing.cockpitText2", "La red neuronal clasifica la curva de desaceleración: impacto moderado (≥ 5G) o colisión crítica (≥ 10G), estimando la probabilidad de traumatismo."),
+      meta: [["MODELO", "NN-4L Cloud"], ["PRECISIÓN", "94%"]],
     },
     {
       n: "03",
       tag: t("landing.cockpitTag3", "ALERTA · OMNICANAL"),
-      title: t("landing.cockpitTitle3", "Despliegue"),
-      text: t("landing.cockpitText3", "Alertas a WhatsApp Business, contactos de emergencia y centro de control con GPS exacto del incidente."),
-      meta: [["CANALES", "3"], ["GEO", "± 2 m"]],
+      title: t("landing.cockpitTitle3", "Despliegue & Auxilio"),
+      text: t("landing.cockpitText3", "Buzzer piezoeléctrico continuo D8 en el casco + alerta automática por WhatsApp Business con geolocalización exacta (± 2 m) y WebSockets a monitoreo."),
+      meta: [["CANALES", "WhatsApp · Web · Buzzer"], ["GEO", "± 2 m"]],
     },
     {
       n: "04",
       tag: t("landing.cockpitTag4", "CAJA NEGRA · 6 EJES"),
-      title: t("landing.cockpitTitle4", "Evidencia"),
-      text: t("landing.cockpitText4", "Cada impacto queda firmado en la caja negra del dispositivo: telemetría completa, diagnóstico IA y trazabilidad forense."),
-      meta: [["RETENCIÓN", "90 DÍAS"], ["CRIPTO", "SHA-256"]],
+      title: t("landing.cockpitTitle4", "Evidencia & Telemetría"),
+      text: t("landing.cockpitText4", "Búfer circular de 10 segundos pre-impacto (-9.5s a 0.0s), estado de batería LiPo en A0 y trazabilidad forense inmutable para análisis pericial."),
+      meta: [["BÚFER", "10 SEG"], ["CRIPTO", "SHA-256"]],
     },
   ];
+
 
   const visuals = [
     (
@@ -716,17 +767,17 @@ function CockpitSection({ t }) {
             {t("landing.titleProtocol", "Del impacto a la evidencia, en 4 fases")}
           </h2>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center overflow-x-auto no-scrollbar py-1">
           {steps.map((s, i) => (
-            <div key={s.n} className="flex items-center">
-              <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 border transition-colors duration-500 ${active === i ? "border-red-500/40 bg-red-500/10" : "border-white/10 bg-white/[0.02]"}`}>
+            <div key={s.n} className="flex items-center shrink-0">
+              <div className={`flex items-center gap-1.5 sm:gap-2 rounded-full px-2 sm:px-3 py-1 sm:py-1.5 border transition-colors duration-500 ${active === i ? "border-red-500/40 bg-red-500/10" : "border-white/10 bg-white/[0.02]"}`}>
                 <span className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${active === i ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]" : "bg-zinc-600"}`} />
-                <span className={`hud-ticker transition-colors duration-500 ${active === i ? "text-white" : "text-neutral-500"}`}>
-                  {t(`landing.cockpitPhase${i + 1}`, `FASE ${s.n}`)}
+                <span className={`hud-ticker transition-colors duration-500 text-[10px] sm:text-xs ${active === i ? "text-white" : "text-neutral-500"}`}>
+                  <span className="hidden sm:inline">FASE </span>{s.n}
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <span className={`w-6 sm:w-12 h-px transition-colors duration-500 ${active > i ? "bg-red-500/40" : "bg-white/10"}`} />
+                <span className={`w-2 sm:w-8 lg:w-12 h-px transition-colors duration-500 ${active > i ? "bg-red-500/40" : "bg-white/10"}`} />
               )}
             </div>
           ))}
@@ -936,6 +987,7 @@ function Landing() {
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [cartExiting, setCartExiting] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [appVersion, setAppVersion] = useState(null);
   const { t } = useI18n();
   const { theme, setTheme } = useSettings();
@@ -1115,93 +1167,142 @@ function Landing() {
               initial={false}
               animate={{
                 maxWidth: scrolled ? "64rem" : "100%",
-                borderRadius: scrolled ? 9999 : 0,
-                backgroundColor: scrolled ? (isLight ? "rgba(252,251,247,0.86)" : "rgba(0,0,0,0.6)") : "rgba(0,0,0,0)",
-                borderColor: scrolled ? (isLight ? "rgba(22,26,35,0.1)" : "rgba(255,255,255,0.1)") : "rgba(255,255,255,0)",
+                borderRadius: scrolled ? (mobileMenuOpen ? 24 : 9999) : (mobileMenuOpen ? 20 : 0),
+                backgroundColor: scrolled ? (isLight ? "rgba(252,251,247,0.86)" : "rgba(0,0,0,0.6)") : (mobileMenuOpen ? "rgba(10,10,10,0.92)" : "rgba(0,0,0,0)"),
+                borderColor: scrolled ? (isLight ? "rgba(22,26,35,0.1)" : "rgba(255,255,255,0.1)") : (mobileMenuOpen ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0)"),
                 boxShadow: scrolled ? (isLight ? "0 10px 40px rgba(35,30,20,0.12)" : "0 10px 50px rgba(0,0,0,0.5)") : "0 0 0 rgba(0,0,0,0)",
-                backdropFilter: scrolled ? "blur(24px)" : "blur(0px)",
-                WebkitBackdropFilter: scrolled ? "blur(24px)" : "blur(0px)",
+                backdropFilter: scrolled || mobileMenuOpen ? "blur(24px)" : "blur(0px)",
+                WebkitBackdropFilter: scrolled || mobileMenuOpen ? "blur(24px)" : "blur(0px)",
               }}
               transition={pillTransition}
-              className="mx-auto h-14 border flex items-center justify-between px-3 sm:px-5"
+              className="mx-auto border px-3 sm:px-5 transition-all overflow-hidden"
             >
-              <Link to="/" onClick={smoothScrollTop} className="flex items-center gap-2.5 flex-shrink-0" aria-label={t("landing.backToTop", "Volver al inicio")}>
-                <Brand compact />
-              </Link>
-              <nav className="hidden md:flex items-center gap-7">
-                {[
-                  { href: "#ecosistema", l: t("landing.navEco", "Ecosistema") },
-                  { href: "#cockpit", l: t("landing.navCockpit", "Cabina") },
-                  { href: "#simulador", l: t("landing.navSim", "Simulador") },
-                  { href: "#planes", l: t("landing.navPlanes", "Planes") },
-                ].map((n) => (
-                  <motion.a
-                    key={n.href}
-                    href={n.href}
-                    onClick={(e) => {
-                      if (n.href === "#planes") {
-                        e.preventDefault();
-                        setPlansOpen(true);
-                      }
-                    }}
-                    whileHover={{ y: -1 }}
-                    className="hud-ticker text-neutral-400 hover:text-white transition-colors cursor-pointer"
-                  >
-                    {n.l}
-                  </motion.a>
-                ))}
-              </nav>
-              <div className="flex items-center gap-2 sm:gap-3">
-                <motion.button
-                  onClick={() => setTheme(isLight ? "dark" : "light")}
-                  whileHover={{ scale: 1.06 }}
-                  whileTap={{ scale: 0.94 }}
-                  className="relative p-2 text-zinc-300 hover:text-white transition-colors"
-                  aria-label={t("landing.themeToggle", "Cambiar tema")}
-                >
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span
-                      key={theme}
-                      initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
-                      animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                      exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
-                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                      className="block"
+              <div className="h-14 flex items-center justify-between">
+                <Link to="/" onClick={smoothScrollTop} className="flex items-center gap-2.5 flex-shrink-0" aria-label={t("landing.backToTop", "Volver al inicio")}>
+                  <Brand compact />
+                </Link>
+                <nav className="hidden md:flex items-center gap-7">
+                  {[
+                    { href: "#ecosistema", l: t("landing.navEco", "Ecosistema") },
+                    { href: "#circuito", l: t("landing.navCircuito", "Circuito & Hardware") },
+                    { href: "#cockpit", l: t("landing.navCockpit", "Cabina") },
+                    { href: "#simulador", l: t("landing.navSim", "Simulador") },
+                    { href: "#planes", l: t("landing.navPlanes", "Planes") },
+                  ].map((n) => (
+                    <motion.a
+                      key={n.href}
+                      href={n.href}
+                      onClick={(e) => {
+                        if (n.href === "#planes") {
+                          e.preventDefault();
+                          setPlansOpen(true);
+                        }
+                      }}
+                      whileHover={{ y: -1 }}
+                      className="hud-ticker text-zinc-300 hover:text-white transition-colors cursor-pointer"
                     >
-                      {isLight ? <Sun size={19} /> : <Moon size={19} />}
-                    </motion.span>
-                  </AnimatePresence>
-                </motion.button>
-                <motion.button
-                  onClick={() => setCartOpen(true)}
-                  whileHover={{ scale: 1.06 }}
-                  whileTap={{ scale: 0.94 }}
-                  className="relative p-2 text-zinc-300 hover:text-white transition-colors"
-                  aria-label={t("landing.cartOpenAria", "Abrir carrito")}
-                >
-                  <ShoppingCart size={19} />
-                  <AnimatePresence>
-                    {cart.length > 0 && (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0 }}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center font-mono font-bold"
-                      >
-                        {cart.length}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.button>
-                <Magnetic strength={0.12}>
-                  <Link
-                    to="/login"
-                    className="btn-gradient-border text-white font-bold text-xs sm:text-sm px-3.5 sm:px-5 py-2 rounded-full inline-block"
+                      {n.l}
+                    </motion.a>
+                  ))}
+                </nav>
+                <div className="flex items-center gap-1.5 sm:gap-3">
+                  <motion.button
+                    onClick={() => setTheme(isLight ? "dark" : "light")}
+                    whileHover={{ scale: 1.06 }}
+                    whileTap={{ scale: 0.94 }}
+                    className="relative p-2 text-zinc-300 hover:text-white transition-colors"
+                    aria-label={t("landing.themeToggle", "Cambiar tema")}
                   >
-                    {t("landing.navAccess", "Acceso monitoristas")}
-                  </Link>
-                </Magnetic>
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={theme}
+                        initial={{ opacity: 0, rotate: -90, scale: 0.6 }}
+                        animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                        exit={{ opacity: 0, rotate: 90, scale: 0.6 }}
+                        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                        className="block"
+                      >
+                        {isLight ? <Sun size={19} /> : <Moon size={19} />}
+                      </motion.span>
+                    </AnimatePresence>
+                  </motion.button>
+                  <motion.button
+                    onClick={() => setCartOpen(true)}
+                    whileHover={{ scale: 1.06 }}
+                    whileTap={{ scale: 0.94 }}
+                    className="relative p-2 text-zinc-300 hover:text-white transition-colors"
+                    aria-label={t("landing.cartOpenAria", "Abrir carrito")}
+                  >
+                    <ShoppingCart size={19} />
+                    <AnimatePresence>
+                      {cart.length > 0 && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          exit={{ scale: 0 }}
+                          className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center font-mono font-bold"
+                        >
+                          {cart.length}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                  <Magnetic strength={0.12}>
+                    <Link
+                      to="/login"
+                      className="btn-gradient-border text-white font-bold text-xs sm:text-sm px-3 sm:px-5 py-2 rounded-full inline-block shrink-0"
+                    >
+                      <span className="hidden sm:inline">{t("landing.navAccess", "Acceso monitoristas")}</span>
+                      <span className="sm:hidden">{t("landing.navAccessShort", "Acceso")}</span>
+                    </Link>
+                  </Magnetic>
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen((v) => !v)}
+                    className="md:hidden p-2 text-zinc-300 hover:text-white transition-colors shrink-0 cursor-pointer"
+                    aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú de navegación"}
+                  >
+                    {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                  </button>
+                </div>
               </div>
+
+              {/* Mobile menu dropdown */}
+              <AnimatePresence>
+                {mobileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    className="md:hidden border-t border-white/10 pt-3 pb-3 space-y-1.5"
+                  >
+                    {[
+                      { href: "#ecosistema", l: t("landing.navEco", "Ecosistema") },
+                      { href: "#circuito", l: t("landing.navCircuito", "Circuito & Hardware") },
+                      { href: "#cockpit", l: t("landing.navCockpit", "Cabina de Detección") },
+                      { href: "#simulador", l: t("landing.navSim", "Simulador") },
+                      { href: "#planes", l: t("landing.navPlanes", "Planes de Suscripción") },
+                    ].map((n) => (
+                      <a
+                        key={n.href}
+                        href={n.href}
+                        onClick={(e) => {
+                          setMobileMenuOpen(false);
+                          if (n.href === "#planes") {
+                            e.preventDefault();
+                            setPlansOpen(true);
+                          }
+                        }}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-white/10 text-zinc-200 hover:text-white transition-colors text-xs font-mono"
+                      >
+                        <span>{n.l}</span>
+                        <ArrowRight size={13} className="text-zinc-500" />
+                      </a>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         </motion.header>
@@ -1236,7 +1337,7 @@ function Landing() {
                 className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]"
               />
               {t("landing.heroBadge", "Ecosistema de cascos · Monitoreo en vivo")}
-              <span className="tactical-index">v3.0</span>
+              <span className="tactical-index">v3.2.1</span>
             </motion.div>
 
             <motion.h1
@@ -1300,12 +1401,12 @@ function Landing() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.05, duration: 0.6 }}
-              className="mt-8 hud-ticker text-neutral-500 flex flex-wrap items-center gap-x-6 gap-y-2"
+              className="mt-8 hud-ticker text-zinc-400 flex flex-wrap items-center gap-x-6 gap-y-2"
             >
               <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />SENSORES EN LÍNEA</span>
-              <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />LINK ESTABLE</span>
-              <span>G-MAX <span className="text-white">4.2</span></span>
-              <span>MODELO <span className="text-white">v3.0</span></span>
+              <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />LINK BLE HM-10</span>
+              <span>G-MAX <span className="text-white font-bold">16.0G</span></span>
+              <span>MODELO <span className="text-white font-bold">v3.2.1</span></span>
               <span className="tick-blink text-red-400">▌</span>
             </motion.div>
 
@@ -1323,9 +1424,9 @@ function Landing() {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <s.icon size={13} className="text-red-400" />
-                    <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t(`landing.stat${i}`, s.l)}</span>
+                    <span className="text-[10px] text-zinc-300 font-semibold uppercase tracking-wider">{t(`landing.stat${i}`, s.l)}</span>
                   </div>
-                  <div className="font-mono font-bold text-2xl tactical-num"><Counter to={s.v} suffix={s.suffix || ""} /></div>
+                  <div className="font-mono font-bold text-2xl tactical-num text-white"><Counter to={s.v} suffix={s.suffix || ""} /></div>
                 </motion.div>
               ))}
             </motion.div>
@@ -1352,7 +1453,7 @@ function Landing() {
         >
           <div className="marquee-track">
             {[...TRUST, ...TRUST].map((it, i) => (
-              <span key={i} className="inline-flex items-center gap-2 px-6 text-sm text-zinc-500 font-mono uppercase tracking-wider">
+              <span key={i} className="inline-flex items-center gap-2 px-6 text-sm text-zinc-400 font-mono uppercase tracking-wider font-medium">
                 <motion.span
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
@@ -1368,22 +1469,22 @@ function Landing() {
         <section id="ecosistema" className="max-w-6xl mx-auto px-4 py-20 sm:py-28">
           <ScrollReveal>
             <div className="hud-ticker text-red-400 mb-3 flex items-center gap-3">
-              <Radio size={14} className="animate-pulse" /> {t("landing.eyebrow3Components", "Los 3 componentes")}
+              <Radio size={14} className="animate-pulse" /> {t("landing.eyebrow3Components", "Ecosistema Tecnológico Sincronizado")}
             </div>
-            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-12">{t("landing.titleEcosystem", "Un ecosistema sincronizado")}</h2>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight text-white mb-12">{t("landing.titleEcosystem", "Blindaje Integral para el Conductor")}</h2>
           </ScrollReveal>
           <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }} className="grid md:grid-cols-6 gap-5">
             <motion.div variants={scaleInItem} className="md:col-span-4">
               <TiltCard onMouseMove={handleSpot} className="hud-frame glass-refined card-spot rounded-3xl p-8 h-full">
                 <div className="flex items-start justify-between gap-6">
                   <div>
-                    <span className="tactical-index">01 / APP MÓVIL</span>
+                    <span className="tactical-index">01 / APP MÓVIL & DUAL SENSING</span>
                     <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center my-4">
                       <Smartphone size={22} className="text-red-400" />
                     </div>
-                    <div className="font-bold font-mono text-xl">{t("landing.heroMobile", "App Móvil")}</div>
-                    <div className="text-red-500 text-xs font-mono uppercase tracking-wider mt-1 mb-2">{t("landing.heroMobileSub", "El Escudo del Conductor")}</div>
-                    <p className="text-zinc-400 text-sm leading-relaxed max-w-md">{t("landing.heroMobileDesc", "Cero distracciones en marcha, caja negra offline y botón de pánico silencioso en el casco.")}</p>
+                    <div className="font-bold font-mono text-xl text-white">{t("landing.heroMobile", "App Móvil & Phone Engine")}</div>
+                    <div className="text-red-400 text-xs font-mono uppercase tracking-wider mt-1 mb-2 font-semibold">{t("landing.heroMobileSub", "El Escudo del Conductor")}</div>
+                    <p className="text-zinc-300 text-sm leading-relaxed max-w-md">{t("landing.heroMobileDesc", "Cliente BLE para casco IoT y motor inercial nativo 60 Hz en el smartphone con caja negra circular de 10 segundos pre-impacto (-9.5s a 0.0s) y Foreground Service en segundo plano.")}</p>
                   </div>
                   <div className="hidden sm:flex flex-col items-center gap-2 pt-8">
                     <div className="wave-bars h-16">
@@ -1391,22 +1492,22 @@ function Landing() {
                         <span key={i} style={{ animationDelay: `${(i % 7) * 0.11}s`, height: `${18 + ((i * 29) % 46)}px` }} />
                       ))}
                     </div>
-                    <span className="hud-ticker text-neutral-600 mt-2">TELEMETRÍA IMU</span>
+                    <span className="hud-ticker text-zinc-400 font-mono mt-2">TELEMETRÍA 60 HZ</span>
                   </div>
                 </div>
               </TiltCard>
             </motion.div>
             <motion.div variants={scaleInItem} className="md:col-span-2">
               <TiltCard onMouseMove={handleSpot} className="hud-frame glass-refined card-spot rounded-3xl p-8 h-full">
-                <span className="tactical-index">02 / HARDWARE</span>
+                <span className="tactical-index">02 / CIRCUITO & CASCO IOT</span>
                 <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center my-4">
                   <Cpu size={22} className="text-red-400" />
                 </div>
-                <div className="font-bold font-mono text-xl">{t("landing.heroBackend", "Backend / Dispositivo")}</div>
-                <div className="text-red-500 text-xs font-mono uppercase tracking-wider mt-1 mb-2">{t("landing.heroBackendSub", "El Cerebro")}</div>
-                <p className="text-zinc-400 text-sm leading-relaxed">{t("landing.heroBackendDesc", "Arduino Nano + MPU-6050 detecta impactos en milisegundos, con filtro de acelerómetro e IA de gravedad.")}</p>
-                <div className="mt-5 flex items-center gap-2 hud-ticker text-neutral-500">
-                  <span className="glow-dot bg-red-500 text-red-500" /> MPU-6050
+                <div className="font-bold font-mono text-xl text-white">{t("landing.heroBackend", "Hardware IoT & Circuito")}</div>
+                <div className="text-red-400 text-xs font-mono uppercase tracking-wider mt-1 mb-2 font-semibold">{t("landing.heroBackendSub", "Nodo Sensor 10 Hz")}</div>
+                <p className="text-zinc-300 text-sm leading-relaxed">{t("landing.heroBackendDesc", "Arduino Nano + MPU-6050 (±16G), BLE HM-10, alarma piezoeléctrica D8 (≥10G), LED D13 y divisor de batería A0 con filtro anti-falsos positivos.")}</p>
+                <div className="mt-5 flex items-center gap-2 hud-ticker text-zinc-300">
+                  <span className="glow-dot bg-red-500 text-red-500" /> MPU-6050 ±16G · BLE HM-10
                 </div>
               </TiltCard>
             </motion.div>
@@ -1414,16 +1515,16 @@ function Landing() {
               <TiltCard onMouseMove={handleSpot} className="hud-frame glass-refined card-spot rounded-3xl p-8">
                 <div className="grid lg:grid-cols-2 gap-8 items-center">
                   <div>
-                    <span className="tactical-index">03 / CENTRO DE CONTROL</span>
+                    <span className="tactical-index">03 / FASTAPI CLOUD & CONTROL</span>
                     <div className="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center my-4">
                       <Monitor size={22} className="text-red-400" />
                     </div>
-                    <div className="font-bold font-mono text-xl">{t("landing.heroDashboard", "Dashboard Web")}</div>
-                    <div className="text-red-500 text-xs font-mono uppercase tracking-wider mt-1 mb-2">{t("landing.heroDashboardSub", "Centro de Monitoreo")}</div>
-                    <p className="text-zinc-400 text-sm leading-relaxed max-w-md">{t("landing.heroDashboardDesc", "WebSockets en vivo, gestión por excepción y difusión automática a contactos y autoridades.")}</p>
+                    <div className="font-bold font-mono text-xl text-white">{t("landing.heroDashboard", "FastAPI Cloud & Dashboard Web")}</div>
+                    <div className="text-red-400 text-xs font-mono uppercase tracking-wider mt-1 mb-2 font-semibold">{t("landing.heroDashboardSub", "Centro de Monitoreo 24/7")}</div>
+                    <p className="text-zinc-300 text-sm leading-relaxed max-w-md">{t("landing.heroDashboardDesc", "WebSockets bidireccionales en vivo (< 20 ms), IA de clasificación de lesiones, bot de WhatsApp Business con geolocalización y geocercas dinámicas con tiempo cronometrado.")}</p>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    {["G 4.2", "ALERTAS 0", "BT 12", "GPS LOCK", "BAT 98%", "CACHÉ OK"].map((cell, i) => (
+                    {["G 16.0", "ALERTAS 0", "BLE 10Hz", "GPS ±2m", "BAT 98%", "CLOUD OK"].map((cell, i) => (
                       <motion.div key={cell}
                         initial={{ opacity: 0, y: 12 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -1431,7 +1532,7 @@ function Landing() {
                         transition={{ delay: 0.1 + i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                         className="hud-frame rounded-xl border border-white/10 bg-black/40 px-3 py-4 text-center">
                         <div className="font-mono font-bold text-sm text-white">{cell.split(" ")[0]}</div>
-                        <div className="text-[9px] uppercase tracking-[0.18em] text-neutral-600 mt-1">{cell.split(" ")[1]}</div>
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-bold mt-1">{cell.split(" ")[1]}</div>
                       </motion.div>
                     ))}
                   </div>
@@ -1440,6 +1541,23 @@ function Landing() {
             </motion.div>
           </motion.div>
         </section>
+
+        {/* ── CIRCUITO & HARDWARE EXPLORER ───────────────────────────── */}
+        <section id="circuito" className="max-w-6xl mx-auto px-4 py-16 sm:py-24 content-visibility-auto">
+          <ScrollReveal>
+            <div className="hud-ticker text-red-400 mb-3 flex items-center gap-3">
+              <Cpu size={14} className="animate-pulse" /> {t("landing.eyebrowCircuit", "Ingeniería de Hardware · C.R.A.S.H. 2.0 (v3.2.1)")}
+            </div>
+            <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight text-white mb-4">
+              {t("landing.titleCircuit", "Componentes del Circuito y Arquitectura Física")}
+            </h2>
+            <p className="text-zinc-300 text-sm sm:text-base max-w-3xl leading-relaxed mb-10">
+              {t("landing.circuitDesc", "Diseño electrónico embebido montable en Equipo de Protección Personal (EPP). Esquema de conexionado de pines, sensor inercial de alta escala (±16G), monitoreo de batería LiPo y conmutación con Phone Sensor Engine.")}
+            </p>
+          </ScrollReveal>
+          <CircuitExplorer />
+        </section>
+
 
         {/* ── FEATURES (spotlight hover) ──────────────────────────────── */}
         <section id="features" className="max-w-6xl mx-auto px-4 py-10">
@@ -1469,7 +1587,7 @@ function Landing() {
         <CockpitSection t={t} />
 
         {/* ── IMPACT SIMULATOR ───────────────────────────────────────── */}
-        <section id="simulador" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
+        <section id="simulador" className="max-w-6xl mx-auto px-4 py-16 sm:py-24 content-visibility-auto">
           <ScrollReveal>
             <div className="hud-ticker text-red-400 mb-3 flex items-center gap-3">
               <Brain size={14} className="animate-pulse" /> {t("landing.eyebrowAI", "Inteligencia Artificial")}
@@ -1513,7 +1631,7 @@ function Landing() {
         </section>
 
         {/* ── VIDEO DEMO ──────────────────────────────────────────────── */}
-        <section id="demo" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
+        <section id="demo" className="max-w-6xl mx-auto px-4 py-16 sm:py-24 content-visibility-auto">
           <ScrollReveal className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">{t("landing.titleAction", "Vélo en acción")}</ScrollReveal>
           <ScrollReveal delay={1}>
             <motion.div
@@ -1547,65 +1665,65 @@ function Landing() {
             <div className="hud-frame card-premium p-8 lg:p-12 relative overflow-hidden" style={{ borderRadius: 20 }}>
               <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-red-500/10 blur-[100px]" />
               <div className="relative">
-                <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-3">{t("landing.titleMemory", "Memoria del proyecto · InnovaTecNM 2026")}</h2>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6">{t("landing.projDesc", PROJECT_META.descripcion)}</p>
+                <h2 className="font-bold font-mono text-2xl sm:text-3xl tracking-tight text-white mb-3">{t("landing.titleMemory", "Memoria del proyecto · InnovaTecNM 2026")}</h2>
+                <p className="text-zinc-200 text-sm sm:text-base leading-relaxed mb-6">{t("landing.projDesc", PROJECT_META.descripcion)}</p>
                 <div className="grid sm:grid-cols-2 gap-3 text-sm mb-8">
-                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelEvento", "Evento")}</div><div className="font-medium">{t("landing.projEvento", PROJECT_META.evento)}</div></div>
-                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelSede", "Sede")}</div><div className="font-medium">{t("landing.projSede", PROJECT_META.sede)}</div></div>
-                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelFolioCat", "Folio · Categoría")}</div><div className="font-medium">{PROJECT_META.folio} · {t("landing.projCategoria", PROJECT_META.categoria)}</div></div>
-                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-500 text-xs">{t("landing.labelArea", "Área")}</div><div className="font-medium">{t("landing.projArea", PROJECT_META.area)}</div></div>
+                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-300 text-xs font-mono font-semibold">{t("landing.labelEvento", "Evento")}</div><div className="font-medium text-white">{t("landing.projEvento", PROJECT_META.evento)}</div></div>
+                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-300 text-xs font-mono font-semibold">{t("landing.labelSede", "Sede")}</div><div className="font-medium text-white">{t("landing.projSede", PROJECT_META.sede)}</div></div>
+                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-300 text-xs font-mono font-semibold">{t("landing.labelFolioCat", "Folio · Categoría")}</div><div className="font-medium text-white">{PROJECT_META.folio} · {t("landing.projCategoria", PROJECT_META.categoria)}</div></div>
+                  <div className="glass-refined rounded-xl px-4 py-3"><div className="text-zinc-300 text-xs font-mono font-semibold">{t("landing.labelArea", "Área")}</div><div className="font-medium text-white">{t("landing.projArea", PROJECT_META.area)}</div></div>
                 </div>
 
-                <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowProblem", "Problemática")}</div>
+                <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">{t("landing.eyebrowProblem", "Problemática")}</div>
                 <div className="grid md:grid-cols-3 gap-4 mb-8">
                   {PROBLEMS.map((p) => (
                     <motion.div key={p.key} className="glass-refined rounded-xl p-5 transition-colors hover:border-red-500/30">
                       <div className="font-bold text-[15px] mb-1.5 text-red-300">{t(`landing.${p.key}`, p.t)}</div>
-                      <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${p.key}Desc`, p.d)}</p>
+                      <p className="text-zinc-300 text-sm leading-relaxed">{t(`landing.${p.key}Desc`, p.d)}</p>
                     </motion.div>
                   ))}
                 </div>
 
-                <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowValue", "Propuesta de valor")}</div>
+                <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">{t("landing.eyebrowValue", "Propuesta de valor")}</div>
                 <div className="grid md:grid-cols-3 gap-4 mb-8">
                   {VALUE.map((v) => (
                     <motion.div key={v.key} className="glass-refined rounded-xl p-5 transition-colors hover:border-red-500/30">
                       <div className="font-bold text-[15px] mb-1.5 text-red-300">{t(`landing.${v.key}`, v.t)}</div>
-                      <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${v.key}Desc`, v.d)}</p>
+                      <p className="text-zinc-300 text-sm leading-relaxed">{t(`landing.${v.key}Desc`, v.d)}</p>
                     </motion.div>
                   ))}
                 </div>
 
-                <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowArch", "Arquitectura técnica")}</div>
+                <div className="text-xs font-bold uppercase tracking-[0.25em] text-red-400 mb-3 font-mono">{t("landing.eyebrowArch", "Arquitectura técnica")}</div>
                 <div className="grid md:grid-cols-2 gap-4 mb-8">
                   {ARCH.map((a) => (
                     <motion.div key={a.key} className="glass-refined rounded-xl p-5 transition-colors hover:border-red-500/30">
-                      <div className="font-bold text-[15px] mb-1.5">{t(`landing.${a.key}`, a.t)}</div>
-                      <p className="text-zinc-400 text-sm leading-relaxed">{t(`landing.${a.key}Desc`, a.d)}</p>
+                      <div className="font-bold text-[15px] mb-1.5 text-white">{t(`landing.${a.key}`, a.t)}</div>
+                      <p className="text-zinc-300 text-sm leading-relaxed">{t(`landing.${a.key}Desc`, a.d)}</p>
                     </motion.div>
                   ))}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8">
                   <div>
-                    <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowTeam", "Equipo · Autores")}</div>
-                    <ul className="space-y-2 text-sm text-zinc-300">
+                    <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-300 mb-3 font-mono">{t("landing.eyebrowTeam", "Equipo · Autores")}</div>
+                    <ul className="space-y-2 text-sm text-zinc-200">
                       {TEAM.map((m) => (
                         <motion.li key={m} className="flex items-start gap-2"><Users size={14} className="text-red-400 mt-1 shrink-0" /><span>{m}</span></motion.li>
                       ))}
                     </ul>
                   </div>
                   <div>
-                    <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowAdvisors", "Asesores")}</div>
-                    <ul className="space-y-2 text-sm text-zinc-300 mb-6">
+                    <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-300 mb-3 font-mono">{t("landing.eyebrowAdvisors", "Asesores")}</div>
+                    <ul className="space-y-2 text-sm text-zinc-200 mb-6">
                       {ADVISORS.map((a) => (
                         <motion.li key={a} className="flex items-start gap-2"><Building2 size={14} className="text-red-400 mt-1 shrink-0" /><span>{a}</span></motion.li>
                       ))}
                     </ul>
-                    <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-500 mb-3 font-mono">{t("landing.eyebrowNorms", "Normatividad aplicable")}</div>
+                    <div className="text-xs font-bold uppercase tracking-[0.25em] text-zinc-300 mb-3 font-mono">{t("landing.eyebrowNorms", "Normatividad aplicable")}</div>
                     <div className="space-y-2">
                       {NORMS.map((n) => (
-                        <div key={n.c} className="text-sm"><span className="font-mono font-bold text-white">{n.c}</span><span className="text-zinc-400"> — {t(`landing.${n.key}`, n.d)}</span></div>
+                        <div key={n.c} className="text-sm"><span className="font-mono font-bold text-white">{n.c}</span><span className="text-zinc-300"> — {t(`landing.${n.key}`, n.d)}</span></div>
                       ))}
                     </div>
                   </div>
@@ -1614,6 +1732,7 @@ function Landing() {
             </div>
           </ScrollReveal>
         </section>
+
 
         {/* ── CTA + FOOTER ───────────────────────────────────────────── */}
         <CtaFooter

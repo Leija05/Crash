@@ -35,9 +35,9 @@ export const NEUTRALS = {
   line: 'rgba(255,255,255,0.06)',
   lineStrong: 'rgba(255,255,255,0.12)',
   text: '#FFFFFF',
-  textSec: '#DDD6C6',
-  textDim: '#948C78',
-  textFaint: '#5C5749',
+  textSec: '#E4DFD7',
+  textDim: '#B5AFA6',
+  textFaint: '#8E887E',
 };
 
 /* ---------- Colores funcionales ---------- */

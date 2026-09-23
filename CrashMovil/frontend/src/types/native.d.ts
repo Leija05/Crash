@@ -6,6 +6,9 @@ declare module 'react-native' {
       updateTelemetry: (deviceName: string, speed: number, gForce: number, battery: number | null) => Promise<boolean>;
       updateLocation: (latitude: number, longitude: number, speed: number) => Promise<boolean>;
       setThreshold: (threshold: number) => Promise<boolean>;
+      startEmergencyCountdown: (seconds: number, gForce: number) => Promise<boolean>;
+      cancelEmergencyCountdown: () => Promise<boolean>;
+      checkPermissions: () => Promise<{ locationGranted: boolean; notificationsGranted: boolean; allGranted: boolean }>;
       isRunning: () => Promise<boolean>;
     };
   }

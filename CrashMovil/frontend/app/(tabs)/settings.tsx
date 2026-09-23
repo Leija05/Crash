@@ -19,6 +19,7 @@ import SectionHeader from '../../src/components/SectionHeader';
 import GlassCard from '../../src/components/GlassCard';
 import GlassButton from '../../src/components/GlassButton';
 import PremiumModal from '../../src/components/PremiumModal';
+import UpdateDownloader from '../../src/components/UpdateDownloader';
 import { DarkSwitch } from '../../src/components/DarkSwitch';
 import { useTabBarScroll } from '../../src/context/TabBarContext';
 import { usePhoneSensor } from '../../src/context/PhoneSensorContext';
@@ -140,6 +141,8 @@ export default function SettingsScreen() {
   const [updateNotes, setUpdateNotes] = useState('');
   const [updateUrl, setUpdateUrl] = useState('');
   const [updateMandatory, setUpdateMandatory] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<any>(null);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
 
   const versionTuple = (v?: string) => ((v || '').match(/\d+/g) || []).map(Number);
   const isNewer = (remote?: string, local?: string) => {
@@ -164,6 +167,7 @@ export default function SettingsScreen() {
       setUpdateNotes(data.notes || '');
       setUpdateUrl(data.download_url || '');
       setUpdateMandatory(!!data.mandatory);
+      setUpdateInfo(data);
       setUpdateStatus(isNewer(data.version, localVersion) ? 'available' : 'uptodate');
     } catch {
       setUpdateStatus('error');
@@ -171,6 +175,10 @@ export default function SettingsScreen() {
   };
 
   const openUpdate = () => {
+    if (updateInfo?.download_url) {
+      setUpdateModalOpen(true);
+      return;
+    }
     if (!updateUrl) return;
     const url = updateUrl.startsWith('/') ? `${API_BASE}${updateUrl}` : updateUrl;
     Linking.openURL(url).catch(() => {});
@@ -562,6 +570,14 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </PremiumModal>
+
+        <UpdateDownloader
+          visible={updateModalOpen}
+          info={updateInfo}
+          localVersion={localVersion}
+          onClose={() => setUpdateModalOpen(false)}
+          onDismiss={() => setUpdateModalOpen(false)}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

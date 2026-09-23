@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Animated, { useAnimatedStyle, FadeIn } from 'react-native-reanimated';
 import PremiumModal from './PremiumModal';
 import GlassButton from './GlassButton';
-import { installApk } from '../native/ApkInstaller';
+import { installApk, openInstallPermissionSettings } from '../native/ApkInstaller';
 import { API_BASE, versionsAPI } from '../services/api';
 import { useI18n } from '../i18n';
 import { COLORS, RADIUS, SHADOWS, FONT, RED } from '../theme';
@@ -16,6 +16,7 @@ export type UpdateInfo = {
   notes?: string;
   mandatory?: boolean;
   platform?: string;
+  size_mb?: number;
 };
 
 type Props = {
@@ -34,6 +35,7 @@ const RADIUS_RING = (RING - STROKE) / 2;
 const CIRC = 2 * Math.PI * RADIUS_RING;
 
 function humanBytes(bytes: number): string {
+  if (bytes <= 0 || isNaN(bytes)) return '0 B';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -43,68 +45,163 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>('idle');
   const [progress, setProgress] = useState(0);
+  const [bytesWritten, setBytesWritten] = useState(0);
   const [speed, setSpeed] = useState(0);
   const [eta, setEta] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [needsPermission, setNeedsPermission] = useState(false);
+
   const totalRef = useRef(0);
   const lastRef = useRef({ time: 0, bytes: 0 });
+  const downloadResumableRef = useRef<FileSystem.DownloadResumable | null>(null);
+  const downloadedApkPathRef = useRef<string | null>(null);
 
   const centerScale = useAnimatedStyle(() => ({
     transform: [{ scale: phase === 'done' ? 1.06 : 1 }],
   }));
 
+  // Cancelar descarga activa si el modal se cierra o desmonta
+  useEffect(() => {
+    return () => {
+      if (downloadResumableRef.current) {
+        downloadResumableRef.current.cancelAsync().catch(() => {});
+        downloadResumableRef.current = null;
+      }
+    };
+  }, []);
+
   const reset = () => {
     setPhase('idle');
     setProgress(0);
+    setBytesWritten(0);
     setSpeed(0);
     setEta(0);
     setErrorMsg('');
+    setNeedsPermission(false);
+  };
+
+  const handleInstallLocal = async (apkPath: string) => {
+    setPhase('installing');
+    setErrorMsg('');
+    try {
+      const rawPath = apkPath.replace(/^file:\/\//, '');
+      await installApk(rawPath);
+      setPhase('done');
+    } catch (e: any) {
+      const msg = e?.message || 'No se pudo iniciar la instalación';
+      if (msg.includes('PERMISSION') || msg.includes('autorizar') || msg.includes('Ajustes')) {
+        setNeedsPermission(true);
+      }
+      setErrorMsg(msg);
+      setPhase('error');
+    }
   };
 
   const startDownload = async () => {
     if (!info?.download_url) return;
+
+    // Si ya fue descargado previamente y el archivo existe y es válido, intentar instalar directamente
+    if (downloadedApkPathRef.current) {
+      try {
+        const check = await FileSystem.getInfoAsync(downloadedApkPathRef.current);
+        if (check.exists && check.size && check.size > 1024 * 1024) {
+          await handleInstallLocal(downloadedApkPathRef.current);
+          return;
+        }
+      } catch {}
+    }
+
     setPhase('downloading');
     setProgress(0);
+    setBytesWritten(0);
     setErrorMsg('');
+    setNeedsPermission(false);
 
     const url = info.download_url.startsWith('/') ? `${API_BASE}${info.download_url}` : info.download_url;
-    const fs = FileSystem as any;
-    const dest = `${fs.cacheDirectory || ''}crash-update-${info.version || 'latest'}.apk`;
-    totalRef.current = 0;
+    const dest = `${FileSystem.cacheDirectory || ''}crash-update-${info.version || 'latest'}.apk`;
+
+    // Tamaño inicial estimado si el backend lo proporciona
+    const estimatedTotal = (info.size_mb && info.size_mb > 0) ? Math.round(info.size_mb * 1024 * 1024) : 0;
+    totalRef.current = estimatedTotal;
     lastRef.current = { time: Date.now(), bytes: 0 };
 
     try {
-      const res = await fs.downloadAsync(url, dest, {
-        downloadProgressCallback: (p: any) => {
-          totalRef.current = p.totalBytes > 0 ? p.totalBytes : totalRef.current;
+      // Limpiar archivo previo en caché si existía para evitar corrupción
+      try {
+        const infoCheck = await FileSystem.getInfoAsync(dest);
+        if (infoCheck.exists) {
+          await FileSystem.deleteAsync(dest, { idempotent: true });
+        }
+      } catch {}
+
+      // Crear tarea de descarga con callback de progreso en tiempo real
+      const downloadResumable = FileSystem.createDownloadResumable(
+        url,
+        dest,
+        {},
+        (p: FileSystem.DownloadProgressData) => {
+          const written = p.totalBytesWritten || 0;
+          const expected = p.totalBytesExpectedToWrite;
+
+          if (expected > 0) {
+            totalRef.current = expected;
+          }
+
+          setBytesWritten(written);
+
           const now = Date.now();
           const dt = (now - lastRef.current.time) / 1000;
-          if (dt >= 0.4) {
-            const db = p.totalBytesWritten - lastRef.current.bytes;
-            setSpeed(db / dt);
-            if (totalRef.current > 0) {
-              const remaining = totalRef.current - p.totalBytesWritten;
-              setEta(db > 0 ? remaining / (db / dt) : 0);
+          if (dt >= 0.25) {
+            const db = written - lastRef.current.bytes;
+            if (db > 0 && dt > 0) {
+              const curSpeed = db / dt;
+              setSpeed(curSpeed);
+              if (totalRef.current > 0) {
+                const remaining = totalRef.current - written;
+                setEta(remaining > 0 ? remaining / curSpeed : 0);
+              }
             }
-            lastRef.current = { time: now, bytes: p.totalBytesWritten };
+            lastRef.current = { time: now, bytes: written };
           }
-          const ratio = totalRef.current > 0 ? p.totalBytesWritten / totalRef.current : 0;
-          setProgress(ratio);
-        },
-      });
 
-      if (!res.uri || !res.uri.endsWith('.apk')) {
-        throw new Error('El archivo recibido no es un APK válido');
+          if (totalRef.current > 0) {
+            const ratio = Math.min(Math.max(written / totalRef.current, 0), 1);
+            setProgress(ratio);
+          }
+        }
+      );
+
+      downloadResumableRef.current = downloadResumable;
+      const res = await downloadResumable.downloadAsync();
+      downloadResumableRef.current = null;
+
+      if (!res || !res.uri) {
+        throw new Error('La descarga falló o el archivo no fue guardado');
       }
 
       setPhase('verifying');
-      await new Promise((r) => setTimeout(r, 500));
+      setProgress(1);
 
-      setPhase('installing');
-      await installApk(res.uri.replace('file://', ''));
-      setPhase('done');
+      // Verificación de integridad básica
+      const verified = await FileSystem.getInfoAsync(res.uri);
+      if (!verified.exists) {
+        throw new Error('No se encontró el archivo APK descargado');
+      }
+      if (!verified.size || verified.size < 1024 * 1024) {
+        throw new Error(`El archivo descargado está incompleto (${humanBytes(verified.size || 0)})`);
+      }
+
+      downloadedApkPathRef.current = res.uri;
+
+      // Iniciar instalación nativa
+      await handleInstallLocal(res.uri);
     } catch (e: any) {
-      setErrorMsg(e?.message || t('update.errorGeneric', 'No se pudo completar la descarga'));
+      downloadResumableRef.current = null;
+      const msg = e?.message || t('update.errorGeneric', 'No se pudo completar la descarga');
+      if (msg.includes('PERMISSION') || msg.includes('autorizar') || msg.includes('Ajustes')) {
+        setNeedsPermission(true);
+      }
+      setErrorMsg(msg);
       setPhase('error');
     }
   };
@@ -130,12 +227,39 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
             </Text>
           </View>
         ) : phase === 'error' ? (
-          <>
-            {!mandatory && (
-              <GlassButton title={t('update.later', 'Más tarde')} onPress={onDismiss} variant="ghost" size="md" style={{ flex: 1 }} />
-            )}
-            <GlassButton title={t('update.retry', 'Reintentar')} onPress={startDownload} variant="accent" icon="refresh" size="md" style={{ flex: 1.4 }} />
-          </>
+          needsPermission ? (
+            <>
+              <GlassButton
+                title={t('update.settings', 'Abrir Ajustes')}
+                onPress={() => openInstallPermissionSettings()}
+                variant="accent"
+                icon="settings-outline"
+                size="md"
+                style={{ flex: 1.2 }}
+              />
+              <GlassButton
+                title={t('update.installNow', 'Instalar')}
+                onPress={() => {
+                  if (downloadedApkPathRef.current) {
+                    handleInstallLocal(downloadedApkPathRef.current);
+                  } else {
+                    startDownload();
+                  }
+                }}
+                variant="outline"
+                icon="download-outline"
+                size="md"
+                style={{ flex: 1 }}
+              />
+            </>
+          ) : (
+            <>
+              {!mandatory && (
+                <GlassButton title={t('update.later', 'Más tarde')} onPress={onDismiss} variant="ghost" size="md" style={{ flex: 1 }} />
+              )}
+              <GlassButton title={t('update.retry', 'Reintentar')} onPress={startDownload} variant="accent" icon="refresh" size="md" style={{ flex: 1.4 }} />
+            </>
+          )
         ) : phase === 'done' ? (
           <GlassButton title={t('common.ok', 'OK')} onPress={onClose} variant="accent" size="md" style={{ flex: 1 }} />
         ) : (
@@ -210,7 +334,7 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
 
         {phase === 'downloading' && (
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>{humanBytes(progress * (totalRef.current || 0))}{totalRef.current > 0 ? ` / ${humanBytes(totalRef.current)}` : ''}</Text>
+            <Text style={styles.metaText}>{humanBytes(bytesWritten)}{totalRef.current > 0 ? ` / ${humanBytes(totalRef.current)}` : ''}</Text>
             <Text style={styles.metaText}>{speed > 0 ? `${humanBytes(speed)}/s` : ''}</Text>
           </View>
         )}

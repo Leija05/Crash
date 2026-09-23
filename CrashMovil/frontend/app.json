@@ -4,7 +4,7 @@
     "slug": "frontend",
     "version": "3.2.2",
     "orientation": "portrait",
-    "icon": "./assets/images/crashicon.png",
+    "icon": "./assets/images/crashicon.ico",
     "scheme": "crash",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -25,7 +25,7 @@
       }
     },
     "android": {
-      "versionCode": 22,
+      "versionCode": 23,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/crashicon.png",
         "backgroundColor": "#12131A"

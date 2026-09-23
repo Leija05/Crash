@@ -8,3 +8,18 @@ export function installApk(filePath: string): Promise<boolean> {
   }
   return ApkInstaller.installApk(filePath);
 }
+
+export function canRequestPackageInstalls(): Promise<boolean> {
+  if (!ApkInstaller || !ApkInstaller.canRequestPackageInstalls) {
+    return Promise.resolve(true);
+  }
+  return ApkInstaller.canRequestPackageInstalls();
+}
+
+export function openInstallPermissionSettings(): Promise<boolean> {
+  if (!ApkInstaller || !ApkInstaller.openInstallPermissionSettings) {
+    return Promise.resolve(false);
+  }
+  return ApkInstaller.openInstallPermissionSettings();
+}
+
