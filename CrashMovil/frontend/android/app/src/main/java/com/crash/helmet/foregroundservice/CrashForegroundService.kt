@@ -66,22 +66,32 @@ class CrashForegroundService : Service(), SensorEventListener {
         private var activeInstance: CrashForegroundService? = null
 
         fun cancelEmergencyAlert(context: Context) {
-            activeInstance?.stopCountdownTimer(cancelledByUser = true)
+            activeInstance?.let { service ->
+                service.lastImpactTime = System.currentTimeMillis()
+                service.stopCountdownTimer(cancelledByUser = true)
+            }
         }
 
         fun sendEmergencyNow(context: Context) {
-            activeInstance?.dispatchEmergencyNow()
+            activeInstance?.let { service ->
+                service.lastImpactTime = System.currentTimeMillis()
+                service.dispatchEmergencyNow()
+            }
         }
 
         fun startCountdownFromJS(seconds: Int, gForce: Double) {
             activeInstance?.let { service ->
+                service.lastImpactTime = System.currentTimeMillis()
                 val maxG = Math.max(gForce, Math.max(service.currentG, service.peakG))
-                service.startCountdownTimer(seconds, maxG)
+                service.startCountdownTimer(seconds, maxG, notifyJS = false)
             }
         }
 
         fun cancelCountdownFromJS() {
-            activeInstance?.stopCountdownTimer(cancelledByUser = true)
+            activeInstance?.let { service ->
+                service.lastImpactTime = System.currentTimeMillis()
+                service.stopCountdownTimer(cancelledByUser = false)
+            }
         }
     }
 
@@ -428,21 +438,24 @@ class CrashForegroundService : Service(), SensorEventListener {
     /**
      * Inicia la cuenta regresiva interactiva con vibración cada segundo y botones táctiles.
      */
-    fun startCountdownTimer(seconds: Int, gRecorded: Double) {
+    fun startCountdownTimer(seconds: Int, gRecorded: Double, notifyJS: Boolean = true) {
         countdownTimer?.cancel()
         isCountingDown = true
+        lastImpactTime = System.currentTimeMillis()
         val maxG = Math.max(gRecorded, Math.max(currentG, peakG))
         currentImpactG = if (maxG > 0.1) maxG else alertThreshold
         if (currentImpactG > peakG) {
             peakG = currentImpactG
         }
 
-        // Notificar a JS que la cuenta regresiva comenzó
-        val startMap = Arguments.createMap().apply {
-            putInt("seconds", seconds)
-            putDouble("gForce", currentImpactG)
+        // Notificar a JS solo si la cuenta no se originó desde JS
+        if (notifyJS) {
+            val startMap = Arguments.createMap().apply {
+                putInt("seconds", seconds)
+                putDouble("gForce", currentImpactG)
+            }
+            ForegroundServiceModule.sendEvent("onNativeCountdownStarted", startMap)
         }
-        ForegroundServiceModule.sendEvent("onNativeCountdownStarted", startMap)
 
         // Pulsación háptica inicial
         triggerVibrationTick()
@@ -483,6 +496,7 @@ class CrashForegroundService : Service(), SensorEventListener {
      */
     fun stopCountdownTimer(cancelledByUser: Boolean) {
         isCountingDown = false
+        lastImpactTime = System.currentTimeMillis()
         countdownTimer?.cancel()
         countdownTimer = null
 
@@ -505,6 +519,7 @@ class CrashForegroundService : Service(), SensorEventListener {
      */
     fun dispatchEmergencyNow() {
         isCountingDown = false
+        lastImpactTime = System.currentTimeMillis()
         countdownTimer?.cancel()
         countdownTimer = null
 

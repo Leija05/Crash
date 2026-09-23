@@ -65,7 +65,9 @@ class PhoneSensorEngine {
   private alertThreshold = 5.0; // G
 
   private peakCaptureWindow = false;
+  private peakCaptureTimeout: any = null;
   private peakWindowSamples: { accel: { x: number; y: number; z: number }; gyro: { x: number; y: number; z: number }; g: number }[] = [];
+  private impactCooldownUntil = 0;
 
   // Muestras acumuladas en la ventana de emisión UI para suavizado y retención de pico
   private windowMaxG = 1.0;
@@ -100,6 +102,8 @@ class PhoneSensorEngine {
 
     this.isRunning = true;
     this.lastImpactTime = 0;
+    this.impactCooldownUntil = 0;
+    this.clearPendingImpact();
     this.peakGForce = 1.0;
     this.windowMaxG = 1.0;
 
@@ -188,6 +192,10 @@ class PhoneSensorEngine {
         if (nativeG > this.peakGForce) {
           this.peakGForce = nativeG;
         }
+        // Si estamos dentro del período de enfriamiento post-impacto o cancelación, no re-disparar
+        if (Date.now() < this.impactCooldownUntil) {
+          return;
+        }
         const detected: DetectedImpact = {
           acceleration: { x: data.accelX ?? 0, y: data.accelY ?? 0, z: data.accelZ ?? 0 },
           gyroscope: { x: data.gyroX ?? 0, y: data.gyroY ?? 0, z: data.gyroZ ?? 0 },
@@ -223,28 +231,31 @@ class PhoneSensorEngine {
       try { this.nativeImpactSub.remove(); } catch {}
       this.nativeImpactSub = null;
     }
-    this.peakCaptureWindow = false;
-    this.peakWindowSamples = [];
+    this.clearPendingImpact();
   }
 
   private processSample() {
     const now = Date.now();
 
     // 1. Detección instantánea de impacto / movimiento brusco (evaluado a 60Hz)
-    if (this.currentGForce >= this.alertThreshold) {
+    if (this.currentGForce >= this.alertThreshold && now >= this.impactCooldownUntil) {
       for (const listener of this.thresholdListeners) {
         try { listener(this.currentGForce); } catch {}
       }
     }
 
-    if (this.currentGForce >= this.alertThreshold && now - this.lastImpactTime > 15000) {
+    if (
+      this.currentGForce >= this.alertThreshold &&
+      now >= this.impactCooldownUntil &&
+      now - this.lastImpactTime > 15000
+    ) {
       if (!this.peakCaptureWindow) {
         this.peakCaptureWindow = true;
         this.peakWindowSamples = [];
         this.lastImpactTime = now;
 
         // Capturar ventana de 300ms a 60Hz (~18 muestras) para registrar el verdadero pico máximo de la sacudida o golpe
-        setTimeout(() => {
+        this.peakCaptureTimeout = setTimeout(() => {
           this.triggerImpactEvent();
         }, 300);
       }
@@ -335,6 +346,13 @@ class PhoneSensorEngine {
 
   private triggerImpactEvent() {
     this.peakCaptureWindow = false;
+    this.peakCaptureTimeout = null;
+
+    if (Date.now() < this.impactCooldownUntil) {
+      this.peakWindowSamples = [];
+      return;
+    }
+
     if (this.peakWindowSamples.length === 0) {
       const fallbackG = Math.max(this.peakGForce, this.currentGForce, this.alertThreshold);
       const detected: DetectedImpact = {
@@ -374,6 +392,22 @@ class PhoneSensorEngine {
         console.warn('Error in impact listener', e);
       }
     }
+    this.peakWindowSamples = [];
+  }
+
+  public setImpactCooldown(ms: number): void {
+    const now = Date.now();
+    this.impactCooldownUntil = now + ms;
+    this.lastImpactTime = now;
+    this.clearPendingImpact();
+  }
+
+  public clearPendingImpact(): void {
+    if (this.peakCaptureTimeout) {
+      clearTimeout(this.peakCaptureTimeout);
+      this.peakCaptureTimeout = null;
+    }
+    this.peakCaptureWindow = false;
     this.peakWindowSamples = [];
   }
 

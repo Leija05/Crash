@@ -478,39 +478,49 @@ function HeroChip({ className = "", anim = "chip-float", label, value, unit = ""
 /* ── Sección "Cabina": historia pinned al scroll ───────────────────── */
 function CockpitSection({ t }) {
   const ref = useRef(null);
-  const reduce = useReducedMotion();
   const [active, setActive] = useState(0);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
 
+  const scrollToPhase = (phaseIndex) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const sectionTop = window.scrollY + rect.top;
+    const sectionHeight = ref.current.offsetHeight;
+    const winH = window.innerHeight;
+    const fractions = [0.06, 0.36, 0.66, 0.94];
+    const targetY = sectionTop + (sectionHeight - winH) * fractions[phaseIndex];
+    window.scrollTo({ top: targetY, behavior: "smooth" });
+  };
+
   useMotionValueEvent(scrollYProgress, "change", (v) => {
-    if (v < 0.25) setActive(0);
-    else if (v < 0.5) setActive(1);
-    else if (v < 0.75) setActive(2);
+    if (v < 0.26) setActive(0);
+    else if (v < 0.51) setActive(1);
+    else if (v < 0.76) setActive(2);
     else setActive(3);
   });
 
-  // Crossfade por fase (solapamiento corto para no "parpadear")
+  // Crossfade por fase con zonas sólidas y pendientes cero fuera de rango
   const opacities = [
-    useTransform(scrollYProgress, [0, 0.2, 0.26], [1, 1, 0]),
-    useTransform(scrollYProgress, [0.24, 0.44, 0.5], [0, 1, 0]),
-    useTransform(scrollYProgress, [0.49, 0.69, 0.75], [0, 1, 0]),
-    useTransform(scrollYProgress, [0.74, 0.94], [0, 1]),
+    useTransform(scrollYProgress, [0, 0.22, 0.28, 1.0], [1, 1, 0, 0]),
+    useTransform(scrollYProgress, [0, 0.24, 0.29, 0.48, 0.53, 1.0], [0, 0, 1, 1, 0, 0]),
+    useTransform(scrollYProgress, [0, 0.49, 0.54, 0.73, 0.78, 1.0], [0, 0, 1, 1, 0, 0]),
+    useTransform(scrollYProgress, [0, 0.74, 0.79, 1.0], [0, 0, 1, 1]),
   ];
 
   // Entrada por fase: el contenido sube y se asienta con ease-out
   const entrances = [
-    { y: useTransform(scrollYProgress, [0, 0.07], [56, 0]), scale: useTransform(scrollYProgress, [0, 0.1], [0.96, 1]) },
-    { y: useTransform(scrollYProgress, [0.25, 0.32], [56, 0]), scale: useTransform(scrollYProgress, [0.25, 0.35], [0.96, 1]) },
-    { y: useTransform(scrollYProgress, [0.5, 0.57], [56, 0]), scale: useTransform(scrollYProgress, [0.5, 0.6], [0.96, 1]) },
-    { y: useTransform(scrollYProgress, [0.75, 0.82], [56, 0]), scale: useTransform(scrollYProgress, [0.75, 0.85], [0.96, 1]) },
+    { y: useTransform(scrollYProgress, [0, 0.08], [40, 0], { clamp: true }), scale: useTransform(scrollYProgress, [0, 0.1], [0.96, 1], { clamp: true }) },
+    { y: useTransform(scrollYProgress, [0.24, 0.3], [40, 0], { clamp: true }), scale: useTransform(scrollYProgress, [0.24, 0.32], [0.96, 1], { clamp: true }) },
+    { y: useTransform(scrollYProgress, [0.49, 0.55], [40, 0], { clamp: true }), scale: useTransform(scrollYProgress, [0.49, 0.57], [0.96, 1], { clamp: true }) },
+    { y: useTransform(scrollYProgress, [0.74, 0.8], [40, 0], { clamp: true }), scale: useTransform(scrollYProgress, [0.74, 0.82], [0.96, 1], { clamp: true }) },
   ];
 
   // Parallax de los números gigantes de fondo
   const wmYs = [
-    useTransform(scrollYProgress, [0, 0.25], [70, -70]),
-    useTransform(scrollYProgress, [0.25, 0.5], [70, -70]),
-    useTransform(scrollYProgress, [0.5, 0.75], [70, -70]),
-    useTransform(scrollYProgress, [0.75, 1], [70, -70]),
+    useTransform(scrollYProgress, [0, 0.25], [60, -60]),
+    useTransform(scrollYProgress, [0.25, 0.5], [60, -60]),
+    useTransform(scrollYProgress, [0.5, 0.75], [60, -60]),
+    useTransform(scrollYProgress, [0.75, 1], [60, -60]),
   ];
 
   // Checklist omnicanal (fase 03): cada canal aparece con el scroll
@@ -581,7 +591,7 @@ function CockpitSection({ t }) {
   const visuals = [
     (
       <div key="v0" className="relative w-64 h-64 sm:w-72 sm:h-72">
-        <span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none" style={{ y: wmYs[0] }}>01</span>
+        <motion.span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none pointer-events-none" style={{ y: wmYs[0] }}>01</motion.span>
         <div className="radar-sweep absolute inset-0 rounded-full bg-[#0a0a0a] border border-white/10" />
         <div className="absolute inset-9 rounded-full border border-white/5" />
         <div className="absolute rounded-full border border-white/5" style={{ inset: "4.5rem" }} />
@@ -641,7 +651,7 @@ function CockpitSection({ t }) {
     ),
     (
       <div key="v2" className="relative w-full max-w-[380px] flex flex-col items-center gap-4 sm:gap-5">
-        <span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none" style={{ y: wmYs[2] }}>03</span>
+        <motion.span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none pointer-events-none" style={{ y: wmYs[2] }}>03</motion.span>
         <div className="relative shrink-0">
           <span className="pulse-ring w-36 h-36 sm:w-44 sm:h-44" />
           <span className="pulse-ring w-36 h-36 sm:w-44 sm:h-44" style={{ animationDelay: "0.9s" }} />
@@ -683,7 +693,7 @@ function CockpitSection({ t }) {
     ),
     (
       <div key="v3" className="relative w-full max-w-md">
-        <span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none" style={{ y: wmYs[3] }}>04</span>
+        <motion.span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono text-[8rem] font-black text-white/[0.03] leading-none select-none pointer-events-none" style={{ y: wmYs[3] }}>04</motion.span>
         <div className="double-bezel rounded-3xl">
           <div className="glass-refined rounded-[calc(1.5rem-2px)] p-6 sm:p-8">
             <div className="hud-ticker text-neutral-500 flex items-center justify-between">
@@ -767,19 +777,25 @@ function CockpitSection({ t }) {
             {t("landing.titleProtocol", "Del impacto a la evidencia, en 4 fases")}
           </h2>
         </div>
-        <div className="flex items-center overflow-x-auto no-scrollbar py-1">
+        <div className="flex items-center overflow-x-auto no-scrollbar py-1 gap-1.5 sm:gap-2">
           {steps.map((s, i) => (
-            <div key={s.n} className="flex items-center shrink-0">
-              <div className={`flex items-center gap-1.5 sm:gap-2 rounded-full px-2 sm:px-3 py-1 sm:py-1.5 border transition-colors duration-500 ${active === i ? "border-red-500/40 bg-red-500/10" : "border-white/10 bg-white/[0.02]"}`}>
-                <span className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${active === i ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)]" : "bg-zinc-600"}`} />
-                <span className={`hud-ticker transition-colors duration-500 text-[10px] sm:text-xs ${active === i ? "text-white" : "text-neutral-500"}`}>
+            <button
+              type="button"
+              key={s.n}
+              onClick={() => scrollToPhase(i)}
+              className="flex items-center shrink-0 cursor-pointer focus:outline-none group"
+              title={`Ir a Fase ${s.n}: ${s.title}`}
+            >
+              <div className={`flex items-center gap-1.5 sm:gap-2 rounded-full px-2.5 sm:px-3 py-1 sm:py-1.5 border transition-all duration-300 ${active === i ? "border-red-500/60 bg-red-500/15 shadow-[0_0_14px_rgba(239,68,68,0.35)]" : "border-white/10 bg-white/[0.02] group-hover:border-white/25 group-hover:bg-white/[0.06]"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${active === i ? "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.9)] scale-125" : "bg-zinc-600"}`} />
+                <span className={`hud-ticker transition-colors duration-300 text-[10px] sm:text-xs font-mono font-bold ${active === i ? "text-white" : "text-neutral-400 group-hover:text-zinc-200"}`}>
                   <span className="hidden sm:inline">FASE </span>{s.n}
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <span className={`w-2 sm:w-8 lg:w-12 h-px transition-colors duration-500 ${active > i ? "bg-red-500/40" : "bg-white/10"}`} />
+                <span className={`w-2 sm:w-6 lg:w-10 h-px ml-1.5 sm:ml-2 transition-colors duration-500 ${active > i ? "bg-red-500/50" : "bg-white/10"}`} />
               )}
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -789,39 +805,8 @@ function CockpitSection({ t }) {
     </div>
   );
 
-  if (reduce) {
-    return (
-      <section id="cockpit" className="cockpit-dark max-w-6xl mx-auto px-4 py-20 sm:py-28">
-        <div className="mb-14">{header}</div>
-        <div className="space-y-20">
-          {steps.map((s, i) => (
-            <div key={s.n} className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-              <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="tactical-index text-lg">{s.n} / 04</span>
-                  <span className="h-px flex-1 bg-gradient-to-r from-red-500/40 to-transparent" />
-                </div>
-                <div className="hud-ticker text-red-400 mb-3">{s.tag}</div>
-                <h3 className="font-bold font-mono text-3xl sm:text-4xl tracking-tight mb-3">{s.title}</h3>
-                <p className="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-md">{s.text}</p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {s.meta.map(([k, v]) => (
-                    <span key={k} className="hud-ticker text-neutral-500 border border-white/10 rounded-md px-2 py-1">
-                      {k} <span className="text-white">{v}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className={`flex justify-center ${i % 2 === 1 ? "lg:order-1" : ""}`}>{visuals[i]}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section id="cockpit" ref={ref} className="relative h-[480vh] cockpit-dark">
+    <section id="cockpit" ref={ref} className="relative h-[420vh] cockpit-dark">
       <div className="sticky top-0 h-[100dvh] flex flex-col justify-center overflow-hidden">
         <div className="pointer-events-none absolute inset-0 opacity-30 scanlines" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.05),transparent_65%)]" />
@@ -1543,7 +1528,7 @@ function Landing() {
         </section>
 
         {/* ── CIRCUITO & HARDWARE EXPLORER ───────────────────────────── */}
-        <section id="circuito" className="max-w-6xl mx-auto px-4 py-16 sm:py-24 content-visibility-auto">
+        <section id="circuito" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <ScrollReveal>
             <div className="hud-ticker text-red-400 mb-3 flex items-center gap-3">
               <Cpu size={14} className="animate-pulse" /> {t("landing.eyebrowCircuit", "Ingeniería de Hardware · C.R.A.S.H. 2.0 (v3.2.1)")}
@@ -1587,7 +1572,7 @@ function Landing() {
         <CockpitSection t={t} />
 
         {/* ── IMPACT SIMULATOR ───────────────────────────────────────── */}
-        <section id="simulador" className="max-w-6xl mx-auto px-4 py-16 sm:py-24 content-visibility-auto">
+        <section id="simulador" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <ScrollReveal>
             <div className="hud-ticker text-red-400 mb-3 flex items-center gap-3">
               <Brain size={14} className="animate-pulse" /> {t("landing.eyebrowAI", "Inteligencia Artificial")}
@@ -1631,7 +1616,7 @@ function Landing() {
         </section>
 
         {/* ── VIDEO DEMO ──────────────────────────────────────────────── */}
-        <section id="demo" className="max-w-6xl mx-auto px-4 py-16 sm:py-24 content-visibility-auto">
+        <section id="demo" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
           <ScrollReveal className="font-bold font-mono text-2xl sm:text-3xl tracking-tight mb-8">{t("landing.titleAction", "Vélo en acción")}</ScrollReveal>
           <ScrollReveal delay={1}>
             <motion.div

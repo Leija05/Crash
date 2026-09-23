@@ -150,10 +150,23 @@ class MobileBridge:
             )
 
             telemetry_age: Optional[float] = None
+            t_candidates = []
             if telemetry:
-                ts = _parse_iso(telemetry.get("timestamp") or telemetry.get("ts"))
-                if ts:
-                    telemetry_age = (now - ts).total_seconds()
+                t_ts = _parse_iso(telemetry.get("timestamp") or telemetry.get("ts"))
+                if t_ts:
+                    t_candidates.append(t_ts)
+            if live_location:
+                l_ts = _parse_iso(
+                    live_location.get("timestamp")
+                    or live_location.get("ts")
+                    or (live_location.get("location") or {}).get("timestamp")
+                )
+                if l_ts:
+                    t_candidates.append(l_ts)
+
+            latest_ts = max(t_candidates) if t_candidates else None
+            if latest_ts:
+                telemetry_age = (now - latest_ts).total_seconds()
 
             is_critical = False
             critical_gforce = None
@@ -172,17 +185,37 @@ class MobileBridge:
             else:
                 status = "offline"
 
-            lat, lng = _extract_coords(telemetry or live_location, recent_impact)
-            if lat is None or lng is None and telemetry:
+            lat, lng = _extract_coords(telemetry, recent_impact)
+            if (lat is None or lng is None) and live_location:
                 lat, lng = _extract_coords(live_location, recent_impact)
 
-            speed = (telemetry or {}).get("speed")
+            speed = (
+                (telemetry or {}).get("speed_kmh")
+                if (telemetry or {}).get("speed_kmh") is not None
+                else (telemetry or {}).get("speed")
+            )
+            if speed is None and live_location:
+                speed = (
+                    live_location.get("speed_kmh")
+                    if live_location.get("speed_kmh") is not None
+                    else live_location.get("speed")
+                )
 
-            gforce = (telemetry or {}).get("g_force") or 0
+            gforce = (
+                (telemetry or {}).get("g_force")
+                if (telemetry or {}).get("g_force") is not None
+                else (live_location or {}).get("g_force")
+            ) or 0
             if critical_gforce is not None:
                 gforce = critical_gforce
 
             email = u.get("email") or ""
+            last_update_str = (
+                latest_ts.isoformat()
+                if latest_ts
+                else ((telemetry or live_location or {}).get("timestamp") or now.isoformat())
+            )
+
             self.drivers[uid] = {
                 "id": uid,
                 "name": u.get("name") or email or uid,
@@ -199,7 +232,7 @@ class MobileBridge:
                 "consent": True,
                 "caution": (live_location or {}).get("caution"),
                 "status": status,
-                "last_update": (telemetry or live_location or {}).get("timestamp") or now.isoformat(),
+                "last_update": last_update_str,
             }
 
         for stale in [k for k in self.drivers if k not in active_ids]:

@@ -130,6 +130,7 @@ export default function DashboardScreen() {
   const countdownTargetTsRef = useRef<number | null>(null);
   const emergencyFlowRef = useRef<() => void>(() => {});
   const lastImpactTriggerTsRef = useRef(0);
+  const impactCooldownUntilRef = useRef<number>(0);
 
   const [stealthToast, setStealthToast] = useState<string | null>(null);
   const secretTapCountRef = useRef(0);
@@ -162,21 +163,56 @@ export default function DashboardScreen() {
   }, [phoneSensorActive, togglePhoneSensor]);
 
   const cancelCountdown = useCallback(() => {
+    const now = Date.now();
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
     }
     countdownTargetTsRef.current = null;
     setCountdown(null);
-    lastImpactTriggerTsRef.current = Date.now();
-    impactTriggeredRef.current = false;
+    lastImpactTriggerTsRef.current = now;
+    // Enfriamiento de 15 segundos: bloquear re-disparos ante sacudidas residuales
+    impactCooldownUntilRef.current = now + 15000;
+    impactTriggeredRef.current = true;
     impactPeakGRef.current = 0;
+    phoneSensorEngine.setImpactCooldown(15000);
+    phoneSensorEngine.clearPendingImpact();
+    clearDetectedImpact();
     // Sincronizar cancelación con el servicio nativo para retirar alerta y parar vibración
     foregroundService.cancelEmergencyCountdown();
-  }, []);
+  }, [clearDetectedImpact]);
+
+  const handleSendNow = useCallback(() => {
+    haptics.heavy();
+    const now = Date.now();
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    countdownTargetTsRef.current = null;
+    setCountdown(null);
+    lastImpactTriggerTsRef.current = now;
+    // Enfriamiento de 25 segundos para completar despacho y evitar nuevas alertas
+    impactCooldownUntilRef.current = now + 25000;
+    impactTriggeredRef.current = true;
+    phoneSensorEngine.setImpactCooldown(25000);
+    phoneSensorEngine.clearPendingImpact();
+    clearDetectedImpact();
+    foregroundService.cancelEmergencyCountdown();
+    if (emergencyFlowRef.current) {
+      emergencyFlowRef.current();
+    }
+  }, [clearDetectedImpact]);
 
   const startCountdown = useCallback((seconds: number, forceG?: number) => {
     const now = Date.now();
+    // Fijar cooldown para cubrir la duración de la cuenta regresiva + 15 segundos de enfriamiento
+    impactCooldownUntilRef.current = now + (seconds * 1000) + 15000;
+    phoneSensorEngine.setImpactCooldown((seconds * 1000) + 15000);
+    phoneSensorEngine.clearPendingImpact();
+    clearDetectedImpact();
+    impactTriggeredRef.current = true;
+
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
@@ -248,14 +284,19 @@ export default function DashboardScreen() {
         countdownTimerRef.current = null;
         countdownTargetTsRef.current = null;
         setCountdown(null);
-        lastImpactTriggerTsRef.current = Date.now();
+        const finishNow = Date.now();
+        lastImpactTriggerTsRef.current = finishNow;
+        impactCooldownUntilRef.current = finishNow + 25000;
         impactTriggeredRef.current = true;
+        phoneSensorEngine.setImpactCooldown(25000);
+        phoneSensorEngine.clearPendingImpact();
+        clearDetectedImpact();
         if (emergencyFlowRef.current) {
           emergencyFlowRef.current();
         }
       }
     }, 200);
-  }, [peakG, alertThreshold, telemetry]);
+  }, [peakG, alertThreshold, telemetry, clearDetectedImpact]);
 
   useEffect(() => {
     // 1. Descartar cualquier notificación de Expo en Android para asegurar que solo exista 1 barra nativa
@@ -265,6 +306,7 @@ export default function DashboardScreen() {
 
     // 2. Escuchar eventos de la barra de notificaciones interactiva de C.R.A.S.H.
     const subStarted = DeviceEventEmitter.addListener('onNativeCountdownStarted', (data: any) => {
+      const now = Date.now();
       const sec = data?.seconds ?? 10;
       const gRecorded = Number((data?.gForce ?? 0).toFixed(2));
       if (gRecorded > 0) {
@@ -274,10 +316,20 @@ export default function DashboardScreen() {
           impactTelemetryRef.current.g_force = impactPeakGRef.current;
         }
       }
-      if (countdown === null && !sending && !emergencyInFlightRef.current) {
-        impactTriggeredRef.current = true;
-        setCountdown(sec);
+      // Bloqueo estricto: si estamos en cooldown, enviando, o ya hay cuenta regresiva o confirmación visible, ignorar
+      if (
+        now < impactCooldownUntilRef.current ||
+        countdown !== null ||
+        sending ||
+        emergencyInFlightRef.current ||
+        alertResult !== null
+      ) {
+        return;
       }
+      impactCooldownUntilRef.current = now + (sec * 1000) + 15000;
+      impactTriggeredRef.current = true;
+      lastImpactTriggerTsRef.current = now;
+      setCountdown(sec);
     });
 
     const subTick = DeviceEventEmitter.addListener('onNativeCountdownTick', (data: any) => {
@@ -297,20 +349,32 @@ export default function DashboardScreen() {
 
     const subCancelled = DeviceEventEmitter.addListener('onNativeCountdownCancelled', () => {
       // El usuario presionó "❌ CANCELAR" en la barra de notificaciones
+      const now = Date.now();
       if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current);
         countdownTimerRef.current = null;
       }
       countdownTargetTsRef.current = null;
       setCountdown(null);
-      lastImpactTriggerTsRef.current = Date.now();
-      impactTriggeredRef.current = false;
+      lastImpactTriggerTsRef.current = now;
+      impactCooldownUntilRef.current = now + 15000;
+      impactTriggeredRef.current = true;
       impactPeakGRef.current = 0;
+      phoneSensorEngine.setImpactCooldown(15000);
+      phoneSensorEngine.clearPendingImpact();
+      clearDetectedImpact();
       haptics.light();
     });
 
     const subSendNow = DeviceEventEmitter.addListener('onNativeCountdownSendNow', (data: any) => {
       // El usuario presionó "🚨 ENVIAR AHORA" en la barra de notificaciones o expiró el tiempo
+      const now = Date.now();
+      impactCooldownUntilRef.current = now + 25000;
+      impactTriggeredRef.current = true;
+      phoneSensorEngine.setImpactCooldown(25000);
+      phoneSensorEngine.clearPendingImpact();
+      clearDetectedImpact();
+
       const gRecorded = Number((data?.gForce ?? 0).toFixed(2));
       if (gRecorded > impactPeakGRef.current) {
         impactPeakGRef.current = gRecorded;
@@ -325,8 +389,7 @@ export default function DashboardScreen() {
       }
       countdownTargetTsRef.current = null;
       setCountdown(null);
-      lastImpactTriggerTsRef.current = Date.now();
-      impactTriggeredRef.current = true;
+      lastImpactTriggerTsRef.current = now;
       if (emergencyFlowRef.current) {
         emergencyFlowRef.current();
       }
@@ -339,7 +402,7 @@ export default function DashboardScreen() {
       subCancelled.remove();
       subSendNow.remove();
     };
-  }, [countdown, sending]);
+  }, [countdown, sending, alertResult, clearDetectedImpact, peakG]);
 
   const pulseAnim = useRef(new RNAnimated.Value(0)).current;
   const accelHistory = useRef<{ x: number; y: number; z: number; t: number }[]>([]);
@@ -416,7 +479,7 @@ export default function DashboardScreen() {
     const now = Date.now();
 
     // 1. Si ya estamos en cuenta regresiva o enviando: NUNCA ignorar el pico de la ventana de 300ms
-    if (countdown !== null || sending || emergencyInFlightRef.current) {
+    if (countdown !== null || sending || emergencyInFlightRef.current || alertResult !== null) {
       if (detectedG > impactPeakGRef.current) {
         impactPeakGRef.current = detectedG;
         setPeakG((prev) => Math.max(prev, detectedG));
@@ -436,7 +499,7 @@ export default function DashboardScreen() {
       return;
     }
 
-    if (now - lastImpactTriggerTsRef.current < 15000) {
+    if (now < impactCooldownUntilRef.current || now - lastImpactTriggerTsRef.current < 15000) {
       if (detectedG > impactPeakGRef.current) {
         impactPeakGRef.current = detectedG;
         setPeakG((prev) => Math.max(prev, detectedG));
@@ -449,7 +512,11 @@ export default function DashboardScreen() {
 
     // 2. Si no había cuenta regresiva, iniciarla con el pico capturado
     lastImpactTriggerTsRef.current = now;
+    impactCooldownUntilRef.current = now + (countdownSeconds * 1000) + 15000;
     impactTriggeredRef.current = true;
+    phoneSensorEngine.setImpactCooldown((countdownSeconds * 1000) + 15000);
+    phoneSensorEngine.clearPendingImpact();
+
     const initialPeak = Number(Math.max(detectedG, peakG, alertThreshold).toFixed(2));
     impactPeakGRef.current = initialPeak;
     setPeakG((prev) => Math.max(prev, initialPeak));
@@ -469,7 +536,7 @@ export default function DashboardScreen() {
     };
     haptics.error();
     startCountdown(countdownSeconds, initialPeak);
-  }, [phoneSensorActive, latestDetectedImpact, countdown, sending, countdownSeconds, clearDetectedImpact, startCountdown, peakG, alertThreshold]);
+  }, [phoneSensorActive, latestDetectedImpact, countdown, sending, countdownSeconds, clearDetectedImpact, startCountdown, peakG, alertThreshold, alertResult]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -588,41 +655,58 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     const pushRealtimeTelemetry = async () => {
-      if (!token || !connected || !telemetry || staleData) return;
+      if (!token || (!connected && !phoneSensorActive)) return;
+      if (connected && (!telemetry || staleData)) return;
+
       const now = Date.now();
-      if (now - lastTelemetrySentAtRef.current < 10000) return;
+      // Cadencia regular de 3 segundos para actualización fluida y precisa en la web
+      if (now - lastTelemetrySentAtRef.current < 3000) return;
       lastTelemetrySentAtRef.current = now;
-      let latitude: number | undefined;
-      let longitude: number | undefined;
-      let gpsAccuracyM: number | undefined;
-      if (locationTrackingEnabled) {
+
+      const currentTelem = telemetry ?? effectiveTelemetry ?? telemetryRef.current;
+      if (!currentTelem) return;
+
+      let latitude = currentLocation?.latitude;
+      let longitude = currentLocation?.longitude;
+      let gpsAccuracyM = currentLocation?.accuracy ?? undefined;
+
+      if ((latitude === undefined || longitude === undefined) && locationTrackingEnabled) {
         try {
           const { status } = await Location.requestForegroundPermissionsAsync();
           if (status === 'granted') {
-            const pos = await Location.getCurrentPositionAsync({});
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
             latitude = pos.coords.latitude;
             longitude = pos.coords.longitude;
             gpsAccuracyM = pos.coords.accuracy ?? undefined;
-            gpsHistory.current.push({ latitude, longitude, t: now });
-            if (gpsHistory.current.length > 60) gpsHistory.current.shift();
           }
         } catch (e) {
           console.warn('No se pudo capturar ubicación en telemetría', e);
         }
       }
+
+      if (latitude !== undefined && longitude !== undefined) {
+        gpsHistory.current.push({ latitude, longitude, t: now });
+        if (gpsHistory.current.length > 60) gpsHistory.current.shift();
+      }
+
+      const speedVal = currentTelem.speed_kmh !== undefined && currentTelem.speed_kmh !== null
+        ? currentTelem.speed_kmh
+        : (currentLocation?.speed ? Math.round(currentLocation.speed * 3.6) : 0);
+
       try {
         await telemetryAPI.send(token, {
-          acceleration_x: telemetry.acceleration_x,
-          acceleration_y: telemetry.acceleration_y,
-          acceleration_z: telemetry.acceleration_z,
-          gyroscope_x: telemetry.gyroscope_x,
-          gyroscope_y: telemetry.gyroscope_y,
-          gyroscope_z: telemetry.gyroscope_z,
-          g_force: telemetry.g_force,
+          acceleration_x: currentTelem.acceleration_x,
+          acceleration_y: currentTelem.acceleration_y,
+          acceleration_z: currentTelem.acceleration_z,
+          gyroscope_x: currentTelem.gyroscope_x,
+          gyroscope_y: currentTelem.gyroscope_y,
+          gyroscope_z: currentTelem.gyroscope_z,
+          g_force: currentTelem.g_force,
+          speed_kmh: speedVal,
           latitude,
           longitude,
           gps_accuracy_m: gpsAccuracyM,
-          helmet_connected: connected,
+          helmet_connected: true,
           client_event_id: `telemetry-${now}`,
         });
       } catch (e) {
@@ -630,7 +714,7 @@ export default function DashboardScreen() {
       }
     };
     pushRealtimeTelemetry();
-  }, [token, connected, telemetry, staleData, locationTrackingEnabled]);
+  }, [token, connected, phoneSensorActive, telemetry, effectiveTelemetry, staleData, locationTrackingEnabled, currentLocation]);
 
   useEffect(() => {
     const now = Date.now();
@@ -640,10 +724,16 @@ export default function DashboardScreen() {
       !sending &&
       !emergencyInFlightRef.current &&
       !impactTriggeredRef.current &&
+      alertResult === null &&
+      now >= impactCooldownUntilRef.current &&
       now - lastImpactTriggerTsRef.current >= 15000
     ) {
       lastImpactTriggerTsRef.current = now;
+      impactCooldownUntilRef.current = now + (countdownSeconds * 1000) + 15000;
       impactTriggeredRef.current = true;
+      phoneSensorEngine.setImpactCooldown((countdownSeconds * 1000) + 15000);
+      phoneSensorEngine.clearPendingImpact();
+      clearDetectedImpact();
 
       const currentInstantG = Math.max(
         gForce,
@@ -680,13 +770,13 @@ export default function DashboardScreen() {
       haptics.error();
       startCountdown(countdownSeconds, initialPeak);
     }
-  }, [highImpact, countdown, sending, countdownSeconds, telemetry, effectiveTelemetry, gForce, peakG, alertThreshold, startCountdown]);
+  }, [highImpact, countdown, sending, countdownSeconds, telemetry, effectiveTelemetry, gForce, peakG, alertThreshold, startCountdown, alertResult, clearDetectedImpact]);
 
   useEffect(() => {
-    if (!liveData || (gForce < alertThreshold && Date.now() - lastImpactTriggerTsRef.current >= 15000 && countdown === null && !sending)) {
+    if (!liveData || (gForce < alertThreshold && Date.now() >= impactCooldownUntilRef.current && Date.now() - lastImpactTriggerTsRef.current >= 15000 && countdown === null && !sending && alertResult === null)) {
       impactTriggeredRef.current = false;
     }
-  }, [liveData, gForce, alertThreshold, countdown, sending]);
+  }, [liveData, gForce, alertThreshold, countdown, sending, alertResult]);
 
   const pushStatusNotification = useCallback(async (forceImmediate = false, overrideG?: number) => {
     const isMonitoring = connected || phoneSensorActive;
@@ -1465,7 +1555,7 @@ export default function DashboardScreen() {
           <TouchableOpacity
             style={[styles.cancelBtn, sending && { opacity: 0.6 }]}
             disabled={sending}
-            onPress={() => { haptics.heavy(); cancelCountdown(); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
+            onPress={handleSendNow}
           >
             <LinearGradient
               colors={[...RED_GRADIENT]}

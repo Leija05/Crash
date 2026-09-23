@@ -211,7 +211,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
         latitude: point.latitude,
         longitude: point.longitude,
         gps_accuracy_m: point.accuracy ?? null,
-        helmet_connected: connectedRef.current,
+        helmet_connected: Boolean(connectedRef.current || phoneSensorRef.current),
       });
     } catch (e) {
       console.warn('No se pudo enviar la ubicación en vivo', e);
