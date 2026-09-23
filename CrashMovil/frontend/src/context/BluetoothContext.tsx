@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { bluetoothService, TelemetryData, ScanDevice, BluetoothStatus } from '../services/bluetooth';
+import { bluetoothService, TelemetryData, ScanDevice, BluetoothStatus, BluetoothTransport } from '../services/bluetooth';
 import { useAppSettings } from './AppSettingsContext';
 
 type BluetoothCtx = {
@@ -14,9 +14,10 @@ type BluetoothCtx = {
   batteryLevel: number | null;
   deviceName: string;
   lastDataAt: number;
+  currentTransport: BluetoothTransport | null;
   requestPermissions: () => Promise<boolean>;
   startDeviceScan: (onFound: (d: ScanDevice) => void) => Promise<void>;
-  connect: (id: string, customName?: string) => Promise<boolean>;
+  connect: (id: string, transport?: BluetoothTransport, customName?: string) => Promise<boolean>;
   disconnect: () => Promise<void>;
 };
 
@@ -35,6 +36,7 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
   const [deviceName, setDeviceName] = useState('C.R.A.S.H. Module');
   const [lastDataAt, setLastDataAt] = useState(0);
+  const [currentTransport, setCurrentTransport] = useState<BluetoothTransport | null>(null);
   const reconnectAttempts = useRef(0);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intentionalDisconnect = useRef(false);
@@ -51,6 +53,7 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
       setStatus(s);
       setStatusDetail(detail);
       setConnected(bluetoothService.isConnected());
+      setCurrentTransport(bluetoothService.getCurrentTransport());
 
       if ((s === 'error' || s === 'idle') && !intentionalDisconnect.current && nativeAvailable) {
         scheduleReconnect();
@@ -63,7 +66,11 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
         setDeviceName(label);
         reconnectAttempts.current = 0;
         intentionalDisconnect.current = false;
-        await AsyncStorage.setItem(LAST_DEVICE_KEY, JSON.stringify({ id: nextDevice.id, name: label }));
+        await AsyncStorage.setItem(LAST_DEVICE_KEY, JSON.stringify({ 
+          id: nextDevice.id, 
+          name: label,
+          transport: nextDevice.transport 
+        }));
       }
     });
     return () => { unsubT(); unsubS(); unsubD(); clearReconnectTimer(); };
@@ -82,7 +89,7 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
         if (saved?.id) {
           autoConnectAttempted.current = true;
           setStatusDetail('Conectando automáticamente...');
-          await bluetoothService.connectToDevice(saved.id);
+          await bluetoothService.connectToDevice(saved.id, saved.transport);
         }
       } catch (e) {
         console.warn('Auto-connect failed:', e);
@@ -113,7 +120,7 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
       reconnectTimeout.current = null;
       reconnectAttempts.current += 1;
       setStatusDetail(`Reconectando (${reconnectAttempts.current}/5)...`);
-      await bluetoothService.connectToDevice(saved.id);
+      await bluetoothService.connectToDevice(saved.id, saved.transport);
     }, delay);
   }, []);
 
@@ -128,23 +135,28 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
 
   const startDeviceScan = useCallback(async (onFound: (d: ScanDevice) => void) => {
     await bluetoothService.startDeviceScan((dev) => {
-      const label = dev.name || dev.localName || 'Desconocido';
+      const label = dev.name || 'Desconocido';
       onFound({
         id: dev.id, address: dev.id, name: label,
-        isCompatible: true, moduleType: 'HC-05 BLE', connected: false,
+        isCompatible: true, moduleType: dev.moduleType, connected: false,
         isCrashDevice: label.toUpperCase().includes('CRASH'),
+        transport: dev.transport,
       });
     });
   }, []);
 
-  const connect = useCallback(async (id: string, customName?: string) => {
+  const connect = useCallback(async (id: string, transport?: BluetoothTransport, customName?: string) => {
     intentionalDisconnect.current = false;
     reconnectAttempts.current = 0;
     clearReconnectTimer();
-    const ok = await bluetoothService.connectToDevice(id);
+    const ok = await bluetoothService.connectToDevice(id, transport);
     if (ok && customName?.trim()) {
       setDeviceName(customName.trim());
-      await AsyncStorage.setItem(LAST_DEVICE_KEY, JSON.stringify({ id, name: customName.trim() }));
+      await AsyncStorage.setItem(LAST_DEVICE_KEY, JSON.stringify({ 
+        id, 
+        name: customName.trim(),
+        transport: bluetoothService.getCurrentTransport()
+      }));
     }
     return ok;
   }, [clearReconnectTimer]);
@@ -159,7 +171,8 @@ export function BluetoothProvider({ children }: { children: React.ReactNode }) {
   return (
     <BluetoothContext.Provider value={{
       status, statusDetail, connected, device, telemetry, nativeAvailable, bluetoothEnabled,
-      batteryLevel, deviceName, lastDataAt, requestPermissions, startDeviceScan, connect, disconnect,
+      batteryLevel, deviceName, lastDataAt, currentTransport,
+      requestPermissions, startDeviceScan, connect, disconnect,
     }}>
       {children}
     </BluetoothContext.Provider>

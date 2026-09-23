@@ -146,6 +146,18 @@ def build_template_diagnosis(diagnosis: dict | None) -> str:
     return " | ".join(parts) if parts else "Evaluación pendiente"
 
 
+def _normalize_whatsapp_phone(raw: str) -> str:
+    cleaned = (raw or "").strip()
+    digits = "".join(ch for ch in cleaned if ch.isdigit())
+    if digits.startswith("00"):
+        digits = digits[2:]
+    if len(digits) == 10:
+        return f"+52{digits}"
+    if cleaned.startswith("+"):
+        return f"+{digits}"
+    return f"+{digits}" if digits else cleaned
+
+
 async def send_emergency_alerts(user: dict, impact: dict, profile: dict | None, diagnosis: dict | None):
     from app.core.database import get_db
 
@@ -178,15 +190,17 @@ async def send_emergency_alerts(user: dict, impact: dict, profile: dict | None, 
         f"*RECOMENDACION*: {template_recommendation}.\n"
         f"*UBICACION* {maps_link if maps_link else 'Ubicación no disponible'}."
     )
-
     unique_contacts = []
     seen_phones = set()
     for contact in contacts:
-        phone = (contact.get("phone") or "").strip()
+        raw_phone = (contact.get("phone") or "").strip()
+        phone = _normalize_whatsapp_phone(raw_phone)
         if not phone or phone in seen_phones:
             continue
         seen_phones.add(phone)
-        unique_contacts.append(contact)
+        c_copy = dict(contact)
+        c_copy["phone"] = phone
+        unique_contacts.append(c_copy)
 
     alerted_contacts = []
     template_values = [

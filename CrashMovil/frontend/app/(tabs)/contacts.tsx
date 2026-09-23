@@ -42,12 +42,21 @@ export default function ContactsScreen() {
 
   useFocusEffect(useCallback(() => { fetchContacts(); }, [fetchContacts]));
 
+  const formatPhoneForApi = (raw: string): string => {
+    const trimmed = (raw || '').trim();
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits.length === 10) return `+52${digits}`;
+    if (trimmed.startsWith('+')) return `+${digits}`;
+    return `+${digits}`;
+  };
+
   const addContact = async () => {
     if (!token || !name.trim() || !phone.trim()) return;
     setSubmitting(true);
     haptics.medium();
     try {
-      const created = await contactsAPI.add(token, { name: name.trim(), phone: phone.trim(), relationship: relationship.trim() });
+      const normalizedPhone = formatPhoneForApi(phone);
+      const created = await contactsAPI.add(token, { name: name.trim(), phone: normalizedPhone, relationship: relationship.trim() });
       setContacts((prev) => [created, ...prev]);
       setName(''); setPhone(''); setRelationship('');
       setShowAdd(false);

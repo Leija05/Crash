@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 import Animated, { FadeIn, FadeInDown, SlideInUp, SlideInRight, useSharedValue, useAnimatedStyle, withSpring, withTiming, interpolate, Easing } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, severityLabel, RED, RED_GRADIENT, RED_GRADIENT_DIAGONAL, FONT, FONT_SIZE, ANIMATION, EASING } from '../../src/theme';
 import PremiumModal from '../../src/components/PremiumModal';
+import SimulationProgressModal from '../../src/components/SimulationProgressModal';
 import GlassCard from '../../src/components/GlassCard';
 import AnimatedNumber from '../../src/components/AnimatedNumber';
 import { CrashLogoMark } from '../../src/components/CrashLogo';
@@ -94,6 +95,10 @@ export default function DashboardScreen() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [alertResult, setAlertResult] = useState<any | null>(null);
+  const [simulationModalVisible, setSimulationModalVisible] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(1);
+  const [simulationResult, setSimulationResult] = useState<any | null>(null);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
   const [countdownSeconds, setCountdownSeconds] = useState(8);
   const [alertThreshold, setAlertThreshold] = useState(5);
   const [hasEmergencyContacts, setHasEmergencyContacts] = useState(true);
@@ -379,8 +384,14 @@ export default function DashboardScreen() {
       return;
     }
 
+    // Launch Simulation Progress Modal immediately
+    setSimulationResult(null);
+    setSimulationError(null);
+    setSimulationStep(1);
+    setSimulationModalVisible(true);
     emergencyInFlightRef.current = true;
     setSending(true);
+
     try {
       let latitude: number | null = null;
       let longitude: number | null = null;
@@ -395,7 +406,12 @@ export default function DashboardScreen() {
         console.warn('No se pudo obtener ubicación actual', locErr);
       }
 
-      const impact = await impactsAPI.create(token, {
+      // Step 1: Telemetry acquisition & G-Force visualizer pacing
+      await new Promise((r) => setTimeout(r, 650));
+      setSimulationStep(2); // Step 2: Server uplink
+
+      // Start asynchronous backend creation
+      const createPromise = impactsAPI.create(token, {
         acceleration_x: 0,
         acceleration_y: 0,
         acceleration_z: 18.5,
@@ -408,18 +424,33 @@ export default function DashboardScreen() {
         simulated: true,
       });
 
-      if (!impact?.alerts_sent && impact?.alerted_contacts?.length === 0 && impact?.alert_error) {
-        alert({ title: t('dashboard.noContactsAlert'), message: t('dashboard.notSentMessage') });
+      // Timers to smoothly progress through AI diagnosis and WhatsApp dispatch while backend computes
+      const t1 = setTimeout(() => setSimulationStep(3), 850);
+      const t2 = setTimeout(() => setSimulationStep(4), 1800);
+
+      const impact = await createPromise;
+      clearTimeout(t1);
+      clearTimeout(t2);
+
+      // Transition to final dispatch and success
+      setSimulationStep(4);
+      await new Promise((r) => setTimeout(r, 500));
+      setSimulationStep(5);
+      setSimulationResult(impact);
+
+      if (impact?.alerts_sent) {
+        haptics.success();
+      } else {
+        haptics.warning();
       }
-      if (impact?.alerts_sent) haptics.success(); else haptics.warning();
-      setAlertResult(impact);
     } catch (e: any) {
-      alert({ title: t('common.error'), message: e.message || t('errors.generic') });
+      setSimulationError(e.message || t('errors.generic'));
+      haptics.error();
     } finally {
       setSending(false);
       emergencyInFlightRef.current = false;
     }
-  }, [token, sending, hasEmergencyContacts, router, confirm, alert, t]);
+  }, [token, sending, hasEmergencyContacts, router, confirm, t]);
 
   useEffect(() => {
     if (countdown === null) return;
@@ -931,6 +962,20 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
       </PremiumModal>
+
+      <SimulationProgressModal
+        visible={simulationModalVisible}
+        currentStep={simulationStep}
+        simulatedGForce={18.5}
+        impactResult={simulationResult}
+        error={simulationError}
+        onClose={() => setSimulationModalVisible(false)}
+        onViewReport={(id) => {
+          setSimulationModalVisible(false);
+          router.push(`/impact/${id}`);
+        }}
+        t={t}
+      />
     </SafeAreaView>
   );
 }

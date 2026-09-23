@@ -15,6 +15,7 @@ from app.api.monitor.service import (
     list_drivers,
     list_users,
     query_impacts,
+    trigger_simulation,
 )
 from app.api.admin.service import get_impact_heatmap
 from app.core.security import get_current_monitor_user, require_role
@@ -104,3 +105,12 @@ async def get_admin_users(_: dict = Depends(require_role("admin"))):
 @router.get("/system/mode")
 async def system_mode(_: dict = Depends(get_current_monitor_user)):
     return await get_system_mode()
+
+
+@router.post("/simulate")
+async def simulate_impact(
+    driver_id: Optional[str] = None,
+    user: dict = Depends(get_current_monitor_user),
+):
+    """Trigger a simulated impact event with full pipeline: G-force, AI diagnosis, emergency alerts."""
+    return await trigger_simulation(user.get("company_id"), driver_id)

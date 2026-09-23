@@ -71,6 +71,8 @@ export const authAPI = {
     apiRequest('/auth/refresh', { method: 'POST', body: { refresh_token: refreshToken } }),
   linkCompany: (token: string, companyToken: string) =>
     apiRequest('/auth/link-company', { method: 'POST', body: { token: companyToken }, token }),
+  unlinkCompany: (token: string) =>
+    apiRequest('/auth/remove-driver-token', { method: 'POST', token }),
   driverCompany: (token: string) =>
     apiRequest('/auth/driver-company', { token }),
   checkSuperAdmin: (token: string) =>

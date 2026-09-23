@@ -155,6 +155,46 @@ const en = {
     notFound: "Resource not found",
     validation: "Validation error",
   },
+  simulation: {
+    title: "Impact Simulation",
+    subtitle: "Simulation Center",
+    confirmTitle: "Confirm Simulation",
+    confirmMessage: "Do you want to start an impact simulation? A random G-force event will be generated, a diagnostic report will be created, and emergency contacts will be notified.",
+    startButton: "Start Simulation",
+    cancelButton: "Cancel",
+    progressTitle: "Processing Simulation",
+    steps: {
+      gforce: {
+        title: "Calculating G-Force",
+        description: "Simulating accelerometer and gyroscope data to determine impact force"
+      },
+      report: {
+        title: "Generating Report",
+        description: "AI classifies severity, estimates injury probability, and defines response protocol"
+      },
+      sending: {
+        title: "Sending Alerts",
+        description: "Notifying emergency contacts via WhatsApp and the monitoring center"
+      },
+      complete: {
+        title: "Simulation Completed",
+        description: "Report has been generated and contacts have been notified successfully"
+      }
+    },
+    gforceLabel: "G-Force Detected",
+    gforceUnit: "G",
+    severity: {
+      low: "Low",
+      medium: "Moderate",
+      high: "High",
+      critical: "Critical"
+    },
+    success: "Simulation completed successfully",
+    contactsNotified: "Contacts notified",
+    error: "Simulation error",
+    retry: "Retry",
+    close: "Close"
+  },
 };
 
 export default en;

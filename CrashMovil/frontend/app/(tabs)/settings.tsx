@@ -103,16 +103,9 @@ export default function SettingsScreen() {
       cancelText: t('common.cancel'),
       destructive: true,
     });
-    if (!ok) return;
+    if (!ok || !token) return;
     try {
-      const r = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL || ''}/api/auth/remove-driver-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      });
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({}));
-        throw new Error(body?.detail || `Error ${r.status}`);
-      }
+      await authAPI.unlinkCompany(token);
       await fetchCompany();
       alert({ title: t('settings.unlinkedTitle'), message: t('settings.unlinkedMessage') });
     } catch (e: any) { alert({ title: t('common.error'), message: e?.message || t('errors.generic') }); }

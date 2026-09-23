@@ -1,3 +1,5 @@
+import asyncio
+import random
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -8,6 +10,8 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.infrastructure.simulator import simulator
 from app.infrastructure.mobile_bridge import bridge
+from app.infrastructure.ai_providers import generate_ai_diagnosis
+from app.infrastructure.whatsapp_client import send_emergency_alerts
 
 
 def _source():
@@ -199,3 +203,147 @@ async def query_impacts(
     if ids is not None:
         rows = [r for r in rows if (r.get("driver_id") or r.get("user_id")) in ids]
     return {"impacts": rows, "demo": False}
+
+
+async def trigger_simulation(company_id: str | None = None, driver_id: Optional[str] = None) -> dict:
+    """Trigger a simulated impact event with full pipeline: G-force calculation, AI diagnosis, emergency alerts."""
+    if not settings.DEMO_MODE:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Simulation only available in DEMO mode")
+
+    # Step 1: Select a driver
+    drivers = simulator.list_drivers()
+    active_drivers = [d for d in drivers if d["status"] == "active"]
+    if not active_drivers:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="No active drivers available for simulation")
+
+    if driver_id:
+        target_driver = next((d for d in active_drivers if d["id"] == driver_id), None)
+        if not target_driver:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Driver not found or not active")
+    else:
+        target_driver = random.choice(active_drivers)
+
+    # Step 2: Calculate G-force (simulate accelerometer/gyroscope)
+    gforce = round(random.uniform(4.5, 8.5), 2)
+    speed = round(target_driver["speed"], 1)
+
+    # Update driver status to critical
+    target_driver["status"] = "critical"
+    target_driver["gforce"] = gforce
+
+    # Step 3: Create alert
+    alert = {
+        "id": f"alt-{uuid.uuid4().hex[:8]}",
+        "driver_id": target_driver["id"],
+        "driver_name": target_driver["name"],
+        "type": "impact",
+        "severity": "critical" if gforce >= 6 else "high",
+        "lat": target_driver["lat"],
+        "lng": target_driver["lng"],
+        "gforce": gforce,
+        "speed": speed,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "severity_label": "Crítico" if gforce >= 6 else "Alto",
+        "ai_diagnosis": None,
+        "alerts_sent": False,
+        "ack_by": None,
+        "ack_at": None,
+        "simulated": True,
+    }
+    simulator.alerts[alert["id"]] = alert
+
+    # Save to database
+    db = await get_db()
+    await db.alerts.insert_one(alert.copy())
+    await db.events.insert_one({
+        "id": f"evt-{uuid.uuid4().hex[:8]}",
+        "driver_id": target_driver["id"],
+        "type": "impact",
+        "severity": alert["severity"],
+        "lat": alert["lat"],
+        "lng": alert["lng"],
+        "gforce": gforce,
+        "speed": speed,
+        "ts": alert["created_at"],
+    })
+
+    # Step 4: Generate AI diagnosis
+    profile = await db.user_profiles.find_one({"user_id": target_driver["id"]}, {"_id": 0})
+    diagnosis = None
+    try:
+        diagnosis = await generate_ai_diagnosis({
+            "id": alert["id"],
+            "g_force": gforce,
+            "speed_kmh": speed,
+            "severity": alert["severity"],
+            "location": {"latitude": target_driver["lat"], "longitude": target_driver["lng"]},
+            "driver_name": target_driver["name"],
+        }, profile)
+        await db.alerts.update_one({"id": alert["id"]}, {"$set": {"ai_diagnosis": diagnosis}})
+        alert["ai_diagnosis"] = diagnosis
+    except Exception as e:
+        import logging
+        logging.getLogger("crash.monitor").error(f"AI diagnosis failed: {e}")
+
+    # Step 5: Send emergency alerts
+    contact_count = await db.emergency_contacts.count_documents({"user_id": target_driver["id"], "verified": True})
+    alerted_contacts = []
+    if contact_count > 0:
+        try:
+            alerted_contacts = await send_emergency_alerts(
+                {"id": target_driver["id"], "name": target_driver["name"], "email": target_driver.get("email", "")},
+                alert,
+                profile,
+                diagnosis
+            )
+            await db.alerts.update_one(
+                {"id": alert["id"]},
+                {"$set": {"alerts_sent": True, "alerted_contacts": alerted_contacts}}
+            )
+            alert["alerts_sent"] = True
+            alert["alerted_contacts"] = alerted_contacts
+        except Exception as e:
+            import logging
+            logging.getLogger("crash.monitor").error(f"Alert sending failed: {e}")
+            await db.alerts.update_one(
+                {"id": alert["id"]},
+                {"$set": {"alerts_sent": False, "alerted_contacts": [], "alert_error": str(e)}}
+            )
+            alert["alerts_sent"] = False
+            alert["alert_error"] = str(e)
+    else:
+        await db.alerts.update_one(
+            {"id": alert["id"]},
+            {"$set": {"alerts_sent": False, "alerted_contacts": [], "alert_error": "No verified emergency contacts"}}
+        )
+        alert["alerts_sent"] = False
+        alert["alert_error"] = "No verified emergency contacts"
+
+    # Broadcast the new alert via websocket
+    from app.api.monitor.websockets import manager
+    await manager.broadcast({"type": "alert", "alert": alert})
+
+    # Return the full simulation result
+    return {
+        "alert": alert,
+        "gforce": gforce,
+        "severity": alert["severity"],
+        "severity_label": alert["severity_label"],
+        "driver": {
+            "id": target_driver["id"],
+            "name": target_driver["name"],
+            "vehicle": target_driver["vehicle"],
+        },
+        "diagnosis": diagnosis,
+        "contacts_notified": len(alerted_contacts) if alerted_contacts else 0,
+        "steps_completed": [
+            {"step": "gforce", "completed": True, "data": {"gforce": gforce}},
+            {"step": "report", "completed": True, "data": {"diagnosis": diagnosis is not None}},
+            {"step": "sending", "completed": True, "data": {"contacts_notified": len(alerted_contacts) if alerted_contacts else 0}},
+            {"step": "complete", "completed": True, "data": {}},
+        ]
+    }

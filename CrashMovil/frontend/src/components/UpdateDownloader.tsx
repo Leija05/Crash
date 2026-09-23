@@ -68,13 +68,14 @@ export default function UpdateDownloader({ visible, info, localVersion, onClose,
     setErrorMsg('');
 
     const url = info.download_url.startsWith('/') ? `${API_BASE}${info.download_url}` : info.download_url;
-    const dest = `${FileSystem.cacheDirectory}crash-update-${info.version || 'latest'}.apk`;
+    const fs = FileSystem as any;
+    const dest = `${fs.cacheDirectory || ''}crash-update-${info.version || 'latest'}.apk`;
     totalRef.current = 0;
     lastRef.current = { time: Date.now(), bytes: 0 };
 
     try {
-      const res = await FileSystem.downloadAsync(url, dest, {
-        downloadProgressCallback: (p) => {
+      const res = await fs.downloadAsync(url, dest, {
+        downloadProgressCallback: (p: any) => {
           totalRef.current = p.totalBytes > 0 ? p.totalBytes : totalRef.current;
           const now = Date.now();
           const dt = (now - lastRef.current.time) / 1000;

@@ -8,7 +8,7 @@ import { COLORS, RADIUS, SPACING, SHADOWS, FONT, FONT_SIZE, RED, ANIMATION } fro
 import { useBluetooth } from '../src/context/BluetoothContext';
 import { useI18n } from '../src/i18n';
 import GlassCard from '../src/components/GlassCard';
-import type { ScanDevice } from '../src/services/bluetooth';
+import type { ScanDevice, BluetoothTransport } from '../src/services/bluetooth';
 import { haptics } from '../src/utils/haptics';
 
 const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
@@ -70,11 +70,11 @@ export default function DevicesScreen() {
     pulseAnim.value = 0;
   }, [scanning]);
 
-  const handleConnect = async (id: string) => {
+  const handleConnect = async (id: string, transport?: BluetoothTransport) => {
     haptics.medium();
     setConnectingId(id);
     setConnectionError(null);
-    const ok = await connect(id, customName);
+    const ok = await connect(id, transport, customName);
     setConnectingId(null);
     if (ok) {
       haptics.success();
@@ -231,7 +231,7 @@ export default function DevicesScreen() {
               <TouchableOpacity
                 testID={`device-item-${item.id}`}
                 style={[styles.deviceCard, item.isCrashDevice && styles.deviceCardCrash, connectingId === item.id && styles.deviceCardConnecting]}
-                onPress={() => handleConnect(item.id)}
+                onPress={() => handleConnect(item.id, item.transport)}
                 activeOpacity={0.8}
                 disabled={connectingId !== null}
               >
@@ -263,6 +263,14 @@ export default function DevicesScreen() {
                       <View style={styles.crashBadge}>
                         <Ionicons name="shield-checkmark" size={10} color={RED} />
                         <Text style={styles.crashBadgeText}>{t('devices.crashHelmet')}</Text>
+                      </View>
+                    )}
+                    {item.transport && (
+                      <View style={[styles.transportBadge, item.transport === 'ble' ? styles.transportBadgeBle : styles.transportBadgeClassic]}>
+                        <Ionicons name={item.transport === 'ble' ? 'radio' : 'contrast'} size={10} color={item.transport === 'ble' ? COLORS.info : COLORS.warning} />
+                        <Text style={styles.transportBadgeText}>
+                          {item.transport === 'ble' ? 'BLE' : 'Classic'}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -650,6 +658,28 @@ const styles = StyleSheet.create({
   },
   crashBadgeText: {
     color: RED,
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  transportBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+  },
+  transportBadgeBle: {
+    backgroundColor: 'rgba(59,130,246,0.12)',
+    borderColor: 'rgba(59,130,246,0.2)',
+  },
+  transportBadgeClassic: {
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderColor: 'rgba(245,158,11,0.2)',
+  },
+  transportBadgeText: {
     fontSize: 8,
     fontWeight: '800',
     letterSpacing: 0.5,

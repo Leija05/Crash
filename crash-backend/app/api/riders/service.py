@@ -38,14 +38,27 @@ async def get_contacts(user_id: str) -> list:
     return contacts
 
 
+def _normalize_phone(raw: str) -> str:
+    cleaned = (raw or "").strip()
+    digits = "".join(ch for ch in cleaned if ch.isdigit())
+    if digits.startswith("00"):
+        digits = digits[2:]
+    if len(digits) == 10:
+        return f"+52{digits}"
+    if cleaned.startswith("+"):
+        return f"+{digits}"
+    return f"+{digits}" if digits else cleaned
+
+
 async def add_contact(user_id: str, body) -> dict:
     db = await get_db()
-    whatsapp_validation = await validate_whatsapp_contact(body.phone.strip())
+    normalized_phone = _normalize_phone(body.phone)
+    whatsapp_validation = await validate_whatsapp_contact(normalized_phone)
     contact_doc = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
         "name": body.name.strip(),
-        "phone": body.phone.strip(),
+        "phone": normalized_phone,
         "relationship": body.relationship.strip() if body.relationship else "",
         "verified": bool(whatsapp_validation.get("is_whatsapp_user")),
         "verified_at": datetime.now(timezone.utc).isoformat() if whatsapp_validation.get("is_whatsapp_user") else None,
@@ -68,18 +81,21 @@ async def verify_contact(user_id: str, contact_id: str) -> dict:
     contact = await db.emergency_contacts.find_one({"id": contact_id, "user_id": user_id})
     if not contact:
         return {}
-    validation = await validate_whatsapp_contact(contact["phone"].strip())
+    norm_phone = _normalize_phone(contact.get("phone", ""))
+    validation = await validate_whatsapp_contact(norm_phone)
     # Si la API de WhatsApp no está disponible/configurada, confiamos en la
     # verificación manual del usuario (abrió el chat de WhatsApp y confirmó).
     is_valid = bool(validation.get("is_whatsapp_user")) or not validation.get("checked")
     await db.emergency_contacts.update_one(
         {"id": contact_id, "user_id": user_id},
         {"$set": {
+            "phone": norm_phone,
             "verified": is_valid,
             "verified_at": datetime.now(timezone.utc).isoformat() if is_valid else None,
             "whatsapp_validation": validation,
         }},
     )
+    contact["phone"] = norm_phone
     contact["verified"] = is_valid
     contact["verified_at"] = datetime.now(timezone.utc).isoformat() if is_valid else None
     contact.pop("_id", None)

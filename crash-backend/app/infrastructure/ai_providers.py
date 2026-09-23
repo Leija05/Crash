@@ -67,65 +67,133 @@ async def generate_ai_diagnosis(impact: dict, profile: dict | None) -> dict:
             if provider == "gemini":
                 if not settings.GOOGLE_API_KEY:
                     raise RuntimeError("GOOGLE_API_KEY no configurada")
-                from google import genai
-                client = genai.Client(api_key=settings.GOOGLE_API_KEY)
-                # google-genai SDK uses model names like "gemini-2.0-flash-exp" or "gemini-1.5-flash"
-                model_name = settings.GEMINI_MODEL
-                if model_name.startswith("gemini-2.5"):
-                    model_name = "gemini-2.0-flash-exp"
-                gemini_resp = await asyncio.to_thread(
-                    client.models.generate_content,
-                    model=model_name,
-                    contents=combined_prompt,
-                )
-                response = (getattr(gemini_resp, "text", "") or "").strip()
+                # Active 2026 models with smart fallback
+                candidates = [settings.GEMINI_MODEL, "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
+                seen = set()
+                model_list = []
+                for m in candidates:
+                    if m and m not in seen and "1.5" not in m and "2.0" not in m:
+                        seen.add(m)
+                        model_list.append(m)
+                if not model_list:
+                    model_list = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-flash-latest"]
+
+                gemini_last_err = None
+                genai_client = None
+                try:
+                    from google import genai
+                    genai_client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+                except Exception as import_err:
+                    logger.info(f"google-genai SDK not available ({import_err}), using direct REST API")
+
+                if genai_client:
+                    for candidate_model in model_list:
+                        try:
+                            gemini_resp = await asyncio.wait_for(
+                                asyncio.to_thread(
+                                    genai_client.models.generate_content,
+                                    model=candidate_model,
+                                    contents=combined_prompt,
+                                ),
+                                timeout=10.0,
+                            )
+                            response = (getattr(gemini_resp, "text", "") or "").strip()
+                            if response:
+                                break
+                        except Exception as g_err:
+                            gemini_last_err = g_err
+                            logger.warning(f"Gemini SDK candidate {candidate_model} failed: {g_err}")
+
+                if not response:
+                    async with httpx.AsyncClient(timeout=10.0) as http_client:
+                        for candidate_model in model_list:
+                            try:
+                                url = f"https://generativelanguage.googleapis.com/v1beta/models/{candidate_model}:generateContent?key={settings.GOOGLE_API_KEY}"
+                                rest_resp = await http_client.post(
+                                    url,
+                                    headers={"Content-Type": "application/json", "User-Agent": "CRASH-API/1.0"},
+                                    json={"contents": [{"parts": [{"text": combined_prompt}]}]},
+                                )
+                                rest_resp.raise_for_status()
+                                r_data = rest_resp.json()
+                                candidates_list = r_data.get("candidates") or []
+                                if candidates_list:
+                                    parts = ((candidates_list[0].get("content") or {}).get("parts") or [])
+                                    if parts:
+                                        response = (parts[0].get("text") or "").strip()
+                                        if response:
+                                            break
+                            except Exception as rest_err:
+                                gemini_last_err = rest_err
+                                logger.warning(f"Gemini REST candidate {candidate_model} failed: {rest_err}")
+
+                if not response and gemini_last_err:
+                    raise gemini_last_err
 
             elif provider == "groq":
                 if not settings.GROQ_API_KEY:
                     raise RuntimeError("GROQ_API_KEY no configurada")
-                async with httpx.AsyncClient(timeout=30.0) as http_client:
-                    groq_resp = await http_client.post(
-                        "https://api.groq.com/openai/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
-                            "Content-Type": "application/json",
-                        },
-                        json={
-                            "model": "llama-3.1-8b-instant",
-                            "temperature": 0.2,
-                            "messages": [
-                                {"role": "system", "content": system_msg},
-                                {"role": "user", "content": prompt},
-                            ],
-                        },
-                    )
-                    groq_resp.raise_for_status()
-                    data = groq_resp.json()
-                    response = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+                groq_models = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b", "openai/gpt-oss-120b", "llama-3.3-70b-versatile"]
+                async with httpx.AsyncClient(timeout=8.0) as http_client:
+                    for g_model in groq_models:
+                        try:
+                            groq_resp = await http_client.post(
+                                "https://api.groq.com/openai/v1/chat/completions",
+                                headers={
+                                    "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                                    "Content-Type": "application/json",
+                                    "User-Agent": "CRASH-API/1.0",
+                                },
+                                json={
+                                    "model": g_model,
+                                    "temperature": 0.2,
+                                    "messages": [
+                                        {"role": "system", "content": system_msg},
+                                        {"role": "user", "content": prompt},
+                                    ],
+                                },
+                            )
+                            groq_resp.raise_for_status()
+                            data = groq_resp.json()
+                            response = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+                            if response:
+                                break
+                        except Exception as groq_err:
+                            logger.warning(f"Groq candidate {g_model} failed: {groq_err}")
+                            continue
 
             else:
                 if not settings.COHERE_API_KEY:
                     raise RuntimeError("COHERE_API_KEY no configurada")
-                async with httpx.AsyncClient(timeout=30.0) as http_client:
-                    cohere_resp = await http_client.post(
-                        "https://api.cohere.com/v1/chat",
-                        headers={
-                            "Authorization": f"Bearer {settings.COHERE_API_KEY}",
-                            "Content-Type": "application/json",
-                        },
-                        json={
-                            "model": "command-r-plus",
-                            "temperature": 0.2,
-                            "messages": [
-                                {"role": "system", "content": system_msg},
-                                {"role": "user", "content": prompt},
-                            ],
-                        },
-                    )
-                    cohere_resp.raise_for_status()
-                    data = cohere_resp.json()
-                    message_content = (data.get("message") or {}).get("content") or []
-                    response = (message_content[0].get("text", "") if message_content else "").strip()
+                cohere_models = ["command-r-08-2024", "command-a-03-2025", "command-r-plus-08-2024"]
+                async with httpx.AsyncClient(timeout=8.0) as http_client:
+                    for c_model in cohere_models:
+                        try:
+                            cohere_resp = await http_client.post(
+                                "https://api.cohere.com/v2/chat",
+                                headers={
+                                    "Authorization": f"Bearer {settings.COHERE_API_KEY}",
+                                    "Content-Type": "application/json",
+                                    "User-Agent": "CRASH-API/1.0",
+                                },
+                                json={
+                                    "model": c_model,
+                                    "temperature": 0.2,
+                                    "messages": [
+                                        {"role": "system", "content": system_msg},
+                                        {"role": "user", "content": prompt},
+                                    ],
+                                },
+                            )
+                            cohere_resp.raise_for_status()
+                            data = cohere_resp.json()
+                            message_content = (data.get("message") or {}).get("content") or []
+                            response = (message_content[0].get("text", "") if message_content else "").strip()
+                            if response:
+                                break
+                        except Exception as cohere_err:
+                            logger.warning(f"Cohere candidate {c_model} failed: {cohere_err}")
+                            continue
 
             if response:
                 logger.info(f"AI diagnosis generated with {provider}")
