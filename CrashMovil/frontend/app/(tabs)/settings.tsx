@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import Animated, { FadeInDown, FadeInUp, withSpring, withTiming, Easing, useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, withSpring, withTiming, Easing } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, SHADOWS, severityColor, RED, RED_HAIRLINE, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
@@ -52,8 +52,6 @@ export default function SettingsScreen() {
   const [company, setCompany] = useState<{ company_id: string | null; company_name: string | null }>({ company_id: null, company_name: null });
   const [companyTokenInput, setCompanyTokenInput] = useState('');
   const [linking, setLinking] = useState(false);
-
-  const cardAnims = useSharedValue(0);
 
   useEffect(() => { setDeviceInput(deviceName); }, [deviceName]);
 

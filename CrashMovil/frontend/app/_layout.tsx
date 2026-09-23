@@ -10,6 +10,7 @@ import { AuthProvider } from '../src/context/AuthContext';
 import { AppSettingsProvider } from '../src/context/AppSettingsContext';
 import { BluetoothProvider } from '../src/context/BluetoothContext';
 import { AlertProvider } from '../src/context/AlertContext';
+import { PhoneSensorProvider } from '../src/context/PhoneSensorContext';
 import { LocationProvider } from '../src/context/LocationContext';
 import { I18nProvider } from '../src/i18n';
 import UpdateGate from '../src/components/UpdateGate';
@@ -37,34 +38,36 @@ export default function RootLayout() {
         <AppSettingsProvider>
           <AuthProvider>
             <BluetoothProvider>
-              <LocationProvider>
-              <AlertProvider>
-                <StatusBar style="light" translucent />
-                <Animated.View
-                  entering={FadeIn.duration(800).springify().damping(26).stiffness(200)}
-                  style={styles.topGoldLine}
-                  pointerEvents="none"
-                />
-                <Animated.View
-                  entering={FadeIn.duration(1000).delay(200).springify().damping(26).stiffness(200)}
-                  style={styles.ambientGlow}
-                  pointerEvents="none"
-                />
-                <Animated.View
-                  entering={FadeIn.duration(1200).delay(400).springify().damping(26).stiffness(200)}
-                  style={styles.brandGlow}
-                  pointerEvents="none"
-                />
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: COLORS.bg },
-                    animation: 'slide_from_right',
-                  }}
-                />
-                <UpdateGate />
-              </AlertProvider>
-              </LocationProvider>
+              <PhoneSensorProvider>
+                <LocationProvider>
+                  <AlertProvider>
+                    <StatusBar style="light" translucent />
+                    <Animated.View
+                      entering={FadeIn.duration(800).springify().damping(26).stiffness(200)}
+                      style={styles.topGoldLine}
+                      pointerEvents="none"
+                    />
+                    <Animated.View
+                      entering={FadeIn.duration(1000).delay(200).springify().damping(26).stiffness(200)}
+                      style={styles.ambientGlow}
+                      pointerEvents="none"
+                    />
+                    <Animated.View
+                      entering={FadeIn.duration(1200).delay(400).springify().damping(26).stiffness(200)}
+                      style={styles.brandGlow}
+                      pointerEvents="none"
+                    />
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor: COLORS.bg },
+                        animation: 'slide_from_right',
+                      }}
+                    />
+                    <UpdateGate />
+                  </AlertProvider>
+                </LocationProvider>
+              </PhoneSensorProvider>
             </BluetoothProvider>
           </AuthProvider>
         </AppSettingsProvider>

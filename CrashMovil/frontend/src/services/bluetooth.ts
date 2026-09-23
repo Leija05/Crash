@@ -62,8 +62,8 @@ class UnifiedBluetoothService {
   private latestTelemetry: TelemetryData | null = null;
   private lastEmitAt = 0;
   private flushTimer: ReturnType<typeof setInterval> | null = null;
-  private readonly EMIT_INTERVAL_MS = 100;
-  private readonly EMIT_MIN_GAP_CRITICAL_MS = 50;
+  private readonly EMIT_INTERVAL_MS = 200;
+  private readonly EMIT_MIN_GAP_CRITICAL_MS = 0;
 
   private healthCheckTimer: ReturnType<typeof setInterval> | null = null;
   private readonly HEALTH_CHECK_INTERVAL_MS = 3000;

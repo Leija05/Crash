@@ -164,10 +164,10 @@ export function Slider({
   const activeTrackWidth = useSharedValue(0);
   const isDragging = useSharedValue(false);
 
-  const clampedProgress = Math.max(0, Math.min(1, progress.value));
+  const clampedProgress = Math.max(0, Math.min(1, max > min ? (value - min) / (max - min) : 0));
   const currentValue = min + clampedProgress * (max - min);
   const steppedValue = Math.round(currentValue / step) * step;
-  const finalProgress = (steppedValue - min) / (max - min);
+  const finalProgress = max > min ? (steppedValue - min) / (max - min) : 0;
 
   useEffect(() => {
     progress.value = (value - min) / (max - min);

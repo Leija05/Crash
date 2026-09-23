@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import Animated, { FadeInUp, FadeInDown, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, Easing, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeInDown, withSpring, withTiming, Easing, FadeIn } from 'react-native-reanimated';
 import { COLORS, RADIUS, SPACING, SHADOWS, RED, FONT, FONT_SIZE, ANIMATION } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useAlert } from '../../src/context/AlertContext';
@@ -35,7 +35,6 @@ export default function ProfileScreen() {
   const [disabilitiesText, setDisabilitiesText] = useState('');
   const [notes, setNotes] = useState('');
 
-  const bloodTypeAnim = useSharedValue(1);
   const onTabScroll = useTabBarScroll();
 
   const { trigger: triggerEmergency, sending: sendingEmergency } = useEmergencyAlert({
@@ -140,7 +139,7 @@ export default function ProfileScreen() {
               <Text style={styles.label}>{t('profile.bloodType')}</Text>
               <View style={styles.bloodGrid}>
                 {BLOOD_TYPES.map(bt => (
-                  <TouchableOpacity key={bt} testID={`blood-type-${bt}`} style={[styles.bloodBtn, bloodType === bt && styles.bloodBtnActive]} onPress={() => { haptics.selection(); setBloodType(bt); bloodTypeAnim.value = withSequence(withSpring(1.2, ANIMATION.spring), withSpring(1, ANIMATION.springBouncy)); }}>
+                  <TouchableOpacity key={bt} testID={`blood-type-${bt}`} style={[styles.bloodBtn, bloodType === bt && styles.bloodBtnActive]} onPress={() => { haptics.selection(); setBloodType(bt); }}>
                     <Animated.Text style={[styles.bloodText, bloodType === bt && styles.bloodTextActive]}>{bt}</Animated.Text>
                   </TouchableOpacity>
                 ))}

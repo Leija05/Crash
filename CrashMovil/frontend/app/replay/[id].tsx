@@ -53,24 +53,50 @@ export default function ReplayScreen() {
           telemetryAPI.history(token, id),
         ]);
         setImpact(detail);
-        const pts = (history?.points || []).map((p: any) => ({
-          ...p,
-          ts: p.timestamp,
-          speed: estimateSpeedFromAccel(
-            p.acceleration?.x || 0,
-            p.acceleration?.y || 0,
-            p.acceleration?.z || 0,
-          ),
-        }));
-        const impactFrame = {
-          ts: detail.created_at,
-          g_force: detail.g_force,
-          speed: 0,
-          __impact: true,
-        };
-        const allPoints = [...pts, impactFrame].sort(
-          (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime(),
-        );
+        let allPoints: any[] = [];
+        if (detail?.location_history && detail.location_history.length > 0) {
+          const impactTs = new Date(detail.created_at).getTime();
+          allPoints = detail.location_history.map((p: any) => {
+            const ptTs = p.timestamp ? new Date(p.timestamp).getTime() : impactTs;
+            const offset = typeof p.timeOffsetSeconds === 'number'
+              ? p.timeOffsetSeconds
+              : Number(((ptTs - impactTs) / 1000).toFixed(2));
+            return {
+              ...p,
+              ts: p.timestamp || detail.created_at,
+              offsetSeconds: offset,
+              g_force: p.g_force ?? (p.acceleration ? Math.sqrt(p.acceleration.x**2 + p.acceleration.y**2 + p.acceleration.z**2) / 9.8 : detail.g_force),
+              speed: p.speed_kmh ?? p.speed ?? 0,
+              latitude: p.latitude,
+              longitude: p.longitude,
+              __impact: Math.abs(offset) <= 0.15 || p.__impact,
+            };
+          });
+        }
+        
+        if (allPoints.length === 0) {
+          const pts = (history?.points || []).map((p: any) => ({
+            ...p,
+            ts: p.timestamp,
+            offsetSeconds: 0,
+            speed: estimateSpeedFromAccel(
+              p.acceleration?.x || 0,
+              p.acceleration?.y || 0,
+              p.acceleration?.z || 0,
+            ),
+          }));
+          const impactFrame = {
+            ts: detail.created_at,
+            g_force: detail.g_force,
+            speed: 0,
+            offsetSeconds: 0,
+            __impact: true,
+          };
+          allPoints = [...pts, impactFrame].sort(
+            (a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime(),
+          );
+        }
+
         setPoints(allPoints);
       } catch (e: any) {
         setError(e.message || 'Error al cargar datos');
@@ -160,15 +186,17 @@ export default function ReplayScreen() {
 
   const chartData = points.filter(p => !p.__impact).map((p, i) => ({ x: i, y: p.g_force || 0 }));
   const speedData = points.filter(p => !p.__impact).map((p, i) => ({ x: i, y: p.speed || 0 }));
-  const gpsRoute = points.filter(p => p.latitude && p.longitude).map(p => ({
-    latitude: p.latitude,
-    longitude: p.longitude,
-    timestamp: p.ts,
-  }));
+  const gpsRoute = (impact?.location_history && impact.location_history.length > 0)
+    ? impact.location_history
+    : points.filter(p => p.latitude && p.longitude).map(p => ({
+        latitude: p.latitude,
+        longitude: p.longitude,
+        timestamp: p.ts,
+      }));
   const impactPoint = impact?.location?.latitude
-    ? { latitude: impact.location.latitude, longitude: impact.location.longitude }
+    ? { latitude: impact.location.latitude, longitude: impact.location.longitude, g_force: impact?.g_force, speed_kmh: impact?.speed_kmh }
     : (gpsRoute.length > 0
-        ? { latitude: gpsRoute[gpsRoute.length - 1].latitude, longitude: gpsRoute[gpsRoute.length - 1].longitude }
+        ? { latitude: gpsRoute[gpsRoute.length - 1].latitude, longitude: gpsRoute[gpsRoute.length - 1].longitude, g_force: impact?.g_force, speed_kmh: impact?.speed_kmh }
         : undefined);
 
   return (
@@ -216,9 +244,11 @@ export default function ReplayScreen() {
 
           <View style={styles.metaGrid}>
             <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>TIEMPO</Text>
-              <Text style={styles.metaValue}>
-                {current ? fmtTime(current.ts) : '--:--:--'}
+              <Text style={styles.metaLabel}>TIEMPO RELATIVO</Text>
+              <Text style={[styles.metaValue, current?.__impact && { color: RED }]}>
+                {typeof current?.offsetSeconds === 'number'
+                  ? (current.offsetSeconds <= 0 ? `${current.offsetSeconds.toFixed(1)}s` : `+${current.offsetSeconds.toFixed(1)}s`)
+                  : (current ? fmtTime(current.ts) : '--:--:--')}
               </Text>
             </View>
             <View style={styles.metaItem}>
@@ -351,10 +381,13 @@ export default function ReplayScreen() {
           <GPSMap
             route={gpsRoute}
             impactPoint={impactPoint}
-            currentLocation={points.length > 0 && points[0].latitude ? {
+            currentLocation={current?.latitude ? {
+              latitude: current.latitude,
+              longitude: current.longitude,
+            } : (points.length > 0 && points[0].latitude ? {
               latitude: points[0].latitude,
               longitude: points[0].longitude,
-            } : undefined}
+            } : undefined)}
             width={CHART_INNER}
             height={220}
             showImpactMarker={true}

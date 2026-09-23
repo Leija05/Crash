@@ -47,7 +47,8 @@ export function MediaControls({
   const progress = useSharedValue(duration > 0 ? currentTime / duration : 0);
   const thumbX = useSharedValue(0);
   const trackWidth = useSharedValue(0);
-  const speedIndex = useSharedValue(1);
+  const [currentSpeedIndex, setCurrentSpeedIndex] = React.useState(1);
+  const [isSpeedOpen, setIsSpeedOpen] = React.useState(false);
   const speedExpanded = useSharedValue(0);
   const isSeeking = useSharedValue(false);
 
@@ -114,7 +115,7 @@ export function MediaControls({
   }));
 
   const playIcon = playing ? 'pause' : 'play';
-  const speed = speeds[speedIndex.value];
+  const speed = speeds[currentSpeedIndex];
 
   useEffect(() => {
     const p = duration > 0 ? currentTime / duration : 0;
@@ -160,14 +161,16 @@ export function MediaControls({
           <View style={styles.speedContainer}>
             <TouchableOpacity
               onPress={() => {
-                speedExpanded.value = withTiming(speedExpanded.value ? 0 : 1, { duration: 200 });
+                const next = !isSpeedOpen;
+                setIsSpeedOpen(next);
+                speedExpanded.value = withTiming(next ? 1 : 0, { duration: 200 });
               }}
               activeOpacity={0.85}
               style={styles.speedBtn}
             >
               <Text style={styles.speedText}>{speed}x</Text>
               <Ionicons 
-                name={speedExpanded.value ? 'chevron-up' : 'chevron-down'} 
+                name={isSpeedOpen ? 'chevron-up' : 'chevron-down'} 
                 size={16} 
                 color={COLORS.textSec} 
                 style={{ marginLeft: 4 }}
@@ -179,19 +182,20 @@ export function MediaControls({
                 <TouchableOpacity
                   key={s}
                   onPress={() => {
-                    speedIndex.value = i;
+                    setCurrentSpeedIndex(i);
+                    setIsSpeedOpen(false);
                     speedExpanded.value = withTiming(0, { duration: 200 });
                     onSpeedChange?.(s);
                   }}
                   activeOpacity={0.85}
                   style={[
                     styles.speedOption,
-                    speedIndex.value === i && styles.speedOptionActive,
+                    currentSpeedIndex === i && styles.speedOptionActive,
                   ]}
                 >
                   <Text style={[
                     styles.speedOptionText,
-                    speedIndex.value === i && styles.speedOptionTextActive,
+                    currentSpeedIndex === i && styles.speedOptionTextActive,
                   ]}>
                     {s}x
                   </Text>

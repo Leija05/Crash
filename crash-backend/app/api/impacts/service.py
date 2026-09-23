@@ -89,6 +89,22 @@ async def create_impact(user: dict, body) -> dict:
     injury_probability = compute_injury_probability(body.g_force, speed_kmh, zone_risk)
     triage = triage_level(injury_probability)
 
+    now_dt = datetime.now(timezone.utc)
+    route_history = getattr(body, "location_history", None)
+    if not route_history:
+        try:
+            from datetime import timedelta
+            start_window = (now_dt - timedelta(minutes=15)).isoformat()
+            cursor = db.location_history.find(
+                {"user_id": user["id"], "timestamp": {"$gte": start_window}},
+                {"_id": 0, "latitude": 1, "longitude": 1, "speed": 1, "timestamp": 1},
+            ).sort("timestamp", 1).limit(50)
+            fetched_route = await cursor.to_list(length=50)
+            if fetched_route:
+                route_history = fetched_route
+        except Exception as e:
+            logger.warning(f"Could not load recent location history: {e}")
+
     impact_doc = {
         "id": impact_id,
         "user_id": user["id"],
@@ -104,10 +120,12 @@ async def create_impact(user: dict, body) -> dict:
         "triage_priority": triage["priority"],
         "risk_zone": zone_info,
         "location": {"latitude": body.latitude, "longitude": body.longitude} if body.latitude else None,
+        "source": getattr(body, "source", "circuit") or "circuit",
+        "location_history": route_history or [],
         "ai_diagnosis": None,
         "alerts_sent": False,
         "simulated": bool(getattr(body, "simulated", False) or False),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": now_dt.isoformat(),
     }
     await db.impact_events.insert_one(impact_doc)
 
@@ -220,6 +238,26 @@ async def get_user_impacts(user_id: str) -> list:
 async def get_user_impact(user_id: str, impact_id: str) -> dict | None:
     db = await get_db()
     impact = await db.impact_events.find_one({"id": impact_id, "user_id": user_id}, {"_id": 0})
+    if impact and not impact.get("location_history"):
+        created_str = impact.get("created_at")
+        if created_str:
+            try:
+                from datetime import timedelta
+                impact_dt = datetime.fromisoformat(created_str)
+                start_window = (impact_dt - timedelta(minutes=15)).isoformat()
+                end_window = (impact_dt + timedelta(minutes=2)).isoformat()
+                cursor = db.location_history.find(
+                    {
+                        "user_id": user_id,
+                        "timestamp": {"$gte": start_window, "$lte": end_window},
+                    },
+                    {"_id": 0, "latitude": 1, "longitude": 1, "speed": 1, "timestamp": 1},
+                ).sort("timestamp", 1).limit(50)
+                pts = await cursor.to_list(length=50)
+                if pts:
+                    impact["location_history"] = pts
+            except Exception:
+                pass
     return impact
 
 

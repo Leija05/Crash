@@ -46,6 +46,7 @@ async function registerVersion() {
     if (apkPath) {
       // Si se proporciona ruta al APK, primero subimos el archivo
       const fs = await import('fs');
+      // eslint-disable-next-line import/no-unresolved
       const FormData = (await import('form-data')).default;
       
       if (!fs.existsSync(apkPath)) {

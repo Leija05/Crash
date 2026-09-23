@@ -18,12 +18,14 @@ type Telemetry = {
 type EmergencyOptions = {
   token: string | null;
   getTelemetry?: () => Telemetry | null;
+  getRoute?: () => any[];
+  source?: string;
   hasEmergencyContacts: boolean;
   alertThreshold: number;
   onResult?: (impact: any) => void;
 };
 
-export function useEmergencyAlert({ token, getTelemetry, hasEmergencyContacts, alertThreshold, onResult }: EmergencyOptions) {
+export function useEmergencyAlert({ token, getTelemetry, getRoute, source = 'circuit', hasEmergencyContacts, alertThreshold, onResult }: EmergencyOptions) {
   const { alert, confirm } = useAlert();
   const { t } = useI18n();
   const [sending, setSending] = useState(false);
@@ -77,6 +79,8 @@ export function useEmergencyAlert({ token, getTelemetry, hasEmergencyContacts, a
         gyroscope_y: telemetry?.gyroscope_y ?? 0,
         gyroscope_z: telemetry?.gyroscope_z ?? 0,
         g_force: telemetry?.g_force ?? alertThreshold,
+        source,
+        location_history: getRoute?.() || [],
         latitude,
         longitude,
         manual: true,
@@ -95,7 +99,7 @@ export function useEmergencyAlert({ token, getTelemetry, hasEmergencyContacts, a
       setSending(false);
       inFlight.current = false;
     }
-  }, [token, sending, hasEmergencyContacts, getTelemetry, alertThreshold, confirm, alert, onResult, t]);
+  }, [token, sending, hasEmergencyContacts, getTelemetry, getRoute, source, alertThreshold, confirm, alert, onResult, t]);
 
   return { trigger, sending };
 }

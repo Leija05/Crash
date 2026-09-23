@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Easing } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS, ANIMATION } from '../theme';
-import Animated, { useSharedValue, withTiming, withDelay, withSequence, useAnimatedStyle, interpolateColor } from 'react-native-reanimated';
+import { COLORS, RADIUS, SPACING, FONT, FONT_SIZE, SHADOWS } from '../theme';
+import Animated, { useSharedValue, withTiming, withDelay, useAnimatedStyle, Easing } from 'react-native-reanimated';
 
 export interface StickyNotificationProps {
   message: string;

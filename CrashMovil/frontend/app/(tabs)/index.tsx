@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, useWindowDimensions, Animated as RNAnimated,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Modal, Platform, ActivityIndicator, useWindowDimensions, Animated as RNAnimated, Switch, AppState,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,10 +19,12 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useBluetooth } from '../../src/context/BluetoothContext';
 import { useAppSettings } from '../../src/context/AppSettingsContext';
 import { useAlert } from '../../src/context/AlertContext';
+import { usePhoneSensor } from '../../src/context/PhoneSensorContext';
 import { useLocation } from '../../src/context/LocationContext';
 import { useI18n } from '../../src/i18n';
 import { contactsAPI, impactsAPI, settingsAPI, telemetryAPI } from '../../src/services/api';
 import { foregroundService } from '../../src/services/foregroundService';
+import { phoneSensorEngine } from '../../src/services/phoneSensorEngine';
 import GForceRing from '../../src/components/GForceRing';
 import { LineChart, MultiLineChart, Sparkline } from '../../src/components/Charts';
 import GPSMap from '../../src/components/GPSMap';
@@ -75,8 +77,12 @@ export default function DashboardScreen() {
     disconnect, nativeAvailable,
   } = useBluetooth();
   const {
+    phoneSensorActive, canUsePhoneSensor, phoneTelemetry, latestDetectedImpact,
+    togglePhoneSensor, clearDetectedImpact, setSensorThreshold,
+  } = usePhoneSensor();
+  const {
     permissionGranted, grantedLocation, currentLocation, isTracking,
-    requestPermission,
+    requestPermission, getRecentRoute,
   } = useLocation();
 
   const onTabScroll = useTabBarScroll();
@@ -105,7 +111,60 @@ export default function DashboardScreen() {
   const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true);
   const lastTelemetrySentAtRef = useRef(0);
   const lastNotificationUpdateRef = useRef(0);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownTargetTsRef = useRef<number | null>(null);
+  const emergencyFlowRef = useRef<() => void>(() => {});
+
+  const cancelCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    countdownTargetTsRef.current = null;
+    setCountdown(null);
+    impactTriggeredRef.current = false;
+  }, []);
+
+  const startCountdown = useCallback((seconds: number) => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    countdownTargetTsRef.current = Date.now() + seconds * 1000;
+    setCountdown(seconds);
+    haptics.warning();
+
+    countdownTimerRef.current = setInterval(() => {
+      if (!countdownTargetTsRef.current) {
+        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+        return;
+      }
+      const diffMs = countdownTargetTsRef.current - Date.now();
+      const remaining = Math.max(0, Math.ceil(diffMs / 1000));
+      setCountdown((prev) => {
+        if (prev !== remaining) {
+          if (remaining > 0) haptics.warning();
+          return remaining;
+        }
+        return prev;
+      });
+
+      if (diffMs <= 0) {
+        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+        countdownTargetTsRef.current = null;
+        setCountdown(null);
+        emergencyFlowRef.current();
+      }
+    }, 200);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    };
+  }, []);
 
   const pulseAnim = useRef(new RNAnimated.Value(0)).current;
   const accelHistory = useRef<{ x: number; y: number; z: number; t: number }[]>([]);
@@ -115,30 +174,72 @@ export default function DashboardScreen() {
 
   const greetingName = user?.name?.split(' ')[0] || 'Rider';
 
-  const { width: SCREEN_W } = useWindowDimensions();
+  const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
   const CONTENT_W = SCREEN_W - SPACING.md * 2;
   const CHART_INNER = CONTENT_W - SPACING.md * 2;
   const BENTO_INNER = CONTENT_W - 14 * 2;
-  const RING_SIZE = Math.min(280, CONTENT_W - 48);
+  const RING_SIZE = Math.min(290, Math.max(220, SCREEN_W * 0.74));
   const SPARK_W = (BENTO_INNER - 16) / 3;
 
+  const effectiveTelemetry: any = connected
+    ? telemetry
+    : phoneSensorActive && phoneTelemetry
+    ? {
+        acceleration_x: phoneTelemetry.acceleration.x,
+        acceleration_y: phoneTelemetry.acceleration.y,
+        acceleration_z: phoneTelemetry.acceleration.z,
+        gyroscope_x: phoneTelemetry.gyroscope.x,
+        gyroscope_y: phoneTelemetry.gyroscope.y,
+        gyroscope_z: phoneTelemetry.gyroscope.z,
+        g_force: phoneTelemetry.gForce,
+        speed_kmh: phoneTelemetry.speedKmh,
+        battery: 100,
+        critical: phoneTelemetry.gForce >= alertThreshold,
+        timestamp: phoneTelemetry.timestamp,
+      }
+    : telemetry;
+
   useEffect(() => {
-    if (!telemetry) return;
+    if (!effectiveTelemetry) return;
     if (countdown !== null) return;
-    telemetryRef.current = telemetry;
+    telemetryRef.current = effectiveTelemetry;
     lastDataRef.current = Date.now();
     setStaleData(false);
-    setPeakG(prev => (telemetry.g_force > prev ? telemetry.g_force : prev));
+    setPeakG(prev => (effectiveTelemetry.g_force > prev ? effectiveTelemetry.g_force : prev));
 
     const now = Date.now();
-    accelHistory.current.push({ x: telemetry.acceleration_x, y: telemetry.acceleration_y, z: telemetry.acceleration_z, t: now });
-    gyroHistory.current.push({ x: telemetry.gyroscope_x, y: telemetry.gyroscope_y, z: telemetry.gyroscope_z, t: now });
-    gForceHistory.current.push({ value: telemetry.g_force, t: now });
+    accelHistory.current.push({ x: effectiveTelemetry.acceleration_x, y: effectiveTelemetry.acceleration_y, z: effectiveTelemetry.acceleration_z, t: now });
+    gyroHistory.current.push({ x: effectiveTelemetry.gyroscope_x, y: effectiveTelemetry.gyroscope_y, z: effectiveTelemetry.gyroscope_z, t: now });
+    gForceHistory.current.push({ value: effectiveTelemetry.g_force, t: now });
 
     if (accelHistory.current.length > 60) accelHistory.current.shift();
     if (gyroHistory.current.length > 60) gyroHistory.current.shift();
     if (gForceHistory.current.length > 60) gForceHistory.current.shift();
-  }, [telemetry, countdown]);
+  }, [effectiveTelemetry, countdown]);
+
+  // Detección autónoma de impacto en el smartphone
+  useEffect(() => {
+    if (!phoneSensorActive || !latestDetectedImpact) return;
+    if (countdown !== null || sending || emergencyInFlightRef.current) return;
+
+    impactTelemetryRef.current = {
+      acceleration_x: latestDetectedImpact.acceleration.x,
+      acceleration_y: latestDetectedImpact.acceleration.y,
+      acceleration_z: latestDetectedImpact.acceleration.z,
+      gyroscope_x: latestDetectedImpact.gyroscope.x,
+      gyroscope_y: latestDetectedImpact.gyroscope.y,
+      gyroscope_z: latestDetectedImpact.gyroscope.z,
+      g_force: latestDetectedImpact.gForce,
+      speed_kmh: Math.round((latestDetectedImpact.gForce - 1.0) * 18.5),
+      battery: 100,
+      critical: true,
+      timestamp: Date.now(),
+    };
+    impactTriggeredRef.current = true;
+    clearDetectedImpact();
+    haptics.error();
+    startCountdown(countdownSeconds);
+  }, [phoneSensorActive, latestDetectedImpact, countdown, sending, countdownSeconds, clearDetectedImpact, startCountdown]);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -150,14 +251,17 @@ export default function DashboardScreen() {
           setCountdownSeconds(Math.round(fromServer));
         }
         const threshold = Number(s?.alert_threshold ?? 5);
-        if (!Number.isNaN(threshold) && threshold > 0) setAlertThreshold(threshold);
+        if (!Number.isNaN(threshold) && threshold > 0) {
+          setAlertThreshold(threshold);
+          setSensorThreshold(threshold);
+        }
         setLocationTrackingEnabled(s?.location_tracking_enabled !== false);
       } catch (e) {
         console.warn('No se pudo cargar countdown de usuario', e);
       }
     };
     loadSettings();
-  }, [token, alertsConfigVersion]);
+  }, [token, alertsConfigVersion, setSensorThreshold]);
 
   useEffect(() => {
     const loadContactsState = async () => {
@@ -220,11 +324,16 @@ export default function DashboardScreen() {
     setTimeout(() => setRefreshing(false), 400);
   }, []);
 
-  const telemetryForDisplay = countdown !== null ? impactTelemetryRef.current : telemetry;
+  const resetPeakG = useCallback(() => {
+    haptics.selection();
+    setPeakG(effectiveTelemetry?.g_force ?? 1.0);
+  }, [effectiveTelemetry]);
+
+  const telemetryForDisplay = countdown !== null ? impactTelemetryRef.current : effectiveTelemetry;
   const gForce = telemetryForDisplay?.g_force ?? 0;
   const sevColor = severityColor(gForce);
   const sevLabel = severityLabel(gForce, t);
-  const liveData = connected && !staleData && !!telemetryForDisplay;
+  const liveData = (connected || phoneSensorActive) && !staleData && !!telemetryForDisplay;
   const highImpact = liveData && gForce >= alertThreshold;
 
   useEffect(() => {
@@ -293,9 +402,9 @@ export default function DashboardScreen() {
       impactTriggeredRef.current = true;
       impactTelemetryRef.current = telemetry ?? telemetryRef.current;
       haptics.error();
-      setCountdown(countdownSeconds);
+      startCountdown(countdownSeconds);
     }
-  }, [highImpact, countdown, sending, countdownSeconds, telemetry]);
+  }, [highImpact, countdown, sending, countdownSeconds, telemetry, startCountdown]);
 
   useEffect(() => {
     if (!liveData || gForce < alertThreshold) {
@@ -335,6 +444,9 @@ export default function DashboardScreen() {
         console.warn('No se pudo obtener ubicación actual', locErr);
       }
 
+      const blackbox = phoneSensorEngine.getPreImpactBlackbox();
+      const routeHistoryToSend = blackbox.length > 0 ? blackbox : getRecentRoute();
+
       const impact = await impactsAPI.create(token, {
         acceleration_x: currentTelemetry.acceleration_x,
         acceleration_y: currentTelemetry.acceleration_y,
@@ -343,6 +455,8 @@ export default function DashboardScreen() {
         gyroscope_y: currentTelemetry.gyroscope_y,
         gyroscope_z: currentTelemetry.gyroscope_z,
         g_force: currentTelemetry.g_force,
+        source: connected ? 'circuit' : 'phone_sensor',
+        location_history: routeHistoryToSend,
         latitude,
         longitude,
       });
@@ -358,7 +472,7 @@ export default function DashboardScreen() {
       setSending(false);
       emergencyInFlightRef.current = false;
     }
-  }, [token, sending, hasEmergencyContacts, router, alertThreshold, confirm, alert, t]);
+  }, [token, sending, hasEmergencyContacts, router, alertThreshold, confirm, alert, t, connected, getRecentRoute]);
 
   const simulateImpact = useCallback(async () => {
     if (!token || sending || emergencyInFlightRef.current) return;
@@ -419,6 +533,11 @@ export default function DashboardScreen() {
         gyroscope_y: 0,
         gyroscope_z: 0,
         g_force: 18.5,
+        source: connected ? 'circuit' : phoneSensorActive ? 'phone_sensor' : 'circuit',
+        location_history: (() => {
+          const blackbox = phoneSensorEngine.getPreImpactBlackbox();
+          return blackbox.length > 0 ? blackbox : getRecentRoute();
+        })(),
         latitude,
         longitude,
         simulated: true,
@@ -450,19 +569,7 @@ export default function DashboardScreen() {
       setSending(false);
       emergencyInFlightRef.current = false;
     }
-  }, [token, sending, hasEmergencyContacts, router, confirm, t]);
-
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown <= 0) {
-      setCountdown(null);
-      triggerEmergencyFlow();
-      return;
-    }
-    haptics.warning();
-    const inner = setTimeout(() => setCountdown((v) => (v === null ? null : v - 1)), 1000);
-    return () => clearTimeout(inner);
-  }, [countdown, triggerEmergencyFlow]);
+  }, [token, sending, hasEmergencyContacts, router, confirm, t, connected, phoneSensorActive, getRecentRoute]);
 
   useEffect(() => {
     const setupNotificationChannel = async () => {
@@ -480,88 +587,104 @@ export default function DashboardScreen() {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const actionId = response.actionIdentifier;
       if (actionId === ACTION_CANCEL_COUNTDOWN) {
-        setCountdown(null);
-        impactTriggeredRef.current = false;
+        cancelCountdown();
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [cancelCountdown]);
 
+  // Notificación persistente optimizada en segundo plano (3.0s throttle para bajo consumo de batería)
   useEffect(() => {
     const pushStatusNotification = async () => {
-      if (Platform.OS !== 'android' || !connected) {
+      const isMonitoring = connected || phoneSensorActive;
+      if (Platform.OS !== 'android' || !isMonitoring) {
         await Notifications.dismissNotificationAsync(NOTIFICATION_STATUS_ID).catch(() => {});
         return;
       }
       const now = Date.now();
-      if (now - lastNotificationUpdateRef.current < NOTIFICATION_TELEMETRY_THROTTLE_MS) return;
+      if (now - lastNotificationUpdateRef.current < 3000) return;
       lastNotificationUpdateRef.current = now;
       const current = telemetryForDisplay;
-      const gVal = current?.g_force ?? 0;
+      const gVal = current?.g_force ?? 1.0;
       const speed = current ? estimateSpeed(current.acceleration_x, current.acceleration_y, current.acceleration_z) : 0;
-      const batText = batteryLevel !== null ? ` · ${t('dashboard.battery')} ${batteryLevel}%` : '';
-      const title = `C.R.A.S.H. · ${deviceName || 'Casco'}`;
-      const body = `Velocidad: ${Math.round(speed)} km/h · ${gVal.toFixed(2)}G${batText}`;
+      const lat = currentLocation?.latitude ?? current?.latitude;
+      const lng = currentLocation?.longitude ?? current?.longitude;
+      const coordsText = (lat && lng) ? ` · Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}` : '';
+      const sourceText = phoneSensorActive ? 'Sensor Móvil' : (deviceName || 'Casco');
+      const title = `C.R.A.S.H. · ${sourceText}`;
+      const body = `Fuerza G: ${gVal.toFixed(2)}G · Vel: ${Math.round(speed)} km/h${coordsText}`;
       await Notifications.scheduleNotificationAsync({
         identifier: NOTIFICATION_STATUS_ID,
-        content: { title, body, sticky: true, priority: Notifications.AndroidNotificationPriority.HIGH },
+        content: { title, body, sticky: true, priority: Notifications.AndroidNotificationPriority.LOW },
         trigger: null,
       });
     };
     pushStatusNotification();
-  }, [connected, telemetryForDisplay, deviceName, batteryLevel, t]);
+  }, [connected, phoneSensorActive, telemetryForDisplay, deviceName, currentLocation, t]);
 
+  // Alerta inmediata de límite excedido en segundo plano
+  useEffect(() => {
+    const unsubThreshold = phoneSensorEngine.onThresholdExceeded(async (gVal) => {
+      if (AppState.currentState !== 'active' && gVal >= alertThreshold) {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '⚠️ ALERTA DE IMPACTO DETECTADO',
+            body: `¡Fuerza G: ${gVal.toFixed(2)}G! Toca para abrir C.R.A.S.H. y verificar estado.`,
+            sound: 'default',
+            priority: Notifications.AndroidNotificationPriority.MAX,
+            vibrate: [0, 450, 200, 450],
+          },
+          trigger: null,
+        });
+      }
+    });
+    return () => unsubThreshold();
+  }, [alertThreshold]);
+
+  // Notificación de cuenta regresiva en curso
   useEffect(() => {
     const updateCountdownNotification = async () => {
       if (Platform.OS !== 'android') return;
       if (countdown === null) {
-        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-        countdownIntervalRef.current = null;
         await Notifications.dismissNotificationAsync(NOTIFICATION_COUNTDOWN_ID).catch(() => {});
         return;
       }
       await Notifications.setNotificationCategoryAsync('crash-actions', [
         { identifier: ACTION_CANCEL_COUNTDOWN, buttonTitle: t('dashboard.cancel'), options: { opensAppToForeground: false } },
       ]);
-
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-      const publish = async () => {
-        await Notifications.scheduleNotificationAsync({
-          identifier: NOTIFICATION_COUNTDOWN_ID,
-          content: {
-            title: t('dashboard.impactDetected'),
-            body: `${t('dashboard.sendNow')} ${countdown}s · G ${(impactTelemetryRef.current?.g_force ?? gForce).toFixed(2)}`,
-            categoryIdentifier: 'crash-actions',
-            sticky: true,
-            priority: Notifications.AndroidNotificationPriority.MAX,
-          },
-          trigger: null,
-        });
-      };
-      await publish();
-      countdownIntervalRef.current = setInterval(publish, 1000);
+      await Notifications.scheduleNotificationAsync({
+        identifier: NOTIFICATION_COUNTDOWN_ID,
+        content: {
+          title: t('dashboard.impactDetected'),
+          body: `${t('dashboard.sendNow')} ${countdown}s · G ${(impactTelemetryRef.current?.g_force ?? gForce).toFixed(2)}`,
+          categoryIdentifier: 'crash-actions',
+          sticky: true,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        },
+        trigger: null,
+      });
     };
     updateCountdownNotification();
-    return () => {
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-    };
   }, [countdown, gForce, t]);
 
-  const accelChartData = useRef(
-    accelHistory.current.map((d, i) => ({
+  const { accelChartData, accelYData, accelZData, gForceChartData, gpsRoute } = useMemo(() => {
+    const aData = accelHistory.current.map((d, i) => ({
       x: i,
       y: d.x,
       label: `${i}s`,
-    }))
-  ).current;
-
-  const accelYData = accelHistory.current.map(d => ({ x: 0, y: d.y }));
-  const accelZData = accelHistory.current.map(d => ({ x: 0, y: d.z }));
-  const gyroXData = gyroHistory.current.map((d, i) => ({ x: i, y: d.x }));
-  const gyroYData = gyroHistory.current.map((d, i) => ({ x: i, y: d.y }));
-  const gyroZData = gyroHistory.current.map((d, i) => ({ x: i, y: d.z }));
-  const gForceChartData = gForceHistory.current.map((d, i) => ({ x: i, y: d.value }));
-  const gpsRoute = gpsHistory.current.map(p => ({ latitude: p.latitude, longitude: p.longitude, t: p.t }));
+    }));
+    const yData = accelHistory.current.map((d, i) => ({ x: i, y: d.y }));
+    const zData = accelHistory.current.map((d, i) => ({ x: i, y: d.z }));
+    const gfData = gForceHistory.current.map((d, i) => ({ x: i, y: d.value }));
+    const route = gpsHistory.current.map(p => ({ latitude: p.latitude, longitude: p.longitude, t: p.t }));
+    return {
+      accelChartData: aData,
+      accelYData: yData,
+      accelZData: zData,
+      gForceChartData: gfData,
+      gpsRoute: route,
+    };
+  }, [telemetryForDisplay?.timestamp]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -628,15 +751,17 @@ export default function DashboardScreen() {
               testID="dashboard-status-bar"
             >
               <View style={styles.statusDotWrap}>
-                <View style={[styles.statusDot, { backgroundColor: liveData ? COLORS.success : connected ? COLORS.warning : COLORS.textDim }]} />
+                <View style={[styles.statusDot, { backgroundColor: liveData ? (connected ? COLORS.success : '#60A5FA') : connected ? COLORS.warning : COLORS.textDim }]} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.statusLabel}>
-                  {liveData ? t('dashboard.connected') : connected ? t('dashboard.noData') : t('dashboard.disconnected')}
+                  {liveData ? (connected ? t('dashboard.connected') : t('dashboard.phoneSensorActive')) : connected ? t('dashboard.noData') : t('dashboard.disconnected')}
                 </Text>
                 <Text style={styles.statusDetail} numberOfLines={1}>
                   {connected
                     ? staleData ? (statusDetail || t('dashboard.waitingTelemetry')) : `${deviceName}${batteryLevel !== null ? ` · ${t('dashboard.battery')} ${batteryLevel}%` : ''}`
+                    : phoneSensorActive
+                    ? t('dashboard.phoneSensorDetail')
                     : t('dashboard.tapToConnect')}
                 </Text>
               </View>
@@ -645,7 +770,104 @@ export default function DashboardScreen() {
           </GlassCard>
         </Stagger>
 
+        {canUsePhoneSensor && (
+          <Stagger index={1}>
+            <GlassCard
+              padding={14}
+              bezel
+              delay={55}
+              style={[
+                styles.adminSensorCard,
+                phoneSensorActive && styles.adminSensorCardActive,
+              ]}
+            >
+              <View style={styles.adminSensorInner}>
+                <View style={[styles.adminIconWrap, phoneSensorActive && styles.adminIconWrapActive]}>
+                  <Ionicons
+                    name="phone-portrait"
+                    size={20}
+                    color={phoneSensorActive ? '#60A5FA' : COLORS.textDim}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.adminSensorTitle}>{t('dashboard.adminPhoneSensor').toUpperCase()}</Text>
+                    <View style={styles.adminTag}>
+                      <Text style={styles.adminTagText}>ADMIN</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.adminSensorDesc} numberOfLines={2}>
+                    {phoneSensorActive
+                      ? t('dashboard.adminPhoneSensorDesc')
+                      : t('dashboard.phoneSensorDetail')}
+                  </Text>
+                </View>
+                <Switch
+                  value={phoneSensorActive}
+                  onValueChange={(val) => {
+                    haptics.medium();
+                    togglePhoneSensor(val);
+                  }}
+                  trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(59,130,246,0.5)' }}
+                  thumbColor={phoneSensorActive ? '#60A5FA' : '#9CA3AF'}
+                />
+              </View>
+            </GlassCard>
+          </Stagger>
+        )}
+
+        {/* Quick Tactical Controls Dock */}
         <Stagger index={2}>
+          <View style={styles.quickDock}>
+            {canUsePhoneSensor && (
+              <TouchableOpacity
+                style={[styles.quickDockBtn, phoneSensorActive && styles.quickDockBtnActive]}
+                onPress={() => {
+                  haptics.medium();
+                  togglePhoneSensor(!phoneSensorActive);
+                }}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name="phone-portrait-outline"
+                  size={14}
+                  color={phoneSensorActive ? '#60A5FA' : COLORS.textDim}
+                />
+                <Text style={[styles.quickDockText, phoneSensorActive && styles.quickDockTextActive]}>
+                  {phoneSensorActive ? 'SENSOR ON' : 'SENSOR MÓVIL'}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.quickDockBtn}
+              onPress={resetPeakG}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="refresh" size={13} color={COLORS.textSec} />
+              <Text style={styles.quickDockText}>CALIBRAR PICO</Text>
+            </TouchableOpacity>
+
+            {isSuperAdmin && (
+              <TouchableOpacity
+                style={[styles.quickDockBtn, styles.quickDockBtnAlert]}
+                onPress={() => {
+                  haptics.heavy();
+                  simulateImpact();
+                }}
+                disabled={sending}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="flash-outline" size={13} color={RED} />
+                <Text style={[styles.quickDockText, { color: RED }]}>
+                  {sending ? 'ENVIANDO...' : 'PROBAR'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </Stagger>
+
+        <Stagger index={3}>
           <GlassCard
             padding={16}
             bezel
@@ -671,6 +893,47 @@ export default function DashboardScreen() {
               peakG={peakG}
               size={RING_SIZE}
             />
+
+            {/* Tactical Sub-HUD: Velocidad, Pico G, Severidad */}
+            <View style={styles.ringSubHud}>
+              <View style={styles.subHudItem}>
+                <Text style={styles.subHudLabel}>{t('dashboard.speed') || 'VELOCIDAD'}</Text>
+                <View style={styles.subHudValRow}>
+                  <Text style={styles.subHudValue}>
+                    {liveData ? Math.round(estimateSpeed(telemetryForDisplay?.acceleration_x ?? 0, telemetryForDisplay?.acceleration_y ?? 0, telemetryForDisplay?.acceleration_z ?? 0)) : 0}
+                  </Text>
+                  <Text style={styles.subHudUnit}>km/h</Text>
+                </View>
+              </View>
+
+              <View style={styles.subHudDivider} />
+
+              <TouchableOpacity style={styles.subHudItem} onPress={resetPeakG} activeOpacity={0.7}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Text style={styles.subHudLabel}>{t('dashboard.peak') || 'PICO G'}</Text>
+                  <Ionicons name="refresh-outline" size={10} color={COLORS.textDim} />
+                </View>
+                <View style={styles.subHudValRow}>
+                  <Text style={[styles.subHudValue, { color: peakG >= alertThreshold ? RED : COLORS.text }]}>
+                    {peakG.toFixed(2)}
+                  </Text>
+                  <Text style={styles.subHudUnit}>G</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.subHudDivider} />
+
+              <View style={styles.subHudItem}>
+                <Text style={styles.subHudLabel}>{t('dashboard.severity') || 'ESTADO'}</Text>
+                <View style={styles.subHudValRow}>
+                  <View style={[styles.subHudDot, { backgroundColor: sevColor }]} />
+                  <Text style={[styles.subHudValue, { color: sevColor, fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, letterSpacing: 0.8 }]}>
+                    {sevLabel.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             {!liveData && (
               <View style={styles.ringEmptyHint}>
                 <View style={styles.ringEmptyLine} />
@@ -795,15 +1058,6 @@ export default function DashboardScreen() {
           </GlassCard>
         </Stagger>
 
-        <Stagger index={8}>
-          <View style={styles.metricsGrid}>
-            <MetricCard label={t('dashboard.gyroX')} value={telemetryForDisplay?.gyroscope_x} unit="°/s" color={COLORS.warning} live={liveData} delay={0} />
-            <MetricCard label={t('dashboard.gyroY')} value={telemetryForDisplay?.gyroscope_y} unit="°/s" color={COLORS.warning} live={liveData} delay={1} />
-            <MetricCard label={t('dashboard.gyroZ')} value={telemetryForDisplay?.gyroscope_z} unit="°/s" color="#FB923C" live={liveData} delay={2} />
-            <MetricCard label={t('dashboard.gForce')} value={telemetryForDisplay?.g_force} unit="g" color={RED} live={liveData} delay={3} />
-          </View>
-        </Stagger>
-
         <Stagger index={9}>
           {connected ? (
             <TouchableOpacity
@@ -888,7 +1142,7 @@ export default function DashboardScreen() {
 
       <PremiumModal
         visible={countdown !== null}
-        onClose={() => setCountdown(null)}
+        onClose={cancelCountdown}
         title={t('dashboard.impactDetected')}
         eyebrow={t('dashboard.alertEyebrow')}
         accent={RED}
@@ -897,7 +1151,7 @@ export default function DashboardScreen() {
         <Text style={styles.dialogText}>{t('dashboard.alertMessage')}</Text>
         <View style={styles.countdownRing}>
           <Text style={styles.countdownLabel}>{t('dashboard.remainingTime')}</Text>
-          <AnimatedNumber value={countdown ?? 0} style={styles.countdownValue} />
+          <Text style={styles.countdownValue}>{countdown ?? 0}</Text>
           <View style={styles.countdownTickRow}>
             {Array.from({ length: countdownSeconds }).map((_, i) => (
               <View
@@ -911,13 +1165,13 @@ export default function DashboardScreen() {
           </View>
         </View>
         <View style={styles.dialogActions}>
-          <TouchableOpacity style={styles.cancelBtnSoft} onPress={() => { haptics.light(); setCountdown(null); }}>
+          <TouchableOpacity style={styles.cancelBtnSoft} onPress={() => { haptics.light(); cancelCountdown(); }}>
             <Text style={styles.cancelSoftText}>{t('dashboard.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.cancelBtn, sending && { opacity: 0.6 }]}
             disabled={sending}
-            onPress={() => { haptics.heavy(); setCountdown(null); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
+            onPress={() => { haptics.heavy(); cancelCountdown(); impactTriggeredRef.current = true; triggerEmergencyFlow(); }}
           >
             <LinearGradient
               colors={[...RED_GRADIENT]}
@@ -987,42 +1241,14 @@ function CoordItem({ label, value, live, delay = 0 }: { label: string; value?: n
       style={styles.coordCell}
     >
       <Text style={styles.coordLabel}>{label}</Text>
-      <AnimatedNumber
-        value={live && value !== undefined ? value : 0}
-        decimals={2}
-        duration={400}
-        style={[styles.coordValue, { color: live ? COLORS.text : COLORS.textDim }]}
-      >
-      </AnimatedNumber>
+      <Text style={[styles.coordValue, { color: live ? COLORS.text : COLORS.textDim }]}>
+        {live && value !== undefined ? (value >= 0 ? `+${value.toFixed(2)}` : value.toFixed(2)) : '0.00'}
+      </Text>
     </Animated.View>
   );
 }
 
-function MetricCard({ label, value, unit, color, live, delay = 0 }: {
-  label: string; value?: number; unit: string; color: string; live: boolean; delay?: number;
-}) {
-  return (
-    <Animated.View
-      entering={FadeIn.duration(320).delay(delay * 80).springify().damping(25).stiffness(200)}
-      style={styles.metric}
-      testID={`metric-${label.toLowerCase().replace(/[\s-]+/g, '-')}`}
-    >
-      <View style={styles.metricTop}>
-        <Text style={styles.metricLabel}>{label}</Text>
-        <View style={[styles.metricAccent, { backgroundColor: live ? color : COLORS.textFaint }]} />
-      </View>
-      <AnimatedNumber
-        value={live && value !== undefined ? value : 0}
-        decimals={3}
-        duration={450}
-        style={[styles.metricValue, { color: live ? color : COLORS.textDim }]}
-      />
-      <Text style={styles.metricUnit}>{unit}</Text>
-    </Animated.View>
-  );
-}
-
-function GyroAxis({ label, value, unit, color, live, delay = 0 }: {
+const GyroAxis = React.memo(function GyroAxis({ label, value, unit, color, live, delay = 0 }: {
   label: string; value?: number; unit: string; color: string; live: boolean; delay?: number;
 }) {
   return (
@@ -1035,16 +1261,13 @@ function GyroAxis({ label, value, unit, color, live, delay = 0 }: {
         <Text style={styles.gyroAxisLabel}>{label}</Text>
         <View style={[styles.gyroAxisDot, { backgroundColor: live ? color : COLORS.textFaint }]} />
       </View>
-      <AnimatedNumber
-        value={live && value !== undefined ? value : 0}
-        decimals={1}
-        duration={400}
-        style={[styles.gyroAxisValue, { color: live ? color : COLORS.textDim }]}
-      />
+      <Text style={[styles.gyroAxisValue, { color: live ? color : COLORS.textDim }]}>
+        {live && value !== undefined ? (value >= 0 ? `+${value.toFixed(1)}` : value.toFixed(1)) : '0.0'}
+      </Text>
       <Text style={[styles.gyroAxisUnit, { color: live ? COLORS.textSec : COLORS.textDim }]}>{unit}</Text>
     </Animated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
@@ -1112,6 +1335,45 @@ const styles = StyleSheet.create({
   statusLabel: { fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, fontWeight: '700', color: COLORS.text, letterSpacing: 1.5 },
   statusDetail: { fontSize: FONT_SIZE.sm, fontFamily: FONT.body, color: COLORS.textSec, marginTop: 2 },
 
+  quickDock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: SPACING.md,
+  },
+  quickDockBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  quickDockBtnActive: {
+    backgroundColor: 'rgba(59,130,246,0.12)',
+    borderColor: 'rgba(59,130,246,0.35)',
+  },
+  quickDockBtnAlert: {
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderColor: 'rgba(239,68,68,0.25)',
+  },
+  quickDockText: {
+    fontSize: 10,
+    fontFamily: FONT.heading,
+    fontWeight: '700',
+    color: COLORS.textSec,
+    letterSpacing: 0.8,
+  },
+  quickDockTextActive: {
+    color: '#60A5FA',
+  },
+
   ringCard: {
     alignItems: 'center',
     paddingVertical: 24,
@@ -1142,6 +1404,58 @@ const styles = StyleSheet.create({
   },
   ringEmptyLine: { width: 20, height: 1, backgroundColor: COLORS.textDim },
   ringEmptyText: { color: COLORS.textDim, fontSize: FONT_SIZE.xs, fontFamily: FONT.heading, letterSpacing: 2, textTransform: 'uppercase' },
+
+  ringSubHud: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  subHudItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  subHudLabel: {
+    fontSize: 9,
+    fontFamily: FONT.heading,
+    fontWeight: '700',
+    color: COLORS.textDim,
+    letterSpacing: 1.2,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  subHudValRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+  },
+  subHudValue: {
+    fontSize: FONT_SIZE.md,
+    fontFamily: FONT.monoMedium,
+    fontWeight: '600',
+    color: COLORS.text,
+    includeFontPadding: false,
+  },
+  subHudUnit: {
+    fontSize: 10,
+    fontFamily: FONT.body,
+    color: COLORS.textDim,
+  },
+  subHudDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  subHudDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
 
   bentoRow: { flexDirection: 'row', gap: 10, marginBottom: SPACING.md },
   bentoCol: { gap: SPACING.md, marginBottom: SPACING.md },
@@ -1337,5 +1651,59 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: FONT.mono,
     lineHeight: 16,
+  },
+  adminSensorCard: {
+    marginBottom: SPACING.sm,
+    borderColor: 'rgba(59,130,246,0.2)',
+    backgroundColor: 'rgba(59,130,246,0.03)',
+  },
+  adminSensorCardActive: {
+    borderColor: 'rgba(59,130,246,0.45)',
+    backgroundColor: 'rgba(59,130,246,0.07)',
+  },
+  adminSensorInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  adminIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  adminIconWrapActive: {
+    backgroundColor: 'rgba(59,130,246,0.15)',
+    borderColor: 'rgba(59,130,246,0.3)',
+  },
+  adminSensorTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: FONT.heading,
+    letterSpacing: 0.5,
+  },
+  adminTag: {
+    backgroundColor: 'rgba(59,130,246,0.2)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(59,130,246,0.4)',
+  },
+  adminTagText: {
+    color: '#60A5FA',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  adminSensorDesc: {
+    fontSize: 11,
+    color: COLORS.textDim,
+    marginTop: 2,
+    fontFamily: FONT.body,
   },
 });

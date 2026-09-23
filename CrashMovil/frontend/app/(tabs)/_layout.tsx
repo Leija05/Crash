@@ -1,11 +1,11 @@
 import { Redirect, Tabs } from 'expo-router';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View, Platform, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence, interpolate, Extrapolation } from 'react-native-reanimated';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring, withSequence, withTiming, interpolate, Extrapolation } from 'react-native-reanimated';
 import { COLORS, RADIUS, SHADOWS, FONT, FONT_SIZE, RED, RED_GRADIENT, RED_GRADIENT_DIAGONAL, EASING } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useI18n } from '../../src/i18n';
@@ -17,12 +17,16 @@ const AnimatedIonicon = Animated.createAnimatedComponent(Ionicons);
 function AnimatedTabIcon({ name, color, size, focused, highlight }: { name: any; color: string; size: number; focused: boolean; highlight?: boolean }) {
   const scale = useSharedValue(1);
 
-  if (focused) {
-    scale.value = withSequence(
-      withSpring(1.18, { stiffness: 400, damping: 8 }),
-      withSpring(1, { stiffness: 300, damping: 15 })
-    );
-  }
+  useEffect(() => {
+    if (focused) {
+      scale.value = withSequence(
+        withSpring(1.18, { stiffness: 400, damping: 8 }),
+        withSpring(1, { stiffness: 300, damping: 15 })
+      );
+    } else {
+      scale.value = withTiming(1, { duration: 150 });
+    }
+  }, [focused]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -63,12 +67,16 @@ const MemoAnimatedIcon = memo(AnimatedTabIcon);
 function HomeIcon({ color, size, focused }: { color: string; size: number; focused: boolean }) {
   const scale = useSharedValue(1);
 
-  if (focused) {
-    scale.value = withSequence(
-      withSpring(1.22, { stiffness: 400, damping: 8 }),
-      withSpring(1, { stiffness: 300, damping: 15 })
-    );
-  }
+  useEffect(() => {
+    if (focused) {
+      scale.value = withSequence(
+        withSpring(1.22, { stiffness: 400, damping: 8 }),
+        withSpring(1, { stiffness: 300, damping: 15 })
+      );
+    } else {
+      scale.value = withTiming(1, { duration: 150 });
+    }
+  }, [focused]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

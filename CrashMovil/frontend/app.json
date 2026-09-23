@@ -4,7 +4,7 @@
     "slug": "frontend",
     "version": "3.2.2",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/crashicon.png",
     "scheme": "crash",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -27,13 +27,17 @@
     "android": {
       "versionCode": 22,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/crashicon.png",
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "WAKE_LOCK",
         "BLUETOOTH",
         "BLUETOOTH_ADMIN",
         "BLUETOOTH_CONNECT",

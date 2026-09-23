@@ -14,3 +14,5 @@ class ImpactInput(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     simulated: Optional[bool] = False
+    source: Optional[str] = "circuit"  # "circuit" or "phone_sensor"
+    location_history: Optional[list[dict]] = None

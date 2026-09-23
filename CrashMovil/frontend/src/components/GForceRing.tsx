@@ -19,28 +19,25 @@ import Animated, {
   withSpring,
   withTiming,
   withRepeat,
+  withDelay,
+  withSequence,
   interpolate,
   Extrapolation,
   Easing,
-  runOnJS,
   createAnimatedComponent,
 } from 'react-native-reanimated';
 import AnimatedNumber from './AnimatedNumber';
 import {
   COLORS,
   RADIUS,
-  SPACING,
   FONT,
-  FONT_SIZE,
   severityColor,
   severityLabel,
   RED,
-  RED_GRADIENT,
   SHADOWS,
 } from '../theme';
 
 const AnimatedPath = createAnimatedComponent(SvgPath);
-const AnimatedSvgText = createAnimatedComponent(SvgText);
 
 interface GForceRingProps {
   gForce: number;
@@ -58,7 +55,7 @@ const TICK_COUNT = 24;
 const MAJOR_TICK_EVERY = 3;
 const MAX_G_DISPLAY = 12;
 
-export default function GForceRing({
+function GForceRingComponent({
   gForce,
   liveData,
   severity,
@@ -80,7 +77,6 @@ export default function GForceRing({
   const pulseAnim = useSharedValue(0);
   const glowAnim = useSharedValue(0);
   const peakAnim = useSharedValue(0);
-  const peakValueRef = useSharedValue(0);
   const ringRotation = useSharedValue(0);
 
   React.useEffect(() => {
@@ -119,21 +115,14 @@ export default function GForceRing({
     }
   }, [isCritical, isHigh, pulseAnim, glowAnim, ringRotation]);
 
-  useAnimatedReaction(
-    () => peakG ?? 0,
-    (current, previous) => {
-      if (current > 0 && current > (previous ?? 0)) {
-        peakValueRef.value = current;
-        peakAnim.value = withSpring(1, { stiffness: 300, damping: 20 });
-        setTimeout(() => {
-          runOnJS(() => {
-            peakAnim.value = withSpring(0, { stiffness: 120, damping: 25 });
-          })();
-        }, 2000);
-      }
-    },
-    []
-  );
+  React.useEffect(() => {
+    if (peakG !== undefined && peakG > 0) {
+      peakAnim.value = withSequence(
+        withSpring(1, { stiffness: 300, damping: 20 }),
+        withDelay(2000, withSpring(0, { stiffness: 120, damping: 25 }))
+      );
+    }
+  }, [peakG, peakAnim]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: interpolate(pulseAnim.value, [0, 1], [0, 0.4], Extrapolation.CLAMP),
@@ -170,7 +159,25 @@ export default function GForceRing({
   const startAngle = -135;
   const endAngle = 135;
   const sweepAngle = endAngle - startAngle;
-  const fillOffset = circumference * (1 - fillProgress.value);
+
+  const animatedFillProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - fillProgress.value),
+  }));
+
+  const tipAnimatedStyle = useAnimatedStyle(() => {
+    const angle = startAngle + sweepAngle * fillProgress.value;
+    const rad = (angle * Math.PI) / 180;
+    const x = center + fillRadius * Math.cos(rad);
+    const y = center + fillRadius * Math.sin(rad);
+    const tipSize = strokeWidth * 1.3;
+    return {
+      opacity: liveData && fillProgress.value > 0.02 ? 1 : 0,
+      transform: [
+        { translateX: x - tipSize / 2 },
+        { translateY: y - tipSize / 2 },
+      ],
+    };
+  });
 
   const tickLength = 10;
   const majorTickLength = 16;
@@ -182,6 +189,25 @@ export default function GForceRing({
       disabled={!onPress}
       style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
     >
+      {/* Glow crítico externo con rotación y pulso */}
+      {isCritical && (
+        <Animated.View pointerEvents="none" style={[
+          styles.outerGlow,
+          { width: size * 0.98, height: size * 0.98, borderRadius: size * 0.49 },
+          pulseStyle,
+          rotationStyle,
+        ]} />
+      )}
+
+      {/* Glow sutil de datos activos */}
+      {(liveData && gForce > 0) && (
+        <Animated.View pointerEvents="none" style={[
+          styles.outerGlow,
+          { width: size * 0.92, height: size * 0.92, borderRadius: size * 0.46 },
+          glowStyle,
+        ]} />
+      )}
+
       <Svg width={size} height={size} style={styles.svg}>
         <Defs>
           <RadialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
@@ -221,24 +247,6 @@ export default function GForceRing({
 
         {/* Fondo base */}
         <Circle cx={center} cy={center} r={outerRadius + 4} fill="url(#bgGrad)" />
-
-        {/* Glow crítico externo */}
-        {isCritical && (
-          <Animated.View pointerEvents="none" style={[
-            styles.outerGlow,
-            { width: size * 0.98, height: size * 0.98, borderRadius: size * 0.49 },
-            pulseStyle,
-          ]} />
-        )}
-
-        {/* Glow sutil de datos activos */}
-        {(liveData && gForce > 0) && (
-          <Animated.View pointerEvents="none" style={[
-            styles.outerGlow,
-            { width: size * 0.92, height: size * 0.92, borderRadius: size * 0.46 },
-            glowStyle,
-          ]} />
-        )}
 
         {/* Anillo de referencia exterior (ticks mayores) */}
         <G rotation={startAngle} origin={`${center},${center}`}>
@@ -309,13 +317,13 @@ export default function GForceRing({
           opacity={liveData ? 0.6 : 0.2}
         />
 
-        {/* Fill progresivo con gradiente de severidad */}
+        {/* Fill progresivo con gradiente de severidad (Worklet en UI thread) */}
         <AnimatedPath
           d={`M ${center} ${center} m 0 ${-fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${2 * fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${-2 * fillRadius}`}
           stroke="url(#fillGrad)"
           strokeWidth={strokeWidth}
           strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference * (1 - fillProgress.value)}
+          animatedProps={animatedFillProps}
           fill="none"
           strokeLinecap="round"
           rotation={-90}
@@ -323,27 +331,16 @@ export default function GForceRing({
           opacity={liveData ? 1 : 0.3}
         />
 
-{/* Indicador de pico (hold) */}
-        {showPeak && peakG !== undefined && peakG > 0 && peakValueRef.value > 0 && (
+        {/* Indicador de pico (hold) */}
+        {showPeak && peakG !== undefined && peakG > 0 && (
           <AnimatedPath
-            d={`M ${center} ${center} m 0 ${-fillRadius} a ${fillRadius} ${fillRadius} 0 0 1 ${fillRadius * Math.sin((peakValueRef.value / maxG) * sweepAngle * Math.PI / 180) * 2} ${-fillRadius * (1 - Math.cos((peakValueRef.value / maxG) * sweepAngle * Math.PI / 180)) * 2}`}
+            d={`M ${center} ${center} m 0 ${-fillRadius} a ${fillRadius} ${fillRadius} 0 0 1 ${fillRadius * Math.sin((Math.min(peakG, maxG * 1.2) / maxG) * sweepAngle * Math.PI / 180) * 2} ${-fillRadius * (1 - Math.cos((Math.min(peakG, maxG * 1.2) / maxG) * sweepAngle * Math.PI / 180)) * 2}`}
             stroke={sevColor}
             strokeWidth={3}
             fill="none"
             strokeLinecap="round"
             strokeDasharray="4 4"
-            {...peakIndicatorProps}
-          />
-        )}
-
-        {/* Punta luminosa al final del fill */}
-        {liveData && fillProgress.value > 0.02 && (
-          <AnimatedCircleTip
-            center={center}
-            radius={fillRadius}
-            angle={startAngle + sweepAngle * fillProgress.value}
-            color={sevColor}
-            size={strokeWidth * 1.3}
+            animatedProps={peakIndicatorProps}
           />
         )}
 
@@ -360,79 +357,72 @@ export default function GForceRing({
 
         {/* Círculo central con gradiente */}
         <Circle cx={center} cy={center} r={centerRadius} fill="url(#centerGrad)" stroke="rgba(239,68,68,0.18)" strokeWidth={1} />
+      </Svg>
 
-        {/* Badge de pico en el anillo interior */}
-        {showPeak && peakG !== undefined && peakG > 0 && liveData && (
-          <Animated.View style={[
+      {/* Badge de pico en el anillo interior */}
+      {showPeak && peakG !== undefined && peakG > 0 && liveData && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
             styles.peakBadge,
             { top: center - centerRadius + 8, left: center - 50 },
             peakBadgeStyle,
-          ]}>
-            <Text style={styles.peakLabel}>{t ? t('dashboard.peak') : 'PEAK'}</Text>
-            <Text style={[styles.peakValue, { color: severityColor(peakValueRef.value) }]}>
-              {peakValueRef.value.toFixed(2)} G
-            </Text>
-          </Animated.View>
-        )}
-      </Svg>
-
-      {/* Centro - contenido tipográfico */}
-      <View style={styles.center} pointerEvents="none">
-        <AnimatedNumber
-          value={liveData ? gForce : 0}
-          decimals={2}
-          duration={500}
-          style={[
-            styles.gValue,
-            { color: liveData ? COLORS.text : COLORS.textDim, fontSize: size * 0.2 },
           ]}
-        />
-        <Text style={[styles.gUnit, { fontSize: size * 0.042, color: liveData ? COLORS.textSec : COLORS.textDim }]}>
-          {t ? t('dashboard.gForceValue') : 'G-FORCE'}
+        >
+          <Text style={styles.peakLabel}>{t ? t('dashboard.peak') : 'PEAK'}</Text>
+          <Text style={[styles.peakValue, { color: severityColor(peakG) }]}>
+            {peakG.toFixed(2)} G
+          </Text>
+        </Animated.View>
+      )}
+
+      {/* Punta luminosa fluida (renderizada fuera de SVG con estilo animado en UI thread) */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.tip,
+          { width: strokeWidth * 1.3, height: strokeWidth * 1.3, backgroundColor: sevColor },
+          tipAnimatedStyle,
+        ]}
+      />
+
+      {/* Centro - contenido tipográfico táctico */}
+      <View style={styles.center} pointerEvents="none">
+        <View style={styles.gValueRow}>
+          <Text
+            style={[
+              styles.gValue,
+              { color: liveData ? COLORS.text : COLORS.textDim, fontSize: size * 0.19 },
+            ]}
+          >
+            {liveData ? gForce.toFixed(2) : '0.00'}
+          </Text>
+          <Text style={[styles.gUnitInline, { color: sevColor, fontSize: size * 0.052 }]}>
+            G
+          </Text>
+        </View>
+
+        <Text style={[styles.gTelemetryLabel, { fontSize: size * 0.038 }]}>
+          FUERZA G RESULTANTE
         </Text>
 
-        <View style={styles.severityRow}>
-          <Animated.View
+        <View style={[styles.severityPill, { borderColor: `${sevColor}40`, backgroundColor: `${sevColor}12` }]}>
+          <View
             style={[
               styles.severityDot,
               { backgroundColor: liveData ? sevColor : COLORS.textDim },
             ]}
           />
           <Text style={[styles.severityText, { color: liveData ? sevColor : COLORS.textDim }]}>
-            {liveData ? (severity || sevLabel) : t ? t('common.noData') : 'Sin datos'}
+            {liveData ? (severity || sevLabel).toUpperCase() : t ? t('common.noData') : 'SIN DATOS'}
           </Text>
         </View>
-
-        {liveData && gForce > 0 && (
-          <Text style={styles.magnitudeText}>
-            {gForce.toFixed(2)} G
-          </Text>
-        )}
       </View>
     </TouchableOpacity>
   );
 }
 
-function AnimatedCircleTip({ center, radius, angle, color, size }: {
-  center: number;
-  radius: number;
-  angle: number;
-  color: string;
-  size: number;
-}) {
-  const rad = (angle * Math.PI) / 180;
-  const x = center + radius * Math.cos(rad);
-  const y = center + radius * Math.sin(rad);
-
-  return (
-    <Animated.View
-      style={[
-        styles.tip,
-        { left: x - size / 2, top: y - size / 2, width: size, height: size, backgroundColor: color },
-      ]}
-    />
-  );
-}
+export default React.memo(GForceRingComponent);
 
 const styles = StyleSheet.create({
   svg: { position: 'absolute', top: 0, left: 0 },
@@ -446,41 +436,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  gValueRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    gap: 3,
+  },
   gValue: {
     fontFamily: FONT.mono,
     fontWeight: '700',
     textAlign: 'center',
     includeFontPadding: false,
-    lineHeight: 1,
+    lineHeight: undefined,
   },
-  gUnit: {
+  gUnitInline: {
+    fontFamily: FONT.heading,
+    fontWeight: '800',
+    includeFontPadding: false,
+    marginTop: 4,
+  },
+  gTelemetryLabel: {
     fontFamily: FONT.heading,
     fontWeight: '700',
-    letterSpacing: 4,
-    textTransform: 'uppercase',
-    marginTop: 4,
+    color: COLORS.textDim,
+    letterSpacing: 1.8,
+    marginTop: 2,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  magnitudeText: {
-    marginTop: 4,
-    fontFamily: FONT.mono,
-    fontSize: 14,
-    color: COLORS.textSec,
-    fontWeight: '500',
-  },
-  severityRow: {
+  severityPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
   },
-  severityDot: { width: 8, height: 8, borderRadius: 4 },
+  severityDot: { width: 6, height: 6, borderRadius: 3 },
   severityText: {
     fontFamily: FONT.heading,
     fontWeight: '700',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontSize: 11,
+    letterSpacing: 1.5,
+    fontSize: 10,
   },
   peakBadge: {
     position: 'absolute',
