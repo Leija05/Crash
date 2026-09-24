@@ -143,9 +143,23 @@ class ForegroundServiceModule(private val reactContext: ReactApplicationContext)
     fun cancelEmergencyCountdown(promise: Promise) {
         try {
             CrashForegroundService.cancelCountdownFromJS()
+            val intent = Intent(reactContext, CrashForegroundService::class.java).apply {
+                action = CrashForegroundService.ACTION_CANCEL_COUNTDOWN
+            }
+            reactContext.startService(intent)
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("CANCEL_COUNTDOWN_FAILED", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun resetPeakG(promise: Promise) {
+        try {
+            CrashForegroundService.resetPeakG()
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("RESET_PEAK_FAILED", e.message)
         }
     }
 

@@ -67,30 +67,49 @@ class CrashForegroundService : Service(), SensorEventListener {
 
         fun cancelEmergencyAlert(context: Context) {
             activeInstance?.let { service ->
-                service.lastImpactTime = System.currentTimeMillis()
+                val now = System.currentTimeMillis()
+                service.lastImpactTime = now
+                service.impactCooldownUntil = now + 3000L
+                service.currentImpactG = 1.0
                 service.stopCountdownTimer(cancelledByUser = true)
             }
         }
 
         fun sendEmergencyNow(context: Context) {
             activeInstance?.let { service ->
-                service.lastImpactTime = System.currentTimeMillis()
+                val now = System.currentTimeMillis()
+                service.lastImpactTime = now
+                service.impactCooldownUntil = now + 10000L
                 service.dispatchEmergencyNow()
             }
         }
 
         fun startCountdownFromJS(seconds: Int, gForce: Double) {
             activeInstance?.let { service ->
-                service.lastImpactTime = System.currentTimeMillis()
-                val maxG = Math.max(gForce, Math.max(service.currentG, service.peakG))
-                service.startCountdownTimer(seconds, maxG, notifyJS = false)
+                val now = System.currentTimeMillis()
+                service.lastImpactTime = now
+                service.impactCooldownUntil = now + (seconds * 1000L) + 3000L
+                val currentGVal = if (gForce > 0.1) gForce else service.alertThreshold
+                service.startCountdownTimer(seconds, currentGVal, notifyJS = false)
             }
         }
 
         fun cancelCountdownFromJS() {
             activeInstance?.let { service ->
-                service.lastImpactTime = System.currentTimeMillis()
+                val now = System.currentTimeMillis()
+                service.lastImpactTime = now
+                service.impactCooldownUntil = now + 3000L
+                service.currentImpactG = 1.0
                 service.stopCountdownTimer(cancelledByUser = false)
+            }
+        }
+
+        fun resetPeakG() {
+            activeInstance?.let { service ->
+                service.peakG = 1.0
+                service.lastNotifiedPeak = 1.0
+                service.currentImpactG = 1.0
+                service.updateStatusNotificationIfDue(force = true)
             }
         }
     }
@@ -114,6 +133,7 @@ class CrashForegroundService : Service(), SensorEventListener {
     private var currentLongitude: Double? = null
     private var alertThreshold = 5.0
     private var lastImpactTime = 0L
+    private var impactCooldownUntil = 0L
     private var lastJSEmitTime = 0L
 
     private var accelX = 0f
@@ -293,8 +313,19 @@ class CrashForegroundService : Service(), SensorEventListener {
             }
         } catch (_: Exception) {}
 
+        try {
+            notificationManager?.cancel(NOTIFICATION_ID)
+            notificationManager?.cancel(ALERT_NOTIFICATION_ID)
+        } catch (_: Exception) {}
+
         stopForeground(true)
         stopSelf()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.i(TAG, "Aplicación cerrada definitivamente por el usuario (onTaskRemoved). Deteniendo servicio en segundo plano.")
+        stopServiceInternal()
     }
 
     override fun onDestroy() {
@@ -339,8 +370,9 @@ class CrashForegroundService : Service(), SensorEventListener {
             }
 
             // Detección de impacto severo en segundo plano
-            if (currentG >= alertThreshold && (now - lastImpactTime > 15000) && !isCountingDown) {
+            if (currentG >= alertThreshold && (now >= impactCooldownUntil) && (now - lastImpactTime >= 3000) && !isCountingDown) {
                 lastImpactTime = now
+                impactCooldownUntil = now + 10000L
                 emitImpactEvent(currentG)
                 // Iniciar cuenta regresiva nativa interactiva con vibración por segundo
                 startCountdownTimer(10, currentG)
@@ -417,6 +449,16 @@ class CrashForegroundService : Service(), SensorEventListener {
             append("🛡️ SISTEMA: Protección continua en 2do plano activa")
         }.toString()
 
+        val stopIntent = Intent(this, CrashForegroundService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = NotificationCompat.Builder(this, CHANNEL_STATUS_ID)
             .setContentTitle(title)
             .setContentText(shortText)
@@ -431,6 +473,11 @@ class CrashForegroundService : Service(), SensorEventListener {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .addAction(
+                android.R.drawable.ic_menu_close_clear_cancel,
+                "🛑 DETENER MONITOREO",
+                stopPendingIntent
+            )
 
         return builder.build()
     }
@@ -441,9 +488,11 @@ class CrashForegroundService : Service(), SensorEventListener {
     fun startCountdownTimer(seconds: Int, gRecorded: Double, notifyJS: Boolean = true) {
         countdownTimer?.cancel()
         isCountingDown = true
-        lastImpactTime = System.currentTimeMillis()
-        val maxG = Math.max(gRecorded, Math.max(currentG, peakG))
-        currentImpactG = if (maxG > 0.1) maxG else alertThreshold
+        val now = System.currentTimeMillis()
+        lastImpactTime = now
+        impactCooldownUntil = now + (seconds * 1000L) + 3000L
+        val currentShockG = if (gRecorded > 0.1) gRecorded else (if (currentG > 0.1) currentG else alertThreshold)
+        currentImpactG = currentShockG
         if (currentImpactG > peakG) {
             peakG = currentImpactG
         }
@@ -459,7 +508,7 @@ class CrashForegroundService : Service(), SensorEventListener {
 
         // Pulsación háptica inicial
         triggerVibrationTick()
-        showInteractiveAlertNotification(seconds, gRecorded)
+        showInteractiveAlertNotification(seconds, currentImpactG)
 
         countdownTimer = object : CountDownTimer((seconds * 1000L), 1000L) {
             override fun onTick(millisUntilFinished: Long) {
@@ -475,12 +524,14 @@ class CrashForegroundService : Service(), SensorEventListener {
                 // Actualizar la notificación con los segundos restantes
                 showInteractiveAlertNotification(remainingSeconds, currentImpactG)
 
-                // Emitir tick a React Native
-                val tickMap = Arguments.createMap().apply {
-                    putInt("seconds", remainingSeconds)
-                    putDouble("gForce", currentImpactG)
+                // Emitir tick a React Native solo si el servicio sigue contando
+                if (isCountingDown) {
+                    val tickMap = Arguments.createMap().apply {
+                        putInt("seconds", remainingSeconds)
+                        putDouble("gForce", currentImpactG)
+                    }
+                    ForegroundServiceModule.sendEvent("onNativeCountdownTick", tickMap)
                 }
-                ForegroundServiceModule.sendEvent("onNativeCountdownTick", tickMap)
             }
 
             override fun onFinish() {
@@ -496,7 +547,10 @@ class CrashForegroundService : Service(), SensorEventListener {
      */
     fun stopCountdownTimer(cancelledByUser: Boolean) {
         isCountingDown = false
-        lastImpactTime = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        lastImpactTime = now
+        impactCooldownUntil = now + 3000L
+        currentImpactG = 1.0
         countdownTimer?.cancel()
         countdownTimer = null
 
@@ -519,7 +573,9 @@ class CrashForegroundService : Service(), SensorEventListener {
      */
     fun dispatchEmergencyNow() {
         isCountingDown = false
-        lastImpactTime = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        lastImpactTime = now
+        impactCooldownUntil = now + 10000L
         countdownTimer?.cancel()
         countdownTimer = null
 
@@ -606,6 +662,7 @@ class CrashForegroundService : Service(), SensorEventListener {
             .setContentIntent(contentPendingIntent)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setOnlyAlertOnce(true)
             .setColor(COLOR_CRASH_RED)
             .setColorized(true)
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -624,10 +681,8 @@ class CrashForegroundService : Service(), SensorEventListener {
 
         try {
             val alertNotification = alertBuilder.build()
-            // Transformar la barra única oficial (NOTIFICATION_ID = 1001) en la alerta interactiva
-            notificationManager?.notify(NOTIFICATION_ID, alertNotification)
-            // Cancelar ALERT_NOTIFICATION_ID para evitar que jamás coexistan dos barras
-            notificationManager?.cancel(ALERT_NOTIFICATION_ID)
+            // Notificar la alerta interactiva con botones Cancelar y Enviar Ahora
+            notificationManager?.notify(ALERT_NOTIFICATION_ID, alertNotification)
         } catch (e: Exception) {
             Log.e(TAG, "Error mostrando alerta de emergencia: ${e.message}")
         }

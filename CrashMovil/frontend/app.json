@@ -4,7 +4,7 @@
     "slug": "frontend",
     "version": "3.2.2",
     "orientation": "portrait",
-    "icon": "./assets/images/crashicon.ico",
+    "icon": "./assets/images/crashicon.png",
     "scheme": "crash",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,

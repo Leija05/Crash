@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Svg, {
   Circle,
@@ -14,18 +14,16 @@ import Svg, {
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedReaction,
   useAnimatedProps,
   withSpring,
   withTiming,
   withRepeat,
-  withDelay,
-  withSequence,
   interpolate,
   Extrapolation,
   Easing,
   createAnimatedComponent,
 } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import {
   COLORS,
   RADIUS,
@@ -37,8 +35,9 @@ import {
 } from '../theme';
 
 const AnimatedPath = createAnimatedComponent(SvgPath);
+const AnimatedView = Animated.createAnimatedComponent(View);
 
-interface GForceRingProps {
+export interface GForceRingProps {
   gForce: number;
   liveData: boolean;
   severity?: string;
@@ -47,245 +46,299 @@ interface GForceRingProps {
   maxG?: number;
   showPeak?: boolean;
   peakG?: number;
+  accelX?: number;
+  accelY?: number;
+  accelZ?: number;
   onPress?: () => void;
+  onResetPeak?: () => void;
 }
 
-const TICK_COUNT = 24;
-const MAJOR_TICK_EVERY = 3;
-const MAX_G_DISPLAY = 12;
+const MAX_G_DEFAULT = 12;
+const MINOR_DIVISIONS = 24; // Marcas cada 0.5G
+
+function polarToXY(cx: number, cy: number, r: number, angleDeg: number) {
+  'worklet';
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    x: cx + r * Math.cos(rad),
+    y: cy + r * Math.sin(rad),
+  };
+}
+
+function createArcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+  const start = polarToXY(cx, cy, r, startAngle);
+  const end = polarToXY(cx, cy, r, endAngle);
+  const sweep = endAngle - startAngle;
+  const largeArc = sweep > 180 ? 1 : 0;
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+}
 
 function GForceRingComponent({
   gForce,
   liveData,
   severity,
   t,
-  size = 260,
-  maxG = MAX_G_DISPLAY,
+  size = 280,
+  maxG = MAX_G_DEFAULT,
   showPeak = true,
-  peakG,
+  peakG = 1.0,
+  accelX = 0,
+  accelY = 0,
+  accelZ = 9.8,
   onPress,
+  onResetPeak,
 }: GForceRingProps) {
-  const clampedG = Math.max(0, Math.min(gForce, maxG * 1.2));
-  const progress = clampedG / maxG;
+  // Parámetros de geometría circular de precisión
+  const center = size / 2;
+  const outerBezelR = size * 0.465;
+  const scaleTickR = outerBezelR - 7;
+  const trackR = scaleTickR - 18;
+  const innerBezelR = trackR - 14;
+  const dialR = innerBezelR - 5;
+
+  const strokeWidth = 7;
+  const trackStrokeWidth = 4;
+
+  // Ángulos de cockpit: 135° (inferior-izq) a 405° (inferior-der = 45°) -> 270° de barrido
+  const START_ANGLE = 135;
+  const SWEEP_ANGLE = 270;
+  const END_ANGLE = START_ANGLE + SWEEP_ANGLE; // 405°
+
+  // Longitud de arco matemáticamente exacta
+  const arcLength = (SWEEP_ANGLE / 360) * (2 * Math.PI * trackR);
+
+  // Progreso acotado
+  const clampedG = Math.max(0, Math.min(gForce, maxG * 1.15));
+  const rawProgress = clampedG / maxG;
+  const targetProgress = Math.max(0, Math.min(1, rawProgress));
+
+  const peakVal = Math.max(peakG, gForce);
+  const peakClamped = Math.max(0, Math.min(peakVal, maxG));
+  const peakProgress = Math.max(0, Math.min(1, peakClamped / maxG));
+
   const sevColor = severityColor(gForce);
   const sevLabel = severityLabel(gForce, t);
-  const isCritical = liveData && gForce >= 15;
-  const isHigh = liveData && gForce >= 10;
+  const isCritical = liveData && gForce >= 5.0;
+  const isHigh = liveData && gForce >= 3.5;
 
+  // Animaciones Reanimated fluidas en hilo de interfaz nativo
   const fillProgress = useSharedValue(0);
   const pulseAnim = useSharedValue(0);
-  const glowAnim = useSharedValue(0);
-  const peakAnim = useSharedValue(0);
-  const ringRotation = useSharedValue(0);
+  const auraGlowAnim = useSharedValue(0);
 
   React.useEffect(() => {
-    fillProgress.value = withSpring(progress, { stiffness: 220, damping: 24, mass: 0.85 });
-  }, [progress, fillProgress]);
+    fillProgress.value = withSpring(targetProgress, {
+      stiffness: 180,
+      damping: 20,
+      mass: 0.7,
+    });
+  }, [targetProgress, fillProgress]);
 
   React.useEffect(() => {
     if (isCritical) {
       pulseAnim.value = withRepeat(
-        withTiming(1, { duration: 600, easing: Easing.out(Easing.quad) }),
-        -1,
-        false
-      );
-      glowAnim.value = withRepeat(
-        withTiming(1, { duration: 800, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 550, easing: Easing.out(Easing.quad) }),
         -1,
         true
       );
-      ringRotation.value = withRepeat(
-        withTiming(1, { duration: 2000, easing: Easing.linear }),
+      auraGlowAnim.value = withRepeat(
+        withTiming(1, { duration: 750, easing: Easing.inOut(Easing.quad) }),
         -1,
-        false
+        true
       );
     } else if (isHigh) {
       pulseAnim.value = withTiming(0, { duration: 300 });
-      glowAnim.value = withRepeat(
-        withTiming(0.5, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+      auraGlowAnim.value = withRepeat(
+        withTiming(0.65, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
         -1,
         true
       );
-      ringRotation.value = 0;
     } else {
       pulseAnim.value = withTiming(0, { duration: 300 });
-      glowAnim.value = withTiming(0, { duration: 300 });
-      ringRotation.value = 0;
+      auraGlowAnim.value = withTiming(0, { duration: 400 });
     }
-  }, [isCritical, isHigh, pulseAnim, glowAnim, ringRotation]);
+  }, [isCritical, isHigh, pulseAnim, auraGlowAnim]);
 
-  React.useEffect(() => {
-    if (peakG !== undefined && peakG > 0) {
-      peakAnim.value = withSequence(
-        withSpring(1, { stiffness: 300, damping: 20 }),
-        withDelay(2000, withSpring(0, { stiffness: 120, damping: 25 }))
-      );
-    }
-  }, [peakG, peakAnim]);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulseAnim.value, [0, 1], [0, 0.4], Extrapolation.CLAMP),
-    transform: [{ scale: interpolate(pulseAnim.value, [0, 1], [1, 1.12], Extrapolation.CLAMP) }],
-  }));
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glowAnim.value, [0, 1], [0, isCritical ? 0.5 : 0.25], Extrapolation.CLAMP),
-  }));
-
-  const peakBadgeStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(peakAnim.value, [0, 1], [0, 1], Extrapolation.CLAMP),
-    transform: [{ scale: interpolate(peakAnim.value, [0, 1], [0.85, 1], Extrapolation.CLAMP) }],
-  }));
-
-  const peakIndicatorProps = useAnimatedProps(() => ({
-    strokeOpacity: interpolate(peakAnim.value, [0, 1], [0, liveData ? 0.8 : 0.3], Extrapolation.CLAMP),
-  }));
-
-  const rotationStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${ringRotation.value * 360}deg` }],
-  }));
-
-  const center = size / 2;
-  const outerRadius = size * 0.44;
-  const trackRadius = outerRadius - 8;
-  const fillRadius = trackRadius - 6;
-  const innerRadius = fillRadius - 18;
-  const centerRadius = innerRadius - 4;
-  const strokeWidth = 6;
-  const trackStrokeWidth = 4;
-
-  const circumference = 2 * Math.PI * fillRadius;
-  const startAngle = -135;
-  const endAngle = 135;
-  const sweepAngle = endAngle - startAngle;
-
+  // Props animadas SVG acopladas exactamente a arcLength
   const animatedFillProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - fillProgress.value),
+    strokeDashoffset: arcLength * (1 - fillProgress.value),
   }));
 
+  // Punta luminosa perfectamente soldada a la cabeza del arco
   const tipAnimatedStyle = useAnimatedStyle(() => {
-    const angle = startAngle + sweepAngle * fillProgress.value;
-    const rad = (angle * Math.PI) / 180;
-    const x = center + fillRadius * Math.cos(rad);
-    const y = center + fillRadius * Math.sin(rad);
-    const tipSize = strokeWidth * 1.3;
+    const angle = START_ANGLE + SWEEP_ANGLE * fillProgress.value;
+    const pos = polarToXY(center, center, trackR, angle);
+    const tipSize = strokeWidth * 1.5;
     return {
-      opacity: liveData && fillProgress.value > 0.02 ? 1 : 0,
+      opacity: liveData && fillProgress.value > 0.015 ? 1 : 0,
       transform: [
-        { translateX: x - tipSize / 2 },
-        { translateY: y - tipSize / 2 },
+        { translateX: pos.x - tipSize / 2 },
+        { translateY: pos.y - tipSize / 2 },
+        { scale: isCritical ? 1.25 : 1 },
       ],
     };
   });
 
-  const tickLength = 10;
-  const majorTickLength = 16;
+  const criticalAuraStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(auraGlowAnim.value, [0, 1], [0, isCritical ? 0.35 : 0.16], Extrapolation.CLAMP),
+    transform: [{ scale: interpolate(pulseAnim.value, [0, 1], [1, 1.08], Extrapolation.CLAMP) }],
+  }));
+
+  // Formato numérico seguro para evitar saltos horizontales
+  const gForceFormatted = liveData ? gForce.toFixed(2) : '0.00';
+  const [intPart, decPart] = gForceFormatted.split('.');
+
+  // Rutas base y decorativas pre-calculadas
+  const trackPathD = useMemo(
+    () => createArcPath(center, center, trackR, START_ANGLE, END_ANGLE),
+    [center, trackR, START_ANGLE, END_ANGLE]
+  );
+
+  const innerTrackD = useMemo(
+    () => createArcPath(center, center, innerBezelR, START_ANGLE - 4, END_ANGLE + 4),
+    [center, innerBezelR, START_ANGLE, END_ANGLE]
+  );
+
+  // Muesca de Pico Máximo (Peak Pip)
+  const peakPipPos = useMemo(() => {
+    const angle = START_ANGLE + SWEEP_ANGLE * peakProgress;
+    return polarToXY(center, center, trackR, angle);
+  }, [center, trackR, START_ANGLE, SWEEP_ANGLE, peakProgress]);
+
+  // Micro-cálculo de fuerzas vectoriales triaxiales en G (-2G a +2G normalizado)
+  const gX = Number((accelX / 9.80665).toFixed(2));
+  const gY = Number((accelY / 9.80665).toFixed(2));
+  const gZ = Number((accelZ / 9.80665).toFixed(2));
 
   return (
     <TouchableOpacity
-      activeOpacity={0.92}
+      activeOpacity={0.94}
       onPress={onPress}
       disabled={!onPress}
-      style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
+      style={[styles.container, { width: size, height: size }]}
     >
-      {/* Glow crítico externo con rotación y pulso */}
-      {isCritical && (
-        <Animated.View pointerEvents="none" style={[
-          styles.outerGlow,
-          { width: size * 0.98, height: size * 0.98, borderRadius: size * 0.49 },
-          pulseStyle,
-          rotationStyle,
-        ]} />
-      )}
+      {/* Aura ambiental reactiva a la severidad */}
+      <AnimatedView
+        pointerEvents="none"
+        style={[
+          styles.ambientAura,
+          {
+            width: size * 0.94,
+            height: size * 0.94,
+            borderRadius: (size * 0.94) / 2,
+            backgroundColor: isCritical ? 'rgba(239,68,68,0.22)' : `${sevColor}15`,
+          },
+          criticalAuraStyle,
+        ]}
+      />
 
-      {/* Glow sutil de datos activos */}
-      {(liveData && gForce > 0) && (
-        <Animated.View pointerEvents="none" style={[
-          styles.outerGlow,
-          { width: size * 0.92, height: size * 0.92, borderRadius: size * 0.46 },
-          glowStyle,
-        ]} />
-      )}
-
-      <Svg width={size} height={size} style={styles.svg}>
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
         <Defs>
-          <RadialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="rgba(20,18,14,0.95)" />
-            <Stop offset="70%" stopColor="rgba(10,10,9,0.98)" />
-            <Stop offset="100%" stopColor="rgba(5,5,5,1)" />
+          {/* Fondo central táctico con viñeta carbón */}
+          <RadialGradient id="cockpitCoreGrad" cx="50%" cy="46%" r="56%">
+            <Stop offset="0%" stopColor="#141724" stopOpacity="0.98" />
+            <Stop offset="55%" stopColor="#0B0D15" stopOpacity="0.99" />
+            <Stop offset="100%" stopColor="#05060A" stopOpacity="1" />
           </RadialGradient>
 
-          <SvgLinearGradient id="trackGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor="rgba(255,255,255,0.06)" />
-            <Stop offset="50%" stopColor="rgba(255,255,255,0.02)" />
-            <Stop offset="100%" stopColor="rgba(255,255,255,0.04)" />
-          </SvgLinearGradient>
-
-          <SvgLinearGradient id="fillGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-            <Stop offset="0%" stopColor={sevColor} />
-            <Stop offset="100%" stopColor={sevColor === COLORS.sevRed ? '#FF3B30' : sevColor === COLORS.sevOrange ? '#FB923C' : sevColor === COLORS.sevYellow ? '#F59E0B' : '#10B981'} />
-          </SvgLinearGradient>
-
-          <RadialGradient id="centerGrad" cx="50%" cy="45%" r="55%">
-            <Stop offset="0%" stopColor="rgba(239,68,68,0.12)" />
-            <Stop offset="40%" stopColor="rgba(239,68,68,0.04)" />
-            <Stop offset="100%" stopColor="rgba(10,10,9,0.95)" />
-          </RadialGradient>
-
-          <RadialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor={`${sevColor}66`} />
-            <Stop offset="70%" stopColor={`${sevColor}11`} />
-            <Stop offset="100%" stopColor="rgba(0,0,0,0)" />
-          </RadialGradient>
-
-          <SvgLinearGradient id="peakGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          {/* Gradiente de trazo inactivo */}
+          <SvgLinearGradient id="trackMutedGrad" x1="0%" y1="100%" x2="100%" y2="0%">
             <Stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
-            <Stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
+            <Stop offset="50%" stopColor="rgba(255,255,255,0.03)" />
+            <Stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
           </SvgLinearGradient>
+
+          {/* Gradiente dinámico de arco de aceleración */}
+          <SvgLinearGradient id="activeArcGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+            <Stop offset="0%" stopColor="#10B981" />
+            <Stop offset="30%" stopColor="#F59E0B" />
+            <Stop offset="65%" stopColor="#FB923C" />
+            <Stop offset="100%" stopColor={sevColor} />
+          </SvgLinearGradient>
+
+          {/* Bisel metálico exterior mecanizado */}
+          <RadialGradient id="outerBezelGrad" cx="50%" cy="30%" r="70%">
+            <Stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
+            <Stop offset="60%" stopColor="rgba(20,24,36,0.9)" />
+            <Stop offset="100%" stopColor="#07080D" />
+          </RadialGradient>
         </Defs>
 
-        {/* Fondo base */}
-        <Circle cx={center} cy={center} r={outerRadius + 4} fill="url(#bgGrad)" />
+        {/* 1. Doble Bisel Exterior (Doppelrand) */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={outerBezelR}
+          fill="url(#outerBezelGrad)"
+          stroke="rgba(255,255,255,0.09)"
+          strokeWidth={1.5}
+        />
 
-        {/* Anillo de referencia exterior (ticks mayores) */}
-        <G rotation={startAngle} origin={`${center},${center}`}>
-          {Array.from({ length: TICK_COUNT + 1 }).map((_, i) => {
-            const isMajor = i % MAJOR_TICK_EVERY === 0;
-            const angle = (sweepAngle / TICK_COUNT) * i;
-            const rad = (angle * Math.PI) / 180;
-            const r1 = outerRadius - (isMajor ? 0 : 2);
-            const r2 = outerRadius - (isMajor ? majorTickLength : tickLength);
-            const x1 = center + r1 * Math.cos(rad);
-            const y1 = center + r1 * Math.sin(rad);
-            const x2 = center + r2 * Math.cos(rad);
-            const y2 = center + r2 * Math.sin(rad);
-            const labelValue = (maxG / TICK_COUNT) * i;
-            const labelRadius = outerRadius - 26;
-            const lx = center + labelRadius * Math.cos(rad);
-            const ly = center + labelRadius * Math.sin(rad);
+        {/* 2. Dial Central Táctico */}
+        <Circle
+          cx={center}
+          cy={center}
+          r={dialR}
+          fill="url(#cockpitCoreGrad)"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth={1}
+        />
+
+        {/* 3. Anillo de referencia interior fino */}
+        <SvgPath
+          d={innerTrackD}
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth={1}
+          fill="none"
+          strokeLinecap="round"
+        />
+
+        {/* 4. Marcas y Graduaciones Láser (Ticks de escala 270°) */}
+        <G>
+          {Array.from({ length: MINOR_DIVISIONS + 1 }).map((_, i) => {
+            const fraction = i / MINOR_DIVISIONS;
+            const gVal = fraction * maxG;
+            const angle = START_ANGLE + SWEEP_ANGLE * fraction;
+            const isMajor = i % 4 === 0; // Cada 2G
+            const isSemiMajor = i % 2 === 0;
+
+            const tickLen = isMajor ? 10 : isSemiMajor ? 6 : 4;
+            const pOuter = polarToXY(center, center, scaleTickR, angle);
+            const pInner = polarToXY(center, center, scaleTickR - tickLen, angle);
+
+            const isPassed = liveData && gVal <= clampedG;
+            const tickColor = isPassed
+              ? sevColor
+              : isMajor
+              ? 'rgba(255,255,255,0.45)'
+              : 'rgba(255,255,255,0.14)';
+
+            const textPos = isMajor
+              ? polarToXY(center, center, scaleTickR + 13, angle)
+              : null;
 
             return (
               <G key={`tick-${i}`}>
                 <Line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={isMajor ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)'}
-                  strokeWidth={isMajor ? 2 : 1}
+                  x1={pInner.x}
+                  y1={pInner.y}
+                  x2={pOuter.x}
+                  y2={pOuter.y}
+                  stroke={tickColor}
+                  strokeWidth={isMajor ? 1.8 : 1}
                   strokeLinecap="round"
                 />
-                {isMajor && (
+                {isMajor && textPos && (
                   <SvgText
-                    x={lx}
-                    y={ly + 4}
+                    x={textPos.x}
+                    y={textPos.y + 3.5}
                     textAnchor="middle"
-                    fill="rgba(255,255,255,0.5)"
-                    fontSize={9}
+                    fill={isPassed ? sevColor : 'rgba(255,255,255,0.45)'}
+                    fontSize={size * 0.033}
                     fontFamily={FONT.mono}
-                    fontWeight="500"
+                    fontWeight={isPassed ? '700' : '600'}
                   >
-                    {labelValue.toFixed(labelValue >= 10 ? 0 : 1)}
+                    {gVal === 12 ? '12+' : gVal}
                   </SvgText>
                 )}
               </G>
@@ -293,129 +346,211 @@ function GForceRingComponent({
           })}
         </G>
 
-        {/* Track base inactivo */}
+        {/* 5. Pista Base Inactiva del Arco (Track) */}
         <SvgPath
-          d={`M ${center} ${center} m 0 ${-fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${2 * fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${-2 * fillRadius}`}
-          stroke="url(#trackGrad)"
+          d={trackPathD}
+          stroke="url(#trackMutedGrad)"
           strokeWidth={trackStrokeWidth}
           fill="none"
           strokeLinecap="round"
-          opacity={liveData ? 1 : 0.35}
         />
 
-        {/* Track segmentado para progreso visual */}
-        <SvgPath
-          d={`M ${center} ${center} m 0 ${-fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${2 * fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${-2 * fillRadius}`}
-          stroke="url(#trackGrad)"
-          strokeWidth={strokeWidth}
-          strokeDasharray={`${(circumference / TICK_COUNT) * 0.7} ${(circumference / TICK_COUNT) * 0.3}`}
-          fill="none"
-          strokeLinecap="round"
-          rotation={-90}
-          origin={`${center},${center}`}
-          opacity={liveData ? 0.6 : 0.2}
-        />
-
-        {/* Fill progresivo con gradiente de severidad (Worklet en UI thread) */}
+        {/* 6. Arco de Telemetría Dinámico Activo (Hardware Accelerated) */}
         <AnimatedPath
-          d={`M ${center} ${center} m 0 ${-fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${2 * fillRadius} a ${fillRadius} ${fillRadius} 0 1 0 0 ${-2 * fillRadius}`}
-          stroke="url(#fillGrad)"
+          d={trackPathD}
+          stroke="url(#activeArcGrad)"
           strokeWidth={strokeWidth}
-          strokeDasharray={`${circumference} ${circumference}`}
-          animatedProps={animatedFillProps}
           fill="none"
           strokeLinecap="round"
-          rotation={-90}
-          origin={`${center},${center}`}
-          opacity={liveData ? 1 : 0.3}
+          strokeDasharray={`${arcLength} ${arcLength + 40}`}
+          animatedProps={animatedFillProps}
+          opacity={liveData ? 1 : 0.25}
         />
 
-        {/* Indicador de pico (hold) */}
-        {showPeak && peakG !== undefined && peakG > 0 && (
-          <AnimatedPath
-            d={`M ${center} ${center} m 0 ${-fillRadius} a ${fillRadius} ${fillRadius} 0 0 1 ${fillRadius * Math.sin((Math.min(peakG, maxG * 1.2) / maxG) * sweepAngle * Math.PI / 180) * 2} ${-fillRadius * (1 - Math.cos((Math.min(peakG, maxG * 1.2) / maxG) * sweepAngle * Math.PI / 180)) * 2}`}
-            stroke={sevColor}
-            strokeWidth={3}
-            fill="none"
-            strokeLinecap="round"
-            strokeDasharray="4 4"
-            animatedProps={peakIndicatorProps}
-          />
+        {/* 7. Muesca de Pico Máximo Físico Retenido (Peak Hold Pip) */}
+        {showPeak && peakG !== undefined && peakG > 0 && liveData && (
+          <G>
+            {/* Pequeño diamante / aguja en la coordenada exacta de pico */}
+            <Circle
+              cx={peakPipPos.x}
+              cy={peakPipPos.y}
+              r={3.5}
+              fill="#FFFFFF"
+              stroke={severityColor(peakVal)}
+              strokeWidth={1.5}
+            />
+          </G>
         )}
-
-        {/* Anillo interior decorativo */}
-        <Circle
-          cx={center}
-          cy={center}
-          r={innerRadius}
-          fill="none"
-          stroke="rgba(239,68,68,0.15)"
-          strokeWidth={1}
-          opacity={0.6}
-        />
-
-        {/* Círculo central con gradiente */}
-        <Circle cx={center} cy={center} r={centerRadius} fill="url(#centerGrad)" stroke="rgba(239,68,68,0.18)" strokeWidth={1} />
       </Svg>
 
-      {/* Badge de pico en el anillo interior */}
-      {showPeak && peakG !== undefined && peakG > 0 && liveData && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.peakBadge,
-            { top: center - centerRadius + 8, left: center - 50 },
-            peakBadgeStyle,
-          ]}
-        >
-          <Text style={styles.peakLabel}>{t ? t('dashboard.peak') : 'PEAK'}</Text>
-          <Text style={[styles.peakValue, { color: severityColor(peakG) }]}>
-            {peakG.toFixed(2)} G
-          </Text>
-        </Animated.View>
-      )}
-
-      {/* Punta luminosa fluida (renderizada fuera de SVG con estilo animado en UI thread) */}
-      <Animated.View
+      {/* 8. Punta Luminosa Líder (Glow Bead soldada a la cabeza del arco) */}
+      <AnimatedView
         pointerEvents="none"
         style={[
-          styles.tip,
-          { width: strokeWidth * 1.3, height: strokeWidth * 1.3, backgroundColor: sevColor },
+          styles.glowBead,
+          {
+            width: strokeWidth * 1.5,
+            height: strokeWidth * 1.5,
+            borderRadius: (strokeWidth * 1.5) / 2,
+            backgroundColor: '#FFFFFF',
+            borderColor: sevColor,
+          },
           tipAnimatedStyle,
         ]}
       />
 
-      {/* Centro - contenido tipográfico táctico */}
-      <View style={styles.center} pointerEvents="none">
-        <View style={styles.gValueRow}>
+      {/* 9. Clúster Central del Cockpit (Tipografía Monospaced y Balance) */}
+      <View style={[styles.centerDial, { width: dialR * 2, height: dialR * 2 }]} pointerEvents="box-none">
+        {/* Encabezado microscópico */}
+        <View style={styles.coreHeaderRow}>
+          <Ionicons
+            name={isCritical ? 'warning' : 'speedometer-outline'}
+            size={11}
+            color={liveData ? sevColor : COLORS.textDim}
+          />
+          <Text style={styles.coreEyebrow}>G-FORCE TELEMETRY</Text>
+        </View>
+
+        {/* Gran Display Numérico con Tabular Nums para eliminar jitter */}
+        <View style={styles.gDigitsContainer}>
           <Text
             style={[
-              styles.gValue,
-              { color: liveData ? COLORS.text : COLORS.textDim, fontSize: size * 0.19 },
+              styles.gIntegerText,
+              {
+                fontSize: size * 0.17,
+                color: liveData ? COLORS.text : COLORS.textDim,
+              },
             ]}
           >
-            {liveData ? gForce.toFixed(2) : '0.00'}
+            {intPart}
           </Text>
-          <Text style={[styles.gUnitInline, { color: sevColor, fontSize: size * 0.052 }]}>
+          <Text
+            style={[
+              styles.gDecimalText,
+              {
+                fontSize: size * 0.11,
+                color: liveData ? sevColor : COLORS.textDim,
+              },
+            ]}
+          >
+            .{decPart}
+          </Text>
+          <Text
+            style={[
+              styles.gUnitBadge,
+              {
+                fontSize: size * 0.05,
+                color: liveData ? sevColor : COLORS.textDim,
+              },
+            ]}
+          >
             G
           </Text>
         </View>
 
-        <Text style={[styles.gTelemetryLabel, { fontSize: size * 0.038 }]}>
-          FUERZA G RESULTANTE
-        </Text>
+        {/* Micro-Balance Triaxial en Vivo (Lateral X, Frontal Y, Vertical Z) */}
+        {liveData && (
+          <View style={styles.triaxialCluster}>
+            <View style={styles.axisItem}>
+              <Text style={styles.axisLabel}>X</Text>
+              <View style={styles.axisBarTrack}>
+                <View
+                  style={[
+                    styles.axisBarFill,
+                    {
+                      width: `${Math.min(100, Math.abs(gX) * 50)}%`,
+                      backgroundColor: Math.abs(gX) > 1.2 ? '#FB923C' : '#38BDF8',
+                      alignSelf: gX < 0 ? 'flex-end' : 'flex-start',
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.axisValue}>{Math.abs(gX).toFixed(1)}</Text>
+            </View>
 
-        <View style={[styles.severityPill, { borderColor: `${sevColor}40`, backgroundColor: `${sevColor}12` }]}>
+            <View style={styles.axisItem}>
+              <Text style={styles.axisLabel}>Y</Text>
+              <View style={styles.axisBarTrack}>
+                <View
+                  style={[
+                    styles.axisBarFill,
+                    {
+                      width: `${Math.min(100, Math.abs(gY) * 50)}%`,
+                      backgroundColor: Math.abs(gY) > 1.5 ? RED : '#38BDF8',
+                      alignSelf: gY < 0 ? 'flex-end' : 'flex-start',
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.axisValue}>{Math.abs(gY).toFixed(1)}</Text>
+            </View>
+
+            <View style={styles.axisItem}>
+              <Text style={styles.axisLabel}>Z</Text>
+              <View style={styles.axisBarTrack}>
+                <View
+                  style={[
+                    styles.axisBarFill,
+                    {
+                      width: `${Math.min(100, Math.abs(gZ) * 40)}%`,
+                      backgroundColor: Math.abs(gZ) > 2.0 ? RED : '#38BDF8',
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.axisValue}>{Math.abs(gZ).toFixed(1)}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Píldora de Severidad con LED Luminoso */}
+        <View
+          style={[
+            styles.statusPill,
+            {
+              borderColor: `${sevColor}45`,
+              backgroundColor: `${sevColor}14`,
+            },
+          ]}
+        >
           <View
             style={[
-              styles.severityDot,
-              { backgroundColor: liveData ? sevColor : COLORS.textDim },
+              styles.statusLed,
+              {
+                backgroundColor: liveData ? sevColor : COLORS.textDim,
+                shadowColor: sevColor,
+              },
             ]}
           />
-          <Text style={[styles.severityText, { color: liveData ? sevColor : COLORS.textDim }]}>
-            {liveData ? (severity || sevLabel).toUpperCase() : t ? t('common.noData') : 'SIN DATOS'}
+          <Text
+            style={[
+              styles.statusText,
+              {
+                color: liveData ? sevColor : COLORS.textDim,
+              },
+            ]}
+          >
+            {liveData ? (severity || sevLabel).toUpperCase() : (t ? t('common.noData') : 'SIN DATOS')}
           </Text>
         </View>
+
+        {/* Indicador de Pico Máximo con botón táctil de reinicio */}
+        {showPeak && peakG !== undefined && peakG > 0 && liveData && (
+          <TouchableOpacity
+            style={styles.peakInteractiveRow}
+            onPress={onResetPeak}
+            activeOpacity={0.7}
+            hitSlop={{ top: 6, bottom: 6, left: 10, right: 10 }}
+          >
+            <Ionicons name="flash" size={10} color={severityColor(peakVal)} />
+            <Text style={styles.peakHoldText}>
+              PICO MÁX: <Text style={{ color: severityColor(peakVal), fontWeight: '800' }}>{peakVal.toFixed(2)} G</Text>
+            </Text>
+            {onResetPeak && (
+              <Ionicons name="refresh" size={10} color="rgba(255,255,255,0.4)" style={{ marginLeft: 3 }} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -424,90 +559,150 @@ function GForceRingComponent({
 export default React.memo(GForceRingComponent);
 
 const styles = StyleSheet.create({
-  svg: { position: 'absolute', top: 0, left: 0 },
-  outerGlow: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255,59,48,0.18)',
-    alignSelf: 'center',
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  center: {
+  ambientAura: {
+    position: 'absolute',
+    ...SHADOWS.glow(RED, 0.25, 24),
+  },
+  glowBead: {
+    position: 'absolute',
+    borderWidth: 2,
+    ...SHADOWS.glow('#FFFFFF', 0.8, 10),
+  },
+  centerDial: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
-  gValueRow: {
+  coreHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 1,
+  },
+  coreEyebrow: {
+    fontFamily: FONT.heading,
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: 1.4,
+  },
+  gDigitsContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'center',
-    gap: 3,
+    marginVertical: -2,
   },
-  gValue: {
+  gIntegerText: {
     fontFamily: FONT.mono,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontWeight: '900',
+    letterSpacing: -1,
     includeFontPadding: false,
-    lineHeight: undefined,
+    fontVariant: ['tabular-nums'],
   },
-  gUnitInline: {
-    fontFamily: FONT.heading,
+  gDecimalText: {
+    fontFamily: FONT.mono,
     fontWeight: '800',
     includeFontPadding: false,
-    marginTop: 4,
+    marginTop: 6,
+    fontVariant: ['tabular-nums'],
   },
-  gTelemetryLabel: {
+  gUnitBadge: {
     fontFamily: FONT.heading,
-    fontWeight: '700',
-    color: COLORS.textDim,
-    letterSpacing: 1.8,
-    marginTop: 2,
-    marginBottom: 8,
-    textAlign: 'center',
+    fontWeight: '900',
+    includeFontPadding: false,
+    marginLeft: 3,
+    marginTop: 6,
   },
-  severityPill: {
+  triaxialCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  axisItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  axisLabel: {
+    fontFamily: FONT.mono,
+    fontSize: 8,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.4)',
+  },
+  axisBarTrack: {
+    width: 22,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
+  },
+  axisBarFill: {
+    height: '100%',
+    borderRadius: 1.5,
+  },
+  axisValue: {
+    fontFamily: FONT.mono,
+    fontSize: 8,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
+    fontVariant: ['tabular-nums'],
+  },
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3.5,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
+    marginTop: 2,
   },
-  severityDot: { width: 6, height: 6, borderRadius: 3 },
-  severityText: {
+  statusLed: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statusText: {
     fontFamily: FONT.heading,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    fontSize: 10,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.2,
   },
-  peakBadge: {
-    position: 'absolute',
+  peakInteractiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    gap: 3,
+    marginTop: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: RADIUS.pill,
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    ...SHADOWS.xs,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
-  peakLabel: {
-    color: COLORS.textDim,
-    fontSize: 8,
-    fontFamily: FONT.body,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  peakValue: {
+  peakHoldText: {
     fontFamily: FONT.mono,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  tip: {
-    position: 'absolute',
-    borderRadius: 999,
-    ...SHADOWS.glow(RED, 0.6, 12),
+    fontSize: 8.5,
+    color: 'rgba(255,255,255,0.65)',
+    letterSpacing: 0.6,
+    fontVariant: ['tabular-nums'],
   },
 });

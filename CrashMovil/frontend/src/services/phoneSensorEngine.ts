@@ -199,7 +199,7 @@ class PhoneSensorEngine {
         const detected: DetectedImpact = {
           acceleration: { x: data.accelX ?? 0, y: data.accelY ?? 0, z: data.accelZ ?? 0 },
           gyroscope: { x: data.gyroX ?? 0, y: data.gyroY ?? 0, z: data.gyroZ ?? 0 },
-          gForce: Math.max(nativeG, this.peakGForce),
+          gForce: nativeG,
           timestamp: new Date().toISOString(),
         };
         for (const listener of this.impactListeners) {
@@ -247,7 +247,7 @@ class PhoneSensorEngine {
     if (
       this.currentGForce >= this.alertThreshold &&
       now >= this.impactCooldownUntil &&
-      now - this.lastImpactTime > 15000
+      now - this.lastImpactTime >= 3000
     ) {
       if (!this.peakCaptureWindow) {
         this.peakCaptureWindow = true;
@@ -354,7 +354,10 @@ class PhoneSensorEngine {
     }
 
     if (this.peakWindowSamples.length === 0) {
-      const fallbackG = Math.max(this.peakGForce, this.currentGForce, this.alertThreshold);
+      const fallbackG = Math.max(this.currentGForce, this.alertThreshold);
+      if (fallbackG > this.peakGForce) {
+        this.peakGForce = fallbackG;
+      }
       const detected: DetectedImpact = {
         acceleration: { ...this.currentAccel },
         gyroscope: { ...this.currentGyro },
@@ -367,7 +370,7 @@ class PhoneSensorEngine {
       return;
     }
 
-    // Encontrar la muestra con el pico G más alto dentro de la ventana de 300ms
+    // Encontrar la muestra con el pico G más alto dentro de la ventana de 300ms de este impacto específico
     let maxSample = this.peakWindowSamples[0];
     for (const sample of this.peakWindowSamples) {
       if (sample.g > maxSample.g) {
@@ -375,13 +378,15 @@ class PhoneSensorEngine {
       }
     }
 
-    const peakG = Number(Math.max(maxSample.g, this.peakGForce, this.currentGForce, this.alertThreshold).toFixed(2));
-    this.peakGForce = peakG;
+    const currentImpactG = Number(Math.max(maxSample.g, this.alertThreshold).toFixed(2));
+    if (currentImpactG > this.peakGForce) {
+      this.peakGForce = currentImpactG;
+    }
 
     const detected: DetectedImpact = {
       acceleration: maxSample.accel,
       gyroscope: maxSample.gyro,
-      gForce: peakG,
+      gForce: currentImpactG,
       timestamp: new Date().toISOString(),
     };
 

@@ -23,6 +23,7 @@ import UpdateDownloader from '../../src/components/UpdateDownloader';
 import { DarkSwitch } from '../../src/components/DarkSwitch';
 import { useTabBarScroll } from '../../src/context/TabBarContext';
 import { usePhoneSensor } from '../../src/context/PhoneSensorContext';
+import { foregroundService } from '../../src/services/foregroundService';
 import { haptics } from '../../src/utils/haptics';
 
 function GroupSection({ label, children }: { label: string; children: React.ReactNode }) {
@@ -254,6 +255,21 @@ export default function SettingsScreen() {
                   onValueChange={setAutoReconnect}
                   label={t('settings.autoReconnect')}
                   icon="refresh"
+                  trackColor={COLORS.success}
+                  offTrackColor={COLORS.danger}
+                />
+
+                <DarkSwitch
+                  value={phoneSensorActive}
+                  onValueChange={async (val) => {
+                    haptics.selection();
+                    await togglePhoneSensor(val);
+                    if (!val) {
+                      foregroundService.stop();
+                    }
+                  }}
+                  label="Monitoreo en 2do Plano"
+                  icon="shield-checkmark-outline"
                   trackColor={COLORS.success}
                   offTrackColor={COLORS.danger}
                 />

@@ -302,7 +302,13 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { status } = await Location.getForegroundPermissionsAsync();
+      let { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        try {
+          const req = await Location.requestForegroundPermissionsAsync();
+          status = req.status;
+        } catch {}
+      }
       if (cancelled) return;
       if (status === 'granted') {
         setPermissionStatus(status);
@@ -324,6 +330,9 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
             }
           }
         }
+      } else {
+        setPermissionStatus(status);
+        setPermissionGranted(false);
       }
     })();
     return () => { cancelled = true; };

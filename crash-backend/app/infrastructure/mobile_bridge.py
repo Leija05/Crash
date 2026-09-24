@@ -124,9 +124,31 @@ class MobileBridge:
 
     async def _refresh_drivers(self) -> None:
         users = await self._db.users.find(
-            {"role": "user"},
-            {"_id": 1, "email": 1, "name": 1, "created_at": 1, "company_id": 1},
-        ).to_list(500)
+            {"$or": [
+                {"role": {"$in": ["user", "superadmin", "admin"]}},
+                {"role": {"$exists": False}},
+            ]},
+            {"_id": 1, "email": 1, "name": 1, "created_at": 1, "company_id": 1, "role": 1},
+        ).to_list(1000)
+
+        # Asegurarse de incluir a cualquier usuario con ubicación o telemetría activa en la base de datos
+        user_ids_in_list = {str(u["_id"]) for u in users}
+        live_loc_users = await self._db.user_live_locations.find({}, {"user_id": 1}).to_list(200)
+        missing_uids = [l["user_id"] for l in live_loc_users if l.get("user_id") and l["user_id"] not in user_ids_in_list]
+        if missing_uids:
+            valid_obj_ids = []
+            for m in missing_uids:
+                try:
+                    valid_obj_ids.append(ObjectId(m))
+                except Exception:
+                    pass
+            if valid_obj_ids:
+                extra_users = await self._db.users.find(
+                    {"_id": {"$in": valid_obj_ids}},
+                    {"_id": 1, "email": 1, "name": 1, "created_at": 1, "company_id": 1, "role": 1},
+                ).to_list(100)
+                users.extend(extra_users)
+
         now = datetime.now(timezone.utc)
         active_ids = set()
 
@@ -151,6 +173,8 @@ class MobileBridge:
 
             telemetry_age: Optional[float] = None
             t_candidates = []
+            t_ts = None
+            l_ts = None
             if telemetry:
                 t_ts = _parse_iso(telemetry.get("timestamp") or telemetry.get("ts"))
                 if t_ts:
@@ -185,9 +209,15 @@ class MobileBridge:
             else:
                 status = "offline"
 
-            lat, lng = _extract_coords(telemetry, recent_impact)
-            if (lat is None or lng is None) and live_location:
+            # Extraer coordenadas priorizando la fuente más reciente (live_location vs telemetry)
+            if l_ts and t_ts and l_ts >= t_ts and live_location:
                 lat, lng = _extract_coords(live_location, recent_impact)
+                if lat is None or lng is None:
+                    lat, lng = _extract_coords(telemetry, recent_impact)
+            else:
+                lat, lng = _extract_coords(telemetry, recent_impact)
+                if (lat is None or lng is None) and live_location:
+                    lat, lng = _extract_coords(live_location, recent_impact)
 
             speed = (
                 (telemetry or {}).get("speed_kmh")
@@ -216,6 +246,25 @@ class MobileBridge:
                 else ((telemetry or live_location or {}).get("timestamp") or now.isoformat())
             )
 
+            # Obtener migas de pan para dibujar la ruta del conductor en el mapa
+            route = []
+            try:
+                hist_docs = await self._db.location_history.find(
+                    {"user_id": uid}, {"_id": 0, "location": 1}
+                ).sort("timestamp", -1).to_list(20)
+                for h in reversed(hist_docs):
+                    h_loc = h.get("location") or {}
+                    h_lat = h_loc.get("latitude") if h_loc.get("latitude") is not None else h_loc.get("lat")
+                    h_lng = h_loc.get("longitude") if h_loc.get("longitude") is not None else h_loc.get("lng")
+                    if isinstance(h_lat, (int, float)) and isinstance(h_lng, (int, float)):
+                        route.append({"lat": float(h_lat), "lng": float(h_lng)})
+            except Exception:
+                pass
+
+            if lat is not None and lng is not None:
+                if not route or route[-1]["lat"] != lat or route[-1]["lng"] != lng:
+                    route.append({"lat": lat, "lng": lng})
+
             self.drivers[uid] = {
                 "id": uid,
                 "name": u.get("name") or email or uid,
@@ -233,6 +282,8 @@ class MobileBridge:
                 "caution": (live_location or {}).get("caution"),
                 "status": status,
                 "last_update": last_update_str,
+                "route": route,
+                "recent_path": route,
             }
 
         for stale in [k for k in self.drivers if k not in active_ids]:

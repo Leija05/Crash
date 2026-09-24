@@ -104,6 +104,18 @@ export const foregroundService = {
     }
   },
 
+  async resetPeakG(): Promise<boolean> {
+    if (!isAndroid || !ForegroundService) {
+      return false;
+    }
+    try {
+      await ForegroundService.resetPeakG();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
   async checkPermissions(): Promise<{ locationGranted: boolean; notificationsGranted: boolean; allGranted: boolean } | null> {
     if (!isAndroid || !ForegroundService) {
       return null;

@@ -8,6 +8,7 @@ declare module 'react-native' {
       setThreshold: (threshold: number) => Promise<boolean>;
       startEmergencyCountdown: (seconds: number, gForce: number) => Promise<boolean>;
       cancelEmergencyCountdown: () => Promise<boolean>;
+      resetPeakG: () => Promise<boolean>;
       checkPermissions: () => Promise<{ locationGranted: boolean; notificationsGranted: boolean; allGranted: boolean }>;
       isRunning: () => Promise<boolean>;
     };
